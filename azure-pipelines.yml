@@ -13,7 +13,7 @@ variables:
   - name: buildConfiguration
     value: 'Release'
   - name: dockerRegistry
-    value: 'your-dockerhub-username'  # Update with your Docker Hub username
+    value: '$(DOCKER_USERNAME)'  # Uses DOCKER_USERNAME from POS-Secrets variable group
   - name: imageName
     value: 'pos-api'
   - name: fullImageName
