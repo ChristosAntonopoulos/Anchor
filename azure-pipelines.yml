@@ -118,59 +118,29 @@ stages:
 
     - script: |
         cd mobile
-        echo "Configuring EAS project..."
+        echo "Verifying EAS project is configured..."
         echo ""
+        echo "Note: EAS project must be initialized locally first."
+        echo "If this is the first build, run 'eas init' locally in the mobile/ directory."
+        echo ""
+        echo "Checking project configuration..."
+        if [ -f "eas.json" ]; then
+          echo "✅ eas.json found"
+        else
+          echo "⚠️  eas.json not found - project may not be initialized"
+        fi
         
-        # Get Expo username from token
-        echo "Getting Expo account information..."
+        # Verify authentication
         EXPO_USERNAME=$(eas whoami 2>/dev/null | head -1 || echo "")
-        
         if [ -n "$EXPO_USERNAME" ]; then
           echo "✅ Authenticated as: $EXPO_USERNAME"
-          echo ""
-          echo "Checking if owner is set in app.json..."
-          if ! grep -q '"owner"' app.json 2>/dev/null; then
-            echo "Adding owner to app.json..."
-            # Add owner field to app.json (using jq if available, or sed)
-            if command -v jq &> /dev/null; then
-              jq '.expo.owner = "'"$EXPO_USERNAME"'"' app.json > app.json.tmp && mv app.json.tmp app.json
-            else
-              # Fallback: use sed to add owner field
-              sed -i 's/"slug": "pos-mobile",/"slug": "pos-mobile",\n    "owner": "'"$EXPO_USERNAME"'",/' app.json
-            fi
-            echo "✅ Owner added to app.json"
-          else
-            echo "✅ Owner already set in app.json"
-          fi
         else
-          echo "⚠️  Could not get Expo username. You may need to add 'owner' field to app.json manually."
-          echo "   Add this to mobile/app.json in the expo section:"
-          echo "   \"owner\": \"your-expo-username\""
+          echo "⚠️  Could not verify authentication"
         fi
         
         echo ""
-        echo "Project slug: pos-mobile"
-        echo "EAS will use this configuration for builds."
-      displayName: 'Configure EAS Project'
-      env:
-        EXPO_TOKEN: $(EXPO_TOKEN)
-      continueOnError: true
-
-    - script: |
-        cd mobile
-        echo "Initializing EAS project (if needed)..."
-        echo ""
-        echo "Note: EAS requires project initialization before first build."
-        echo "Attempting to initialize project..."
-        echo ""
-        # Try to initialize - this may fail if project already exists, which is OK
-        eas init --id pos-mobile --non-interactive 2>&1 || {
-          echo ""
-          echo "⚠️  eas init failed or project already exists."
-          echo "This is OK - EAS will use existing project or create it during build."
-          echo "Proceeding with build..."
-        }
-      displayName: 'Initialize EAS Project'
+        echo "Proceeding with build..."
+      displayName: 'Verify EAS Project Configuration'
       env:
         EXPO_TOKEN: $(EXPO_TOKEN)
       continueOnError: true
