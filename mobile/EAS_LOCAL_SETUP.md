@@ -10,9 +10,31 @@ Before the pipeline can build APKs, you need to create the EAS project locally. 
 npm install -g eas-cli
 ```
 
+**Note for Windows PowerShell users**: If you get an execution policy error, use one of these solutions:
+
+**Option A: Use npx (Recommended - No policy change needed)**
+```powershell
+npx eas-cli login
+npx eas-cli init
+```
+
+**Option B: Change execution policy for current session**
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
+eas login
+```
+
+**Option C: Use Command Prompt (cmd) instead of PowerShell**
+```cmd
+eas login
+```
+
 ### Step 2: Login to Expo
 
 ```bash
+# Use npx on Windows PowerShell, or regular eas if execution policy is fixed
+npx eas-cli login
+# OR
 eas login
 ```
 
@@ -27,6 +49,9 @@ cd mobile
 ### Step 4: Initialize EAS Project
 
 ```bash
+# Use npx on Windows PowerShell
+npx eas-cli init
+# OR (if execution policy is fixed)
 eas init
 ```
 
