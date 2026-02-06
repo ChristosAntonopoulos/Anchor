@@ -22,22 +22,22 @@ const DEV_API_BASE_URL = 'http://192.168.1.43:5000/api';
 /**
  * Production API Base URL Configuration
  * 
- * Production server: http://185.193.66.50:35555/api
+ * Production server: http://185.193.66.50:31247/api (NodePort)
  * 
  * For production deployments, set EXPO_PUBLIC_API_URL environment variable:
  * 
  * Option 1: Set in Expo build configuration
- *   expo build:android --env EXPO_PUBLIC_API_URL=http://185.193.66.50:35555/api
- *   expo build:ios --env EXPO_PUBLIC_API_URL=http://185.193.66.50:35555/api
+ *   expo build:android --env EXPO_PUBLIC_API_URL=http://185.193.66.50:31247/api
+ *   expo build:ios --env EXPO_PUBLIC_API_URL=http://185.193.66.50:31247/api
  * 
  * Option 2: Set in app.json (expo.extra)
  *   "extra": {
- *     "apiUrl": "http://185.193.66.50:35555/api"
+ *     "apiUrl": "http://185.193.66.50:31247/api"
  *   }
  * 
  * Option 3: The fallback URL below is set to the production server
  */
-const PROD_API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://185.193.66.50:35555/api';
+const PROD_API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://185.193.66.50:31247/api';
 
 export const API_CONFIG = {
   baseURL: isDev 
