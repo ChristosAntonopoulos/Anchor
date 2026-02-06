@@ -94,6 +94,38 @@ EXPO_PUBLIC_API_URL=http://185.193.66.50:31247/api npm start
 2. **Check API Config**: Verify `mobile/constants/apiConfig.ts` has the correct URL
 3. **Check CORS**: Ensure backend allows requests from your device
 
+## Automatic Hot Reload (Fast Refresh) 🔥
+
+**Expo Go automatically reloads your app when you make changes!** This is called "Fast Refresh" and it works out of the box.
+
+### How It Works
+
+1. **Keep the Expo dev server running** (`npm start`)
+2. **Keep the app open in Expo Go** on your phone
+3. **Edit any file** in `mobile/` directory
+4. **Save the file** - The app on your phone will **automatically update** within 1-2 seconds!
+
+### What Updates Automatically
+
+✅ **Component changes** - UI updates instantly  
+✅ **Style changes** - Colors, spacing, etc. update immediately  
+✅ **State changes** - Logic updates without losing app state  
+✅ **New screens** - New routes appear automatically  
+✅ **API calls** - Changes to API service files update immediately  
+
+### What Requires Manual Reload
+
+❌ **Native module changes** - Requires full reload (shake device → "Reload")  
+❌ **App configuration** (`app.json`) - Requires restart (`r` in terminal)  
+❌ **Environment variables** - Requires restart  
+
+### Tips for Best Experience
+
+- **Keep terminal visible** - You'll see "Fast Refresh" messages when changes apply
+- **Shake your device** - Opens Expo Go developer menu (reload, debug, etc.)
+- **Press `r` in terminal** - Manually reload the app
+- **Press `m` in terminal** - Open Expo DevTools in browser
+
 ## Development Workflow
 
 1. **Start Backend** (if testing locally):
@@ -102,15 +134,18 @@ EXPO_PUBLIC_API_URL=http://185.193.66.50:31247/api npm start
    dotnet run
    ```
 
-2. **Start Mobile App**:
+2. **Start Mobile App** (keep this running):
    ```bash
    cd mobile
    npm start
    ```
 
-3. **Scan QR Code** with Expo Go
+3. **Scan QR Code** with Expo Go (one time only)
 
-4. **Make Changes**: Edit code and see changes instantly (hot reload)
+4. **Start Coding!** 
+   - Edit any file in `mobile/`
+   - Save the file
+   - **Watch your phone** - changes appear automatically! 🎉
 
 ## Production Builds
 
