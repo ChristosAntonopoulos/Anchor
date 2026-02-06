@@ -129,6 +129,9 @@ See `k8s/README.md` for instructions on deploying MongoDB StatefulSet.
    - `DOCKER_USERNAME` - Your Docker Hub username
    - `DOCKER_PASSWORD` - Your Docker Hub password/token
    - `MONGO_CONNECTION_STRING` - MongoDB connection string with credentials
+     - Format: `mongodb://tradingbot:YourtradingbotPassword123@185.193.66.50:27017/pos?authSource=tradingbot`
+     - Database: `pos` (will be created automatically on first connection)
+     - See `backend/MONGODB_SETUP.md` for details
 
 #### Update Pipeline Variables
 
