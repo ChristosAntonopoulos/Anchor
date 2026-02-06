@@ -72,13 +72,32 @@ After initialization, check that these files exist:
 - `mobile/eas.json` ✅ (should already exist)
 - `mobile/app.json` should have the project configuration
 
+### Step 5: Set Up Android Credentials (One-Time)
+
+EAS needs Android credentials (keystore) to sign your APK. Set them up once:
+
+```bash
+# Use npx on Windows PowerShell
+npx eas-cli credentials
+# OR (if execution policy is fixed)
+eas credentials
+```
+
+**Follow the prompts:**
+- Select "Android"
+- Choose "Set up Android credentials"
+- Select "Let Expo manage your credentials" (recommended)
+- This will generate and store the keystore on Expo's servers
+
+**Note**: This is a one-time setup. After this, the pipeline will automatically use these credentials.
+
 ### Step 6: Commit the Configuration
 
-After running `eas init`, it may create or update some files. Commit any changes:
+After running `eas init` and `eas credentials`, commit any changes:
 
 ```bash
 git add mobile/
-git commit -m "Initialize EAS project locally"
+git commit -m "Initialize EAS project and configure credentials"
 git push
 ```
 
