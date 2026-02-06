@@ -158,6 +158,25 @@ stages:
 
     - script: |
         cd mobile
+        echo "Initializing EAS project (if needed)..."
+        echo ""
+        echo "Note: EAS requires project initialization before first build."
+        echo "Attempting to initialize project..."
+        echo ""
+        # Try to initialize - this may fail if project already exists, which is OK
+        eas init --id pos-mobile --non-interactive 2>&1 || {
+          echo ""
+          echo "⚠️  eas init failed or project already exists."
+          echo "This is OK - EAS will use existing project or create it during build."
+          echo "Proceeding with build..."
+        }
+      displayName: 'Initialize EAS Project'
+      env:
+        EXPO_TOKEN: $(EXPO_TOKEN)
+      continueOnError: true
+
+    - script: |
+        cd mobile
         echo "Starting EAS build for Android APK..."
         echo "Build profile: production"
         echo "API URL: http://185.193.66.50:31247/api"
