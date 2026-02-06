@@ -210,7 +210,7 @@ stages:
                     kubectl exec $POD_NAME -n $(kubernetesNamespace) -- env | grep -i connection || echo "No connection string env var found"
                     echo ""
                     echo "=== Health Check Test ==="
-                    kubectl exec $POD_NAME -n $(kubernetesNamespace) -- curl -s http://localhost:5000/health | head -20 || echo "Health check failed"
+                    kubectl exec $POD_NAME -n $(kubernetesNamespace) -- curl -s http://localhost:5000/api/health | head -20 || echo "Health check failed"
                     echo ""
                   fi
                 done
@@ -267,7 +267,7 @@ stages:
         POD_NAME=$(kubectl get pod -n $(kubernetesNamespace) -l app=pos-api -o jsonpath="{.items[0].metadata.name}" 2>/dev/null || echo "")
         if [ -n "$POD_NAME" ]; then
           echo "Testing health endpoint on pod: $POD_NAME"
-          kubectl exec -n $(kubernetesNamespace) $POD_NAME -- curl -f http://localhost:5000/health || exit 1
+          kubectl exec -n $(kubernetesNamespace) $POD_NAME -- curl -f http://localhost:5000/api/health || exit 1
         else
           echo "No API pods found!"
           exit 1
