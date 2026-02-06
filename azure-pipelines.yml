@@ -108,12 +108,8 @@ stages:
           exit 1
         fi
         echo "EXPO_TOKEN is set (length: ${#EXPO_TOKEN} characters)"
+        echo "EAS CLI will automatically use EXPO_TOKEN environment variable for authentication"
       displayName: 'Verify EXPO_TOKEN is set'
-      env:
-        EXPO_TOKEN: $(EXPO_TOKEN)
-
-    - script: 'eas login --non-interactive --token $(EXPO_TOKEN)'
-      displayName: 'Login to EAS'
       env:
         EXPO_TOKEN: $(EXPO_TOKEN)
 
