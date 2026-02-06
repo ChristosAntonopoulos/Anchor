@@ -24,25 +24,24 @@ const DEV_API_BASE_URL = 'http://192.168.1.43:5000/api';
  * 
  * Production server: http://185.193.66.50:31247/api (NodePort)
  * 
- * For production deployments, set EXPO_PUBLIC_API_URL environment variable:
- * 
- * Option 1: Set in Expo build configuration
- *   expo build:android --env EXPO_PUBLIC_API_URL=http://185.193.66.50:31247/api
- *   expo build:ios --env EXPO_PUBLIC_API_URL=http://185.193.66.50:31247/api
- * 
- * Option 2: Set in app.json (expo.extra)
- *   "extra": {
- *     "apiUrl": "http://185.193.66.50:31247/api"
- *   }
- * 
- * Option 3: The fallback URL below is set to the production server
+ * For production builds (APK/IPA), EXPO_PUBLIC_API_URL is set during EAS build.
+ * The fallback URL below is used if EXPO_PUBLIC_API_URL is not set.
  */
 const PROD_API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://185.193.66.50:31247/api';
 
+// Priority: EXPO_PUBLIC_API_URL > Production URL > Development URL
+const getApiBaseUrl = (): string => {
+  // If EXPO_PUBLIC_API_URL is set, use it (highest priority)
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+  
+  // In development mode, use dev URL; otherwise use production
+  return isDev ? DEV_API_BASE_URL : PROD_API_BASE_URL;
+};
+
 export const API_CONFIG = {
-  baseURL: isDev 
-    ? DEV_API_BASE_URL
-    : PROD_API_BASE_URL,
+  baseURL: getApiBaseUrl(),
   timeout: 10000, // 10 seconds
   headers: {
     'Content-Type': 'application/json',
