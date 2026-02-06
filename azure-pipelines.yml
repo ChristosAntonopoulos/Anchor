@@ -1,0 +1,284 @@
+# Azure DevOps Build and Deploy Pipeline for POS
+# Builds Docker images, pushes to Docker Hub, and deploys to Kubernetes
+
+trigger:
+    - master
+    - main
+
+variables:
+  # Variable group for secrets (optional - will use pipeline variables if group doesn't exist)
+  - group: POS-Secrets
+  - name: solution
+    value: 'backend/POS.sln'
+  - name: buildConfiguration
+    value: 'Release'
+  - name: dockerRegistry
+    value: 'your-dockerhub-username'  # Update with your Docker Hub username
+  - name: imageName
+    value: 'pos-api'
+  - name: fullImageName
+    value: '$(dockerRegistry)/$(imageName)'
+  - name: imageTag
+    value: '$(Build.BuildId)'
+  - name: dockerfilePath
+    value: 'backend/Dockerfile'
+  - name: kubernetesNamespace
+    value: 'pos'
+
+stages:
+- stage: Build
+  displayName: 'Build and Test'
+  jobs:
+  - job: Build
+    displayName: 'Build Application'
+    pool:
+      name: 'Default'
+    steps:
+    - script: 'dotnet restore $(solution)'
+      displayName: 'Restore NuGet packages'
+
+    - script: 'dotnet build $(solution) --configuration $(buildConfiguration) --no-restore'
+      displayName: 'Build solution'
+
+    - script: 'dotnet test $(solution) --configuration $(buildConfiguration) --no-build --verbosity normal'
+      displayName: 'Run tests'
+      continueOnError: true
+
+- stage: Package
+  displayName: 'Package Application'
+  dependsOn: Build
+  jobs:
+  - job: Package
+    displayName: 'Create and Push Docker Image'
+    pool:
+      name: 'Default'
+    steps:
+    - script: 'echo "$(DOCKER_PASSWORD)" | docker login -u "$(DOCKER_USERNAME)" --password-stdin'
+      displayName: 'Login to Docker Hub'
+      env:
+        DOCKER_USERNAME: $(DOCKER_USERNAME)
+        DOCKER_PASSWORD: $(DOCKER_PASSWORD)
+
+    - script: 'docker build -t $(fullImageName):$(imageTag) -t $(fullImageName):latest -f $(dockerfilePath) backend'
+      displayName: 'Build Docker image'
+
+    - script: 'docker push $(fullImageName):$(imageTag)'
+      displayName: 'Push Docker image with tag'
+
+    - script: 'docker push $(fullImageName):latest'
+      displayName: 'Push Docker image as latest'
+
+    - script: 'docker images | grep $(imageName)'
+      displayName: 'List Docker images'
+
+- stage: Deploy
+  displayName: 'Deploy to Kubernetes'
+  dependsOn: Package
+  condition: succeeded()
+  jobs:
+  - deployment: Deploy
+    displayName: 'Deploy API to Kubernetes'
+    environment: 'production'
+    pool:
+      name: 'Default'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - script: 'kubectl create namespace $(kubernetesNamespace) --dry-run=client -o yaml | kubectl apply -f -'
+            displayName: 'Ensure namespace exists'
+
+          - script: 'kubectl apply -f backend/k8s/namespace.yaml'
+            displayName: 'Apply namespace configuration'
+
+          - script: 'kubectl apply -f backend/k8s/configmap.yaml'
+            displayName: 'Apply ConfigMap'
+          
+          - task: Bash@3
+            displayName: 'Create Kubernetes Secrets'
+            inputs:
+              targetType: 'inline'
+              script: |
+                # Verify required variables are set
+                MISSING_VARS=()
+                
+                if [ -z "${MONGO_CONNECTION_STRING:-}" ]; then
+                  MISSING_VARS+=("MONGO_CONNECTION_STRING")
+                fi
+                
+                if [ -z "${DOCKER_USERNAME:-}" ]; then
+                  MISSING_VARS+=("DOCKER_USERNAME")
+                fi
+                
+                if [ -z "${DOCKER_PASSWORD:-}" ]; then
+                  MISSING_VARS+=("DOCKER_PASSWORD")
+                fi
+                
+                if [ ${#MISSING_VARS[@]} -gt 0 ]; then
+                  echo "ERROR: The following required variables are not set or are empty:"
+                  for var in "${MISSING_VARS[@]}"; do
+                    echo "  - $var"
+                  done
+                  echo ""
+                  echo "Please set these variables in:"
+                  echo "  1. Azure DevOps Variable Group 'POS-Secrets', OR"
+                  echo "  2. Pipeline-level variables"
+                  exit 1
+                fi
+                
+                # Verify connection string format (basic check)
+                if ! echo "${MONGO_CONNECTION_STRING}" | grep -q "mongodb"; then
+                  echo "WARNING: MONGO_CONNECTION_STRING may be malformed (should start with 'mongodb://' or 'mongodb+srv://')"
+                fi
+                
+                echo "Creating Kubernetes secrets..."
+                # Create or update secrets from pipeline variables
+                kubectl create secret generic pos-api-secrets \
+                  --from-literal=ConnectionStrings__MongoDb="${MONGO_CONNECTION_STRING}" \
+                  --namespace=$(kubernetesNamespace) \
+                  --dry-run=client -o yaml | kubectl apply -f -
+                
+                echo "Verifying secret was created..."
+                if kubectl get secret pos-api-secrets -n $(kubernetesNamespace) > /dev/null 2>&1; then
+                  CONN_STR_PREVIEW=$(kubectl get secret pos-api-secrets -n $(kubernetesNamespace) -o jsonpath='{.data.ConnectionStrings__MongoDb}' | base64 -d | head -c 50)
+                  echo "Secret created successfully. Connection string preview: ${CONN_STR_PREVIEW}..."
+                else
+                  echo "ERROR: Failed to create secret!"
+                  exit 1
+                fi
+          
+          - script: 'kubectl apply -f backend/k8s/api-deployment.yaml'
+            displayName: 'Apply API deployment'
+
+          - script: 'kubectl set image deployment/pos-api api=$(fullImageName):$(imageTag) -n $(kubernetesNamespace)'
+            displayName: 'Update API image'
+
+          - script: 'kubectl apply -f backend/k8s/api-service.yaml'
+            displayName: 'Apply API service'
+
+          - script: 'kubectl rollout status deployment/pos-api -n $(kubernetesNamespace) --timeout=600s'
+            displayName: 'Wait for API deployment rollout'
+            continueOnError: true
+
+          - script: |
+              echo "=== API Deployment Diagnostics ==="
+              echo ""
+              echo "=== Secret Verification ==="
+              if kubectl get secret pos-api-secrets -n $(kubernetesNamespace) > /dev/null 2>&1; then
+                echo "Secret 'pos-api-secrets' exists"
+                CONN_STR_LENGTH=$(kubectl get secret pos-api-secrets -n $(kubernetesNamespace) -o jsonpath='{.data.ConnectionStrings__MongoDb}' | wc -c)
+                if [ "$CONN_STR_LENGTH" -lt 10 ]; then
+                  echo "ERROR: Connection string in secret appears to be empty or too short!"
+                else
+                  echo "Connection string length: $CONN_STR_LENGTH characters (first 50 chars shown below)"
+                  kubectl get secret pos-api-secrets -n $(kubernetesNamespace) -o jsonpath='{.data.ConnectionStrings__MongoDb}' | base64 -d | head -c 50
+                  echo "..."
+                fi
+              else
+                echo "ERROR: Secret 'pos-api-secrets' does not exist!"
+              fi
+              echo ""
+              echo "=== Deployment Status ==="
+              kubectl get deployment pos-api -n $(kubernetesNamespace)
+              echo ""
+              echo "=== Pod Status ==="
+              kubectl get pods -n $(kubernetesNamespace) -l app=pos-api
+              echo ""
+              echo "=== Pod Details ==="
+              API_PODS=$(kubectl get pods -n $(kubernetesNamespace) -l app=pos-api -o jsonpath='{.items[*].metadata.name}' 2>/dev/null || echo "")
+              if [ -n "$API_PODS" ]; then
+                for POD_NAME in $API_PODS; do
+                  echo "=== Describing pod: $POD_NAME ==="
+                  kubectl describe pod $POD_NAME -n $(kubernetesNamespace)
+                  echo ""
+                  echo "=== Events for pod: $POD_NAME ==="
+                  kubectl get events -n $(kubernetesNamespace) --field-selector involvedObject.name=$POD_NAME --sort-by='.lastTimestamp' | tail -10
+                  echo ""
+                  POD_STATUS=$(kubectl get pod $POD_NAME -n $(kubernetesNamespace) -o jsonpath='{.status.phase}' 2>/dev/null || echo "Unknown")
+                  if [ "$POD_STATUS" = "Running" ]; then
+                    echo "=== Recent logs from pod: $POD_NAME ==="
+                    kubectl logs $POD_NAME -n $(kubernetesNamespace) --tail=50 || true
+                    echo ""
+                    echo "=== Environment Variables Check ==="
+                    kubectl exec $POD_NAME -n $(kubernetesNamespace) -- env | grep -i connection || echo "No connection string env var found"
+                    echo ""
+                    echo "=== Health Check Test ==="
+                    kubectl exec $POD_NAME -n $(kubernetesNamespace) -- curl -s http://localhost:5000/health | head -20 || echo "Health check failed"
+                    echo ""
+                  fi
+                done
+              else
+                echo "No API pods found!"
+              fi
+              echo ""
+              echo "=== Recent Namespace Events ==="
+              kubectl get events -n $(kubernetesNamespace) --sort-by='.lastTimestamp' | tail -20
+            displayName: 'API deployment diagnostics'
+            continueOnError: true
+
+          - script: |
+              echo "=== Checking if deployment is stuck ==="
+              ROLLOUT_STATUS=$(kubectl rollout status deployment/pos-api -n $(kubernetesNamespace) --timeout=1s 2>&1 || echo "failed")
+              
+              if ! echo "$ROLLOUT_STATUS" | grep -q "successfully rolled out\|deployment.*rolled out"; then
+                echo "Deployment may be stuck. Attempting to force scale down and back up..."
+                kubectl scale deployment pos-api --replicas=0 -n $(kubernetesNamespace)
+                sleep 10
+                kubectl scale deployment pos-api --replicas=2 -n $(kubernetesNamespace)
+                sleep 15
+              fi
+            displayName: 'Handle stuck deployment'
+            condition: failed()
+            continueOnError: true
+
+          - script: 'kubectl get pods -n $(kubernetesNamespace) -l app=pos-api'
+            displayName: 'Check API deployment status'
+
+          - script: 'kubectl get service pos-api-service -n $(kubernetesNamespace)'
+            displayName: 'Check API service status'
+
+- stage: HealthCheck
+  displayName: 'Health Check'
+  dependsOn: Deploy
+  condition: succeeded()
+  jobs:
+  - job: HealthCheck
+    displayName: 'Verify Deployment Health'
+    pool:
+      name: 'Default'
+    steps:
+    - script: 'kubectl get pods -n $(kubernetesNamespace)'
+      displayName: 'List all pods'
+
+    - script: 'kubectl get services -n $(kubernetesNamespace)'
+      displayName: 'List all services'
+
+    - script: 'kubectl get deployments -n $(kubernetesNamespace)'
+      displayName: 'Check deployment status'
+
+    - script: |
+        POD_NAME=$(kubectl get pod -n $(kubernetesNamespace) -l app=pos-api -o jsonpath="{.items[0].metadata.name}" 2>/dev/null || echo "")
+        if [ -n "$POD_NAME" ]; then
+          echo "Testing health endpoint on pod: $POD_NAME"
+          kubectl exec -n $(kubernetesNamespace) $POD_NAME -- curl -f http://localhost:5000/health || exit 1
+        else
+          echo "No API pods found!"
+          exit 1
+        fi
+      displayName: 'Check API Health'
+
+    - script: |
+        SERVICE_IP=$(kubectl get service pos-api-service -n $(kubernetesNamespace) -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+        if [ -n "$SERVICE_IP" ]; then
+          echo "API Service External IP: $SERVICE_IP"
+          echo "API Base URL: http://$SERVICE_IP:35555/api"
+          echo ""
+          echo "Update mobile app configuration with this URL:"
+          echo "  EXPO_PUBLIC_API_URL=http://$SERVICE_IP:35555/api"
+        else
+          echo "LoadBalancer IP not yet assigned. Check service status:"
+          kubectl get service pos-api-service -n $(kubernetesNamespace)
+          echo ""
+          echo "Expected server URL: http://185.193.66.50:35555/api"
+        fi
+      displayName: 'Display API URL for mobile app'

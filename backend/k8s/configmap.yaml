@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pos-api-config
+  namespace: pos
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  ASPNETCORE_URLS: "http://+:5000"
+  MongoDb__DatabaseName: "pos"
+  # MongoDB connection string without credentials (credentials in secrets)
+  # Format: mongodb://mongodb-service:27017/pos
+  # Or for external MongoDB: mongodb://host:port/database
+  # Actual connection string with credentials will be in secrets

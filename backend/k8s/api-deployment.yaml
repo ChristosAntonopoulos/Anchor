@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pos-api
+  namespace: pos
+  labels:
+    app: pos-api
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: pos-api
+  template:
+    metadata:
+      labels:
+        app: pos-api
+        version: v1
+    spec:
+      containers:
+      - name: api
+        image: pos-api:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5000
+          name: http
+          protocol: TCP
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: pos-api-config
+              key: ASPNETCORE_ENVIRONMENT
+        - name: ASPNETCORE_URLS
+          valueFrom:
+            configMapKeyRef:
+              name: pos-api-config
+              key: ASPNETCORE_URLS
+        - name: MongoDb__DatabaseName
+          valueFrom:
+            configMapKeyRef:
+              name: pos-api-config
+              key: MongoDb__DatabaseName
+        - name: ConnectionStrings__MongoDb
+          valueFrom:
+            secretKeyRef:
+              name: pos-api-secrets
+              key: ConnectionStrings__MongoDb
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+      volumes:
+      - name: logs
+        emptyDir: {}
+      restartPolicy: Always

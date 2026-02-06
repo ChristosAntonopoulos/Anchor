@@ -1,0 +1,199 @@
+# Personal Operating System (POS) - Mobile App Development Rules
+
+## Project Overview
+This is a React Native mobile app built with Expo SDK 52+ using Expo Router for navigation. The app uses TypeScript, Zustand for state management, and connects to a database-driven backend API. All data is stored in MongoDB and seeded automatically on backend startup.
+
+## Code Organization
+
+### Directory Structure
+- `app/` - Expo Router file-based routes (do not create custom navigation configs)
+- `components/` - Reusable UI components organized by feature (today/, tasks/, schedule/, etc.)
+- `services/` - API client with mock data implementation
+- `store/` - Zustand stores for state management
+- `types/` - TypeScript type definitions matching specification exactly
+- `constants/` - Design tokens, API config
+- `utils/` - Helper functions, formatters
+- `hooks/` - Custom React hooks
+
+### File Naming
+- Components: PascalCase (e.g., `BetterTodayItem.tsx`)
+- Utilities: camelCase (e.g., `formatDate.ts`)
+- Types: PascalCase interfaces/types (e.g., `TodayResponse.ts`)
+- Stores: camelCase with "use" prefix (e.g., `useTodayStore.ts`)
+
+## Coding Standards
+
+### TypeScript
+- Always use TypeScript - no `any` types unless absolutely necessary
+- Match all types exactly to the specification's JSON response examples
+- Use interfaces for API responses, types for unions/enums
+- Export types from `types/index.ts` for consistency
+
+### React Components
+- Use functional components with hooks only
+- Use `const` for component declarations
+- Implement proper prop types with TypeScript interfaces
+- Use React.memo for pure components that receive stable props
+- Keep components small and focused (single responsibility)
+
+### State Management
+- Use Zustand stores for global state
+- Keep stores focused (one store per domain: today, schedule, deadlines, etc.)
+- Store structure should match API response structure
+- Use selectors for derived state
+
+### API Layer
+- API client must match specification's JSON contract exactly
+- Uses HTTPAPIClient to connect to backend API (see mobile/services/api.ts)
+- All API methods return Promises
+- Use TypeScript interfaces for all request/response types
+- Backend automatically seeds initial data when database is empty (Development mode)
+
+## Design System
+
+### Design Tokens (from specification)
+- Colors: Use constants from `constants/designTokens.ts`
+  - Background: #F7F7F7
+  - Surface: #FFFFFF
+  - Text Primary: #1A1A1A
+  - Text Secondary: #6B6B6B
+  - Category accents: Work (#3B82F6), Leverage (#10B981), Health (#F59E0B), Stability (#8B5CF6)
+- Spacing: XS (4px), S (8px), M (16px), L (24px), XL (32px)
+- Typography: System fonts, Title (20-22px semibold), Body (15-16px regular), Caption (12-13px)
+
+### Styling
+- Use React Native StyleSheet API
+- Reference design tokens from constants
+- No inline styles except for dynamic values
+- Keep styles co-located with components when possible
+
+## Component Patterns
+
+### Screen Components
+- Screens live in `app/` directory (Expo Router)
+- Screens should be thin - delegate to components
+- Use hooks to fetch data from stores/API
+- Handle loading and error states
+
+### UI Components
+- Components should be reusable and composable
+- Accept props with clear TypeScript interfaces
+- Handle their own styling
+- Use design tokens for consistency
+
+## Navigation
+
+### Expo Router
+- Use file-based routing - do not create custom navigation configs
+- Tabs: `app/(tabs)/` directory
+- Stack: `app/more/` directory for nested navigation
+- Use `<Link>` and `useRouter()` from `expo-router` for navigation
+
+### Navigation Structure
+- Bottom tabs: Home, Tasks, Schedule, Discipline, More
+- Stack under "More": Money, Deadlines, Weekly Review, Settings
+
+## Error Handling
+
+### Error Boundaries
+- Implement error boundaries for critical sections
+- Show user-friendly error messages
+- Log errors appropriately
+
+### API Errors
+- Handle network errors gracefully
+- Show subtle error banners (not modals) per specification
+- No optimistic UI for critical actions (completion must succeed)
+
+### Loading States
+- Use calm loading indicators (no spinners everywhere)
+- Show loading states for async operations
+- Use skeleton screens where appropriate
+
+## Empty States
+
+Follow specification exactly:
+- Home: "Choose one thing to move forward today."
+- Tasks: "Add one task that makes today successful."
+- Money: "No income logged yet. That's okay. Keep building."
+- Deadlines: "No urgent commitments right now."
+- Global Error: "Something didn't load. Try again."
+
+## Data Flow
+
+### Frontend → API
+- Frontend never computes summaries - displays what backend/AI provides
+- All intelligence lives in backend/AI (currently mock)
+- Frontend is presentation layer only
+
+### State Updates
+- Update Zustand stores after successful API calls
+- Use stores to trigger re-renders
+- Keep local component state minimal
+
+## Best Practices
+
+### Performance
+- Use React.memo for expensive components
+- Lazy load routes/components when appropriate
+- Optimize useEffect dependencies
+- Avoid unnecessary re-renders
+
+### Code Quality
+- Write self-documenting code with clear variable names
+- Add JSDoc comments for complex functions
+- Keep functions small and focused
+- Avoid deep nesting (max 3 levels)
+
+### Testing
+- Write unit tests for utilities and services
+- Test components with React Testing Library
+- Test critical user flows
+
+## Specification Compliance
+
+### Critical Rules
+- Follow the specification document exactly
+- Do not invent new fields or features
+- Match JSON response formats exactly
+- Use exact component names from specification
+- Follow exact notification copy and timing
+- Implement exact empty state messages
+
+### What Frontend Must Never Do
+- Never calculate trends (backend provides)
+- Never infer motivation (backend provides)
+- Never reorder priorities (backend provides)
+- Never generate content (backend/AI provides)
+
+## Dependencies
+
+### Core
+- expo (latest SDK 52+)
+- expo-router (file-based routing)
+- react-native (latest compatible)
+- zustand (state management)
+- typescript
+
+### Development
+- @types/react
+- @types/react-native
+- eslint
+- prettier
+
+## When Adding New Features
+
+1. Check specification first - does it define this?
+2. If not in spec, ask before implementing
+3. Match existing patterns and structure
+4. Update types if adding new data structures
+5. Follow design tokens and spacing
+
+## Backend Integration (Future)
+
+When backend is ready:
+1. Replace mock data in `services/api.ts` with HTTP client (Axios)
+2. Update API base URL in constants
+3. Add proper error handling for network requests
+4. Test all endpoints match specification contract
+5. No changes needed to components/stores (abstraction layer handles it)
