@@ -42,40 +42,30 @@ public class BetterItemSeeder
             {
                 UserId = userId,
                 Date = today,
-                Title = "Complete morning deep work block",
+                Title = "2 hour coding",
                 Category = "work",
                 Completed = false,
-                Source = "user",
+                Source = "ai",
                 CreatedAt = DateTime.UtcNow
             },
             new BetterItem
             {
                 UserId = userId,
                 Date = today,
-                Title = "Send 3 client outreach emails",
+                Title = "Meditate",
+                Category = "health",
+                Completed = false,
+                Source = "ai",
+                CreatedAt = DateTime.UtcNow
+            },
+            new BetterItem
+            {
+                UserId = userId,
+                Date = today,
+                Title = "Solve one Real Life Problem",
                 Category = "leverage",
                 Completed = false,
-                Source = "user",
-                CreatedAt = DateTime.UtcNow
-            },
-            new BetterItem
-            {
-                UserId = userId,
-                Date = today,
-                Title = "20 minute meditation session",
-                Category = "health",
-                Completed = true,
-                Source = "user",
-                CreatedAt = DateTime.UtcNow
-            },
-            new BetterItem
-            {
-                UserId = userId,
-                Date = today,
-                Title = "Review and update monthly budget",
-                Category = "stability",
-                Completed = false,
-                Source = "user",
+                Source = "ai",
                 CreatedAt = DateTime.UtcNow
             }
         };

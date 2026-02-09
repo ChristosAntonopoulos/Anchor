@@ -2,11 +2,14 @@ using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using POS.Core.Constants;
 using POS.Core.Entities;
+using POS.Core.Entities.AIInput;
 using POS.Core.Entities.BetterToday;
+using POS.Core.Entities.CBT;
 using POS.Core.Entities.Deadlines;
 using POS.Core.Entities.Diet;
 using POS.Core.Entities.Discipline;
 using POS.Core.Entities.Money;
+using POS.Core.Entities.Notifications;
 using POS.Core.Entities.Schedule;
 using POS.Core.Entities.Tasks;
 using POS.Core.Entities.WeeklyReview;
@@ -28,6 +31,53 @@ public class DataSeeder
         _context = context;
         _logger = logger;
         _loggerFactory = loggerFactory;
+    }
+
+    /// <summary>
+    /// Delete ALL data from ALL collections (complete database cleanup)
+    /// This removes old structure data that may cause deserialization errors
+    /// </summary>
+    public async System.Threading.Tasks.Task DeleteAllCollectionsAsync()
+    {
+        _logger.LogInformation("Deleting all data from all collections (complete database cleanup)");
+
+        try
+        {
+            // Delete all data from all collections (empty filter = delete everything)
+            await _context.WeeklyReviews.DeleteManyAsync(Builders<WeeklyReview>.Filter.Empty);
+            await _context.Deadlines.DeleteManyAsync(Builders<Deadline>.Filter.Empty);
+            await _context.IncomeEntries.DeleteManyAsync(Builders<IncomeEntry>.Filter.Empty);
+            await _context.DietEntries.DeleteManyAsync(Builders<DietEntry>.Filter.Empty);
+            await _context.DisciplineEntries.DeleteManyAsync(Builders<DisciplineEntry>.Filter.Empty);
+            await _context.HabitDefinitions.DeleteManyAsync(Builders<HabitDefinition>.Filter.Empty);
+            await _context.ScheduleBlockInstances.DeleteManyAsync(Builders<ScheduleBlockInstance>.Filter.Empty);
+            await _context.ScheduleBlockDefinitions.DeleteManyAsync(Builders<ScheduleBlockDefinition>.Filter.Empty);
+            await _context.ScheduleBlockHistories.DeleteManyAsync(Builders<ScheduleBlockHistory>.Filter.Empty);
+            await _context.Tasks.DeleteManyAsync(Builders<POS.Core.Entities.Tasks.Task>.Filter.Empty);
+            await _context.BetterItems.DeleteManyAsync(Builders<BetterItem>.Filter.Empty);
+            await _context.BetterItemEvents.DeleteManyAsync(Builders<BetterItemEvent>.Filter.Empty);
+            await _context.HabitInsights.DeleteManyAsync(Builders<HabitInsight>.Filter.Empty);
+            await _context.MoneyInsights.DeleteManyAsync(Builders<MoneyInsight>.Filter.Empty);
+            await _context.DeadlineStatusSnapshots.DeleteManyAsync(Builders<DeadlineStatusSnapshot>.Filter.Empty);
+            await _context.DietRuleSets.DeleteManyAsync(Builders<DietRuleSet>.Filter.Empty);
+            await _context.Days.DeleteManyAsync(Builders<Day>.Filter.Empty);
+            await _context.Users.DeleteManyAsync(Builders<User>.Filter.Empty);
+            await _context.Categories.DeleteManyAsync(Builders<Category>.Filter.Empty);
+            await _context.AIInputs.DeleteManyAsync(Builders<AIInput>.Filter.Empty);
+            await _context.AIJobRuns.DeleteManyAsync(Builders<AIJobRun>.Filter.Empty);
+            await _context.CBTEntries.DeleteManyAsync(Builders<CBTEntry>.Filter.Empty);
+            await _context.MoodEntries.DeleteManyAsync(Builders<MoodEntry>.Filter.Empty);
+            await _context.BehavioralActivities.DeleteManyAsync(Builders<BehavioralActivity>.Filter.Empty);
+            await _context.Notifications.DeleteManyAsync(Builders<Notification>.Filter.Empty);
+            await _context.NotificationSettings.DeleteManyAsync(Builders<NotificationSettings>.Filter.Empty);
+
+            _logger.LogInformation("All collections cleaned successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting all collections");
+            throw;
+        }
     }
 
     /// <summary>
@@ -55,11 +105,13 @@ public class DataSeeder
             // Diet
             await _context.DietEntries.DeleteManyAsync(Builders<DietEntry>.Filter.Eq(d => d.UserId, userId));
             
-            // Discipline
+            // Discipline (DisciplineEntry and HabitDefinition)
             await _context.DisciplineEntries.DeleteManyAsync(Builders<DisciplineEntry>.Filter.Eq(d => d.UserId, userId));
+            await _context.HabitDefinitions.DeleteManyAsync(Builders<HabitDefinition>.Filter.Eq(h => h.UserId, userId));
             
-            // Schedule (ScheduleBlockInstance)
+            // Schedule (ScheduleBlockInstance and ScheduleBlockDefinition)
             await _context.ScheduleBlockInstances.DeleteManyAsync(Builders<ScheduleBlockInstance>.Filter.Eq(sb => sb.UserId, userId));
+            await _context.ScheduleBlockDefinitions.DeleteManyAsync(Builders<ScheduleBlockDefinition>.Filter.Eq(sb => sb.UserId, userId));
             
             // Task
             await _context.Tasks.DeleteManyAsync(Builders<POS.Core.Entities.Tasks.Task>.Filter.Eq(t => t.UserId, userId));
@@ -97,6 +149,7 @@ public class DataSeeder
 
             // Seed in order (dependencies first)
             await new UserSeeder(_context, _loggerFactory.CreateLogger<UserSeeder>()).SeedAsync(userId);
+            await new CategorySeeder(_context, _loggerFactory.CreateLogger<CategorySeeder>()).SeedAsync();
             await new DaySeeder(_context, _loggerFactory.CreateLogger<DaySeeder>()).SeedAsync(userId);
             await new BetterItemSeeder(_context, _loggerFactory.CreateLogger<BetterItemSeeder>()).SeedAsync(userId);
             await new TaskSeeder(_context, _loggerFactory.CreateLogger<TaskSeeder>()).SeedAsync(userId);

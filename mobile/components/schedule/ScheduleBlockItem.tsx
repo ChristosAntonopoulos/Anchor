@@ -58,6 +58,22 @@ export function ScheduleBlockItem({ block, isCurrent, onUpdate }: ScheduleBlockI
             />
           )}
         </View>
+        {block.routineActivities && block.routineActivities.length > 0 && (
+          <View style={styles.activitiesContainer}>
+            {block.routineActivities.map((activity, index) => (
+              <View key={index} style={styles.activityItem}>
+                <Ionicons 
+                  name="checkmark-circle-outline" 
+                  size={12} 
+                  color={isCurrent ? colors.category.work : colors.textSecondary} 
+                />
+                <Text style={[styles.activityText, isCurrent && styles.currentActivityText]}>
+                  {activity}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
         {isCurrent && <View style={styles.glowIndicator} />}
       </LinearGradient>
       </TouchableOpacity>
@@ -137,5 +153,21 @@ const styles = StyleSheet.create({
     width: 4,
     backgroundColor: colors.category.work,
     opacity: 0.8,
+  },
+  activitiesContainer: {
+    marginTop: spacing.s,
+    gap: spacing.xs,
+  },
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  activityText: {
+    fontSize: typography.fontSize.caption,
+    color: colors.textSecondary,
+  },
+  currentActivityText: {
+    color: colors.category.work + 'CC',
   },
 });

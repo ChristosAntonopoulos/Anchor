@@ -71,16 +71,13 @@ export function transformTask(dto: any): any {
 
 /**
  * Transforms DisciplineEntryDto to DisciplineEntry
- * Maps only fields needed by frontend
+ * Maps block-based structure
  */
 export function transformDisciplineEntry(dto: any): any {
   return {
-    gym: dto.gym || false,
-    walk: dto.walk || false,
-    cooked: dto.cooked || false,
-    diet: dto.diet || false,
-    meditation: dto.meditation || false,
-    water: dto.water || false,
+    blocks: dto.blocks || [],
+    note: dto.note,
+    date: dto.date,
   };
 }
 

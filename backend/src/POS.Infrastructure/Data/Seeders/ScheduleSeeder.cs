@@ -42,9 +42,21 @@ public class ScheduleSeeder
             {
                 UserId = userId,
                 Date = today,
-                Title = "Work",
+                Title = "Morning Routine",
+                StartTime = "06:00",
+                EndTime = "07:00",
+                Locked = true,
+                Source = "user",
+                RoutineActivities = new List<string> { "Drink water", "Brush teeth", "Morning walk" },
+                CreatedAt = DateTime.UtcNow
+            },
+            new ScheduleBlockInstance
+            {
+                UserId = userId,
+                Date = today,
+                Title = "Deep Work",
                 StartTime = "09:00",
-                EndTime = "10:16",
+                EndTime = "11:00",
                 Locked = true,
                 Source = "user",
                 CreatedAt = DateTime.UtcNow
@@ -53,11 +65,23 @@ public class ScheduleSeeder
             {
                 UserId = userId,
                 Date = today,
-                Title = "Work",
+                Title = "Focused Work",
                 StartTime = "14:00",
-                EndTime = "15:16",
+                EndTime = "16:00",
                 Locked = true,
                 Source = "user",
+                CreatedAt = DateTime.UtcNow
+            },
+            new ScheduleBlockInstance
+            {
+                UserId = userId,
+                Date = today,
+                Title = "Evening Routine",
+                StartTime = "21:00",
+                EndTime = "22:00",
+                Locked = true,
+                Source = "user",
+                RoutineActivities = new List<string> { "Close screens", "Read a book", "Brush teeth" },
                 CreatedAt = DateTime.UtcNow
             }
         };

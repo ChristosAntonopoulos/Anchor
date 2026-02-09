@@ -40,12 +40,38 @@ public class DisciplineSeeder
         {
             UserId = userId,
             Date = today,
-            Walk = true,
-            Diet = true,
-            Water = true,
-            Gym = false,
-            Cooked = false,
-            Meditation = true,
+            Blocks = new List<DisciplineBlock>
+            {
+                // 75 Hard Block
+                new DisciplineBlock
+                {
+                    BlockId = "75Hard",
+                    BlockName = "75 Hard",
+                    Order = 0,
+                    Items = new List<DisciplineItem>
+                    {
+                        new DisciplineItem { ItemId = "DietFollowed", ItemName = "Diet followed (no cheat meals, no alcohol)", Type = DisciplineItemType.Toggle, ToggleValue = false },
+                        new DisciplineItem { ItemId = "Workout1", ItemName = "Workout #1 (45 min)", Type = DisciplineItemType.Toggle, ToggleValue = false },
+                        new DisciplineItem { ItemId = "Workout2", ItemName = "Workout #2 (45 min – outdoor)", Type = DisciplineItemType.Toggle, ToggleValue = false },
+                        new DisciplineItem { ItemId = "GallonWater", ItemName = "1 gallon water", Type = DisciplineItemType.Toggle, ToggleValue = false },
+                        new DisciplineItem { ItemId = "Read10Pages", ItemName = "Read 10 pages nonfiction", Type = DisciplineItemType.Toggle, ToggleValue = false },
+                        new DisciplineItem { ItemId = "ProgressPhoto", ItemName = "Progress photo", Type = DisciplineItemType.Toggle, ToggleValue = false }
+                    }
+                },
+                // Habit Tracking Block
+                new DisciplineBlock
+                {
+                    BlockId = "HabitTracking",
+                    BlockName = "Habit Tracking",
+                    Order = 1,
+                    Items = new List<DisciplineItem>
+                    {
+                        new DisciplineItem { ItemId = "PrivateActivity", ItemName = "Private Activity", Type = DisciplineItemType.Counter, CounterValue = 0 },
+                        new DisciplineItem { ItemId = "Cigarettes", ItemName = "Cigarettes", Type = DisciplineItemType.Counter, CounterValue = 0 },
+                        new DisciplineItem { ItemId = "Coffee", ItemName = "Coffee", Type = DisciplineItemType.Counter, CounterValue = 0 }
+                    }
+                }
+            },
             CreatedAt = DateTime.UtcNow
         };
 

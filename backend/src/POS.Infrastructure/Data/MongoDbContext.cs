@@ -8,6 +8,9 @@ using POS.Core.Entities.Diet;
 using POS.Core.Entities.Money;
 using POS.Core.Entities.Deadlines;
 using POS.Core.Entities.WeeklyReview;
+using POS.Core.Entities.AIInput;
+using POS.Core.Entities.CBT;
+using POS.Core.Entities.Notifications;
 
 namespace POS.Infrastructure.Data;
 
@@ -75,4 +78,26 @@ public class MongoDbContext
     // Weekly Review collection
     public IMongoCollection<WeeklyReview> WeeklyReviews => 
         _database.GetCollection<WeeklyReview>("weeklyReviews");
+
+    // AI Input collection
+    public IMongoCollection<AIInput> AIInputs => 
+        _database.GetCollection<AIInput>("aiInputs");
+
+    // Categories collection (global, not user-specific)
+    public IMongoCollection<Category> Categories => 
+        _database.GetCollection<Category>("categories");
+
+    // CBT collections
+    public IMongoCollection<CBTEntry> CBTEntries => 
+        _database.GetCollection<CBTEntry>("cbtEntries");
+    public IMongoCollection<MoodEntry> MoodEntries => 
+        _database.GetCollection<MoodEntry>("moodEntries");
+    public IMongoCollection<BehavioralActivity> BehavioralActivities => 
+        _database.GetCollection<BehavioralActivity>("behavioralActivities");
+
+    // Notification collections
+    public IMongoCollection<Notification> Notifications => 
+        _database.GetCollection<Notification>("notifications");
+    public IMongoCollection<NotificationSettings> NotificationSettings => 
+        _database.GetCollection<NotificationSettings>("notificationSettings");
 }

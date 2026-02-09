@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography } from '../../constants/designTokens';
 import { DeadlineCard } from './DeadlineCard';
 import type { Deadline } from '../../types';

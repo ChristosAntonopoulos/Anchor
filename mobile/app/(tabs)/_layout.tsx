@@ -114,13 +114,19 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="cbt"
+          options={{
+            title: 'CBT',
+            tabBarLabel: 'CBT',
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="bulb-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="discipline"
           options={{
-            title: 'Discipline',
-            tabBarLabel: 'Discipline',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="star-outline" size={size} color={color} />
-            ),
+            href: null, // Hide from tab bar
           }}
         />
       </Tabs>

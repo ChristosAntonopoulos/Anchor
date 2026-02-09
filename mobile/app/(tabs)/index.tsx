@@ -4,19 +4,25 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, gradients } from '../../constants/designTokens';
 import { useTodayStore } from '../../store/useTodayStore';
+import { useNotificationStore } from '../../store/useNotificationStore';
 import { TodayHeader } from '../../components/today/TodayHeader';
 import { BetterTodayList } from '../../components/today/BetterTodayList';
 import { CurrentBlockIndicator } from '../../components/today/CurrentBlockIndicator';
 import { DisciplineQuickToggle } from '../../components/today/DisciplineQuickToggle';
 import { DeadlineWarningBanner } from '../../components/today/DeadlineWarningBanner';
+import { NaturalLanguageInput } from '../../components/tasks/NaturalLanguageInput';
+import { NotificationAccessPrompt } from '../../components/notifications/NotificationAccessPrompt';
 
 export default function HomeScreen() {
-  const { data, loading, error, fetchToday, completeBetterItem, acceptBetterItem, editBetterItem, rejectBetterItem, updateDiscipline } = useTodayStore();
+  const { data, loading, error, fetchToday, completeBetterItem, acceptBetterItem, editBetterItem, rejectBetterItem, submitAIInput } = useTodayStore();
+  const { checkStatus, startListening } = useNotificationStore();
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetchToday();
-  }, [fetchToday]);
+    // Check notification access status
+    checkStatus();
+  }, [fetchToday, checkStatus]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -92,6 +98,18 @@ export default function HomeScreen() {
         >
           <TodayHeader date={data.day.date} />
           
+          <NotificationAccessPrompt
+            onEnabled={() => {
+              startListening();
+            }}
+          />
+          
+          <NaturalLanguageInput
+            onSubmit={async (text) => {
+              await submitAIInput(text);
+            }}
+          />
+          
           <BetterTodayList
             items={data.betterItems}
             onToggleItem={completeBetterItem}
@@ -104,11 +122,6 @@ export default function HomeScreen() {
 
           <DisciplineQuickToggle
             discipline={data.discipline}
-            onToggle={(key) => {
-              updateDiscipline({
-                [key]: !data.discipline[key],
-              });
-            }}
           />
 
           {data.deadlineWarning && (

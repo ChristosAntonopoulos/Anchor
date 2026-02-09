@@ -24,6 +24,9 @@ public class ScheduleBlockInstance : DayAnchoredEntity
 
     [BsonElement("source")]
     public string Source { get; set; } = "user"; // ai|user
+
+    [BsonElement("routineActivities")]
+    public List<string>? RoutineActivities { get; set; } // Activities for this routine instance
 }
 
 public enum InstanceSource

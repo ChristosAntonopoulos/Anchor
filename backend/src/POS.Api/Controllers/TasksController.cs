@@ -58,6 +58,17 @@ public class TasksController : BaseController
     }
 
     /// <summary>
+    /// Update a task (partial update)
+    /// </summary>
+    [HttpPatch("{id}")]
+    public async Task<IActionResult> UpdateTask(string id, [FromBody] UpdateTaskRequest request)
+    {
+        var userId = GetUserId();
+        var task = await _taskService.UpdateTaskAsync(id, request, userId);
+        return Success(task);
+    }
+
+    /// <summary>
     /// Delete a task
     /// </summary>
     [HttpDelete("{id}")]
@@ -70,5 +81,16 @@ public class TasksController : BaseController
             return Success("Task deleted successfully");
         }
         return NotFound("Task not found");
+    }
+
+    /// <summary>
+    /// Get tasks near a location
+    /// </summary>
+    [HttpGet("nearby")]
+    public async Task<IActionResult> GetTasksNearby([FromQuery] double latitude, [FromQuery] double longitude, [FromQuery] double? radiusKm = 5.0)
+    {
+        var userId = GetUserId();
+        var tasks = await _taskService.GetTasksNearLocationAsync(userId, latitude, longitude, radiusKm ?? 5.0);
+        return Success(tasks);
     }
 }

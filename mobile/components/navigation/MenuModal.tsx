@@ -11,12 +11,14 @@ interface MenuModalProps {
 
 interface MenuItem {
   title: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: string; // Icon name from Ionicons
   route: string;
   color: string;
 }
 
 const menuItems: MenuItem[] = [
+  { title: 'Discipline', icon: 'star-outline', route: '/(tabs)/discipline', color: colors.category.health },
+  { title: 'Notifications', icon: 'notifications-outline', route: '/more/notifications', color: colors.category.work },
   { title: 'Money', icon: 'cash-outline', route: '/more/money', color: colors.category.leverage },
   { title: 'Deadlines', icon: 'calendar-outline', route: '/more/deadlines', color: colors.category.work },
   { title: 'Weekly Review', icon: 'document-text-outline', route: '/more/weekly-review', color: colors.category.stability },

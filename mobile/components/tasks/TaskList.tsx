@@ -7,9 +7,10 @@ import type { Task } from '../../types';
 interface TaskListProps {
   tasks: Task[];
   onToggleTask: (id: string) => void;
+  onTaskPress?: (task: Task) => void;
 }
 
-export function TaskList({ tasks, onToggleTask }: TaskListProps) {
+export function TaskList({ tasks, onToggleTask, onTaskPress }: TaskListProps) {
   if (tasks.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -26,6 +27,7 @@ export function TaskList({ tasks, onToggleTask }: TaskListProps) {
           key={task.id}
           task={task}
           onToggle={() => onToggleTask(task.id)}
+          onPress={onTaskPress ? () => onTaskPress(task) : undefined}
         />
       ))}
     </View>

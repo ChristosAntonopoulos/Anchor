@@ -13,12 +13,17 @@ using POS.Application.Services.Schedule;
 using POS.Application.Services.Tasks;
 using POS.Application.Services.Today;
 using POS.Application.Services.WeeklyReview;
+using POS.Application.Services.AIInput;
+using POS.Application.Services.Category;
+using POS.Application.Services.CBT;
+using POS.Application.Services.Notifications;
 using POS.Application.Validators.BetterToday;
 using POS.Application.Validators.Deadlines;
 using POS.Application.Validators.Money;
 using POS.Application.Validators.Schedule;
 using POS.Application.Validators.Tasks;
 using POS.Application.Validators.WeeklyReview;
+using POS.Core.Configuration;
 using POS.Infrastructure.Data;
 using POS.Infrastructure.Data.Seeders;
 using Serilog;
@@ -61,9 +66,17 @@ builder.Services.AddScoped<DietService>();
 builder.Services.AddScoped<MoneyService>();
 builder.Services.AddScoped<DeadlineService>();
 builder.Services.AddScoped<WeeklyReviewService>();
+builder.Services.AddScoped<AIInputService>();
+builder.Services.AddScoped<CategoryService>();
+builder.Services.AddScoped<CBTService>();
+builder.Services.AddScoped<NotificationService>();
 
 // Register database seeder
 builder.Services.AddScoped<DataSeeder>();
+
+// Configure database settings
+builder.Services.Configure<DatabaseSettings>(
+    builder.Configuration.GetSection("Database"));
 
 // Configure API behavior
 builder.Services.Configure<ApiBehaviorOptions>(options =>
@@ -170,7 +183,7 @@ app.UseCors();
 // Map controllers
 app.MapControllers();
 
-// Auto-seed database on startup if empty (Development only)
+// Auto-seed database on startup if enabled (Development only)
 if (app.Environment.IsDevelopment())
 {
     try
@@ -178,17 +191,24 @@ if (app.Environment.IsDevelopment())
         using var scope = app.Services.CreateScope();
         var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
         
-        var isSeeded = await seeder.IsSeededAsync();
-        if (!isSeeded)
+        // Read auto-seed configuration
+        var databaseSettings = configuration.GetSection("Database").Get<DatabaseSettings>();
+        var autoSeedEnabled = databaseSettings?.AutoSeedOnStartup ?? false;
+        
+        if (!autoSeedEnabled)
         {
-            logger.LogInformation("Database is empty. Auto-seeding initial data...");
-            await seeder.SeedAsync();
-            logger.LogInformation("Database auto-seeding completed successfully.");
+            logger.LogInformation("Auto-seeding is disabled in configuration. Skipping auto-seed.");
         }
         else
         {
-            logger.LogInformation("Database already contains data. Skipping auto-seed.");
+            logger.LogInformation("Auto-seeding is enabled. Cleaning all collections and reseeding database...");
+            // Always clean all collections first to remove old structure data
+            await seeder.DeleteAllCollectionsAsync();
+            // Then seed with new structure
+            await seeder.SeedAsync();
+            logger.LogInformation("Database auto-seeding completed successfully. Set 'Database:AutoSeedOnStartup' to false to disable.");
         }
     }
     catch (Exception ex)

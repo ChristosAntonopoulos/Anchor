@@ -6,10 +6,14 @@ import { colors, gradients } from '../../constants/designTokens';
 import { useTodayStore } from '../../store/useTodayStore';
 import { TaskList } from '../../components/tasks/TaskList';
 import { AddTaskButton } from '../../components/tasks/AddTaskButton';
+import { TaskDetailModal } from '../../components/tasks/TaskDetailModal';
+import type { Task } from '../../types';
 
 export default function TasksScreen() {
-  const { data, loading, error, fetchToday, createTask, completeTask } = useTodayStore();
+  const { data, loading, error, fetchToday, createTask, completeTask, updateTask } = useTodayStore();
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [showTaskModal, setShowTaskModal] = useState(false);
 
   useEffect(() => {
     if (!data) {
@@ -58,12 +62,32 @@ export default function TasksScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.category.work} />
           }
         >
-          <TaskList tasks={tasks} onToggleTask={completeTask} />
+          <TaskList
+            tasks={tasks}
+            onToggleTask={completeTask}
+            onTaskPress={(task) => {
+              setSelectedTask(task);
+              setShowTaskModal(true);
+            }}
+          />
           <AddTaskButton
             onAddTask={(title, category) => createTask(title, category)}
             disabled={!canAddTask}
           />
         </ScrollView>
+        <TaskDetailModal
+          task={selectedTask}
+          visible={showTaskModal}
+          onClose={() => {
+            setShowTaskModal(false);
+            setSelectedTask(null);
+          }}
+          onSave={async (updates) => {
+            if (selectedTask) {
+              await updateTask(selectedTask.id, updates);
+            }
+          }}
+        />
       </SafeAreaView>
     </LinearGradient>
   );
