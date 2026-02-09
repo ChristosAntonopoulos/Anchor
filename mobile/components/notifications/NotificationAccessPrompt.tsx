@@ -12,6 +12,7 @@ interface NotificationAccessPromptProps {
 export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPromptProps) {
   const [isEnabled, setIsEnabled] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     checkStatus();
@@ -37,15 +38,23 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
       if (enabled && onEnabled) {
         onEnabled();
       }
+      setError(null);
     } catch (error) {
       console.error('Error checking notification access:', error);
+      setError('Failed to check notification access status');
     } finally {
       setChecking(false);
     }
   };
 
   const handleOpenSettings = () => {
-    notificationListener.openSettings();
+    try {
+      setError(null);
+      notificationListener.openSettings();
+    } catch (error) {
+      console.error('Error opening settings:', error);
+      setError('Failed to open settings. Please go to Settings → Apps → Special app access → Notification access manually.');
+    }
   };
 
   if (Platform.OS !== 'android') {
@@ -96,6 +105,13 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
           </View>
         </View>
 
+        {error && (
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle-outline" size={20} color={colors.error || '#FF6B6B'} />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
         <TouchableOpacity
           style={styles.enableButton}
           onPress={handleOpenSettings}
@@ -113,7 +129,10 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
         </TouchableOpacity>
 
         <Text style={styles.hint}>
-          Tap "Open Settings" and enable "Personal Operating System" in the notification access list.
+          Tap "Open Settings" to go to Notification access settings. Then find and enable "Personal Operating System" in the list.
+        </Text>
+        <Text style={styles.hintSecondary}>
+          Note: This is different from regular app permissions. Look for "Notification access" in Settings → Apps → Special app access.
         </Text>
       </LinearGradient>
     </View>
@@ -211,5 +230,28 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
     marginTop: spacing.xs,
+  },
+  hintSecondary: {
+    fontSize: typography.fontSize.caption,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.xs,
+    opacity: 0.8,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.s,
+    padding: spacing.m,
+    backgroundColor: (colors.error || '#FF6B6B') + '20',
+    borderRadius: borderRadius.small,
+    marginBottom: spacing.m,
+    borderWidth: 1,
+    borderColor: (colors.error || '#FF6B6B') + '40',
+  },
+  errorText: {
+    fontSize: typography.fontSize.caption,
+    color: colors.error || '#FF6B6B',
+    flex: 1,
   },
 });

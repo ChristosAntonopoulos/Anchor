@@ -43,9 +43,16 @@ export interface NotificationListenerService {
 
 class NotificationListenerServiceImpl implements NotificationListenerService {
   async isEnabled(): Promise<boolean> {
-    if (!isAndroid || !NotificationListenerModule) {
+    if (!isAndroid) {
+      console.log('Notification listener is only available on Android');
       return false;
     }
+    
+    if (!NotificationListenerModule) {
+      console.warn('NotificationListenerModule is not available. Make sure the native module is properly registered.');
+      return false;
+    }
+    
     try {
       return await NotificationListenerModule.isNotificationServiceEnabled();
     } catch (error) {
@@ -55,17 +62,35 @@ class NotificationListenerServiceImpl implements NotificationListenerService {
   }
 
   openSettings(): void {
-    if (!isAndroid || !NotificationListenerModule) {
+    if (!isAndroid) {
       console.warn('Notification listener is only available on Android');
       return;
     }
-    NotificationListenerModule.openNotificationSettings();
+    
+    if (!NotificationListenerModule) {
+      console.error('NotificationListenerModule is not available. Make sure the native module is properly registered.');
+      return;
+    }
+    
+    try {
+      console.log('Opening notification access settings...');
+      NotificationListenerModule.openNotificationSettings();
+    } catch (error) {
+      console.error('Error opening notification settings:', error);
+      throw error;
+    }
   }
 
   async getActiveNotifications(): Promise<NotificationData[]> {
-    if (!isAndroid || !NotificationListenerModule) {
+    if (!isAndroid) {
       return [];
     }
+    
+    if (!NotificationListenerModule) {
+      console.warn('NotificationListenerModule is not available. Make sure the native module is properly registered.');
+      return [];
+    }
+    
     try {
       const notifications = await NotificationListenerModule.getActiveNotifications();
       return notifications || [];
