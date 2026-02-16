@@ -79,6 +79,8 @@ android/app/src/debugOptimized/
 !mobile/android/gradle.properties
 !mobile/android/gradlew
 !mobile/android/gradlew.bat
+# Allow Gradle wrapper files (needed for builds)
+!mobile/android/gradle/wrapper/
 .kotlin/
 *.orig.*
 *.jks
