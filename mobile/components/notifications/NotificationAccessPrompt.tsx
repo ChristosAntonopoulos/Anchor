@@ -65,13 +65,14 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
       
       if (!hasModule) {
         console.warn('[NotificationAccessPrompt] NotificationListenerModule not available!');
-        setError('Notification module not available. Please rebuild the app.');
+        setError('Notification module not available. This feature requires a rebuild with native code enabled.');
         setCheckFailed(true);
         setIsEnabled(false);
         setChecking(false);
         return;
       }
 
+      // isEnabled() now returns false gracefully instead of throwing
       const enabled = await notificationListener.isEnabled();
       console.log('[NotificationAccessPrompt] Notification access enabled:', enabled);
       
@@ -100,7 +101,24 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
     try {
       console.log('[NotificationAccessPrompt] Opening notification settings...');
       setError(null);
+      
+      // Check if module is available before trying to open settings
+      const { NativeModules } = require('react-native');
+      const hasModule = !!NativeModules.NotificationListenerModule;
+      
+      if (!hasModule) {
+        setError('Notification module not available. Cannot open settings. Please rebuild the app with native code enabled.');
+        return;
+      }
+      
+      // openSettings() now returns gracefully instead of throwing
       notificationListener.openSettings();
+      
+      // Give it a moment, then check if settings were actually opened
+      // If the module isn't working, we'll catch it on the next status check
+      setTimeout(() => {
+        checkStatus();
+      }, 1000);
     } catch (error: any) {
       console.error('[NotificationAccessPrompt] Error opening settings:', error);
       const errorMessage = error?.message || 'Failed to open settings';
@@ -181,7 +199,7 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
           <View style={styles.errorContainer}>
             <Ionicons name="warning-outline" size={20} color={colors.error || '#FF6B6B'} />
             <Text style={styles.errorText}>
-              Native notification module not found. Please rebuild the app with native code.
+              Native notification module not found. This feature requires a development build with native code. The notification access feature will not be available in this build.
             </Text>
           </View>
         )}

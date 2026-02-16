@@ -62,10 +62,11 @@ class NotificationListenerServiceImpl implements NotificationListenerService {
     }
     
     if (!NotificationListenerModule) {
-      console.error('[NotificationListener] NotificationListenerModule is not available!');
-      console.error('[NotificationListener] Make sure the native module is properly registered in MainApplication.kt');
-      console.error('[NotificationListener] Available modules:', Object.keys(NativeModules));
-      throw new Error('NotificationListenerModule not available. Native module may not be registered.');
+      console.warn('[NotificationListener] NotificationListenerModule is not available!');
+      console.warn('[NotificationListener] Make sure the native module is properly registered in MainApplication.kt');
+      console.warn('[NotificationListener] Available modules:', Object.keys(NativeModules));
+      // Return false instead of throwing - graceful degradation
+      return false;
     }
     
     try {
@@ -80,7 +81,8 @@ class NotificationListenerServiceImpl implements NotificationListenerService {
         code: error?.code,
         stack: error?.stack,
       });
-      throw new Error(`Failed to check notification service: ${error?.message || 'Unknown error'}`);
+      // Return false instead of throwing - graceful degradation
+      return false;
     }
   }
 
@@ -89,12 +91,15 @@ class NotificationListenerServiceImpl implements NotificationListenerService {
     
     if (!isAndroid) {
       console.warn('[NotificationListener] Not Android platform');
-      throw new Error('Notification listener is only available on Android');
+      // Don't throw - just log and return gracefully
+      return;
     }
     
     if (!NotificationListenerModule) {
-      console.error('[NotificationListener] NotificationListenerModule is not available!');
-      throw new Error('NotificationListenerModule not available. Native module may not be registered.');
+      console.warn('[NotificationListener] NotificationListenerModule is not available!');
+      console.warn('[NotificationListener] Cannot open settings - native module not registered');
+      // Don't throw - just log and return gracefully
+      return;
     }
     
     try {
@@ -107,7 +112,8 @@ class NotificationListenerServiceImpl implements NotificationListenerService {
         message: error?.message,
         code: error?.code,
       });
-      throw new Error(`Failed to open settings: ${error?.message || 'Unknown error'}`);
+      // Don't throw - just log the error
+      // The UI component will handle showing an appropriate message
     }
   }
 

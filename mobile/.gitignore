@@ -36,6 +36,13 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-# generated native folders
+# generated native folders (for managed Expo workflow)
+# Note: /android is kept for custom native modules
 /ios
-/android
+
+# Android build artifacts (keep source files)
+/android/app/build/
+/android/build/
+/android/.gradle/
+/android/local.properties
+/android/app/debug.keystore
