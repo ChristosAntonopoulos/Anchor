@@ -171,7 +171,7 @@ public class DisciplineController : BaseController
     /// <summary>
     /// Get discipline entries by date range
     /// </summary>
-    [HttpGet]
+    [HttpGet("range")]
     [ProducesResponseType(typeof(ApiResponse<DisciplineEntryDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<List<DisciplineEntryDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetDisciplineByDateRange([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)

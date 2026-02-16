@@ -67,7 +67,7 @@ public class WeeklyReviewController : BaseController
     /// <summary>
     /// Get weekly reviews by date range
     /// </summary>
-    [HttpGet]
+    [HttpGet("range")]
     [ProducesResponseType(typeof(ApiResponse<WeeklyReviewDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<List<WeeklyReviewDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetWeeklyReviewsByDateRange([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)

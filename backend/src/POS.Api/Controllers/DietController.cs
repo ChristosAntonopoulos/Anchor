@@ -85,7 +85,7 @@ public class DietController : BaseController
     /// <summary>
     /// Get diet entries by date range
     /// </summary>
-    [HttpGet]
+    [HttpGet("range")]
     [ProducesResponseType(typeof(ApiResponse<DietEntryDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<List<DietEntryDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetDietByDateRange([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
