@@ -190,6 +190,9 @@ Date parameters should be in YYYY-MM-DD format.
     // Enable annotations for better Swagger generation
     c.EnableAnnotations();
     
+    // Use fully qualified type names for schema IDs to avoid conflicts between types with same name in different namespaces
+    c.CustomSchemaIds(type => type.FullName?.Replace("+", ".") ?? type.Name);
+    
     // Group endpoints by controller name (tags)
     c.TagActionsBy(api => new[] { api.GroupName ?? api.ActionDescriptor.RouteValues["controller"] ?? "Default" });
     c.DocInclusionPredicate((name, api) => true);
