@@ -201,8 +201,14 @@ Date parameters should be in YYYY-MM-DD format.
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
-// Enable Swagger based on configuration (default: enabled in Development, can be enabled in Production via config)
+// Enable Swagger only in Development (disabled in Production for security)
+// Can be overridden via EnableSwagger config setting if needed
 var enableSwagger = builder.Configuration.GetValue<bool>("EnableSwagger", app.Environment.IsDevelopment());
+// Explicitly disable in Production even if config says otherwise (security best practice)
+if (app.Environment.IsProduction())
+{
+    enableSwagger = false;
+}
 if (enableSwagger)
 {
     app.UseSwagger();
