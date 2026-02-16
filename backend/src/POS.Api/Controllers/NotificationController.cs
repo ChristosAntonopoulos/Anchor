@@ -9,6 +9,7 @@ namespace POS.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Tags("Notifications")]
 public class NotificationController : BaseController
 {
     private readonly NotificationService _notificationService;

@@ -8,6 +8,7 @@ namespace POS.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Tags("Utilities")]
 public class SeedController : ControllerBase
 {
     private readonly DataSeeder _dataSeeder;

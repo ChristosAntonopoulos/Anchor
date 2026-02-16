@@ -1,5 +1,5 @@
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, AppState, AppStateStatus } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
@@ -13,35 +13,84 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
   const [isEnabled, setIsEnabled] = useState(false);
   const [checking, setChecking] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [moduleAvailable, setModuleAvailable] = useState<boolean | null>(null);
+  const [checkFailed, setCheckFailed] = useState(false);
+  const appState = useRef(AppState.currentState);
 
   useEffect(() => {
+    console.log('[NotificationAccessPrompt] Component mounted, checking status...');
     checkStatus();
-    // Check status every 2 seconds when not enabled
-    const interval = setInterval(() => {
-      if (!isEnabled) {
+    
+    // Check status when app comes to foreground
+    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+        console.log('[NotificationAccessPrompt] App came to foreground, rechecking status...');
         checkStatus();
       }
-    }, 2000);
+      appState.current = nextAppState;
+    });
 
-    return () => clearInterval(interval);
-  }, [isEnabled]);
+    // Check status every 3 seconds when not enabled (reduced frequency)
+    const interval = setInterval(() => {
+      if (!isEnabled && !checking) {
+        checkStatus();
+      }
+    }, 3000);
+
+    return () => {
+      subscription.remove();
+      clearInterval(interval);
+    };
+  }, []);
 
   const checkStatus = async () => {
     if (Platform.OS !== 'android') {
+      console.log('[NotificationAccessPrompt] Not Android platform, hiding prompt');
       setChecking(false);
       return;
     }
 
+    console.log('[NotificationAccessPrompt] Starting status check...');
+    setChecking(true);
+    setError(null);
+    setCheckFailed(false);
+
     try {
+      // Check if native module is available first
+      const { NativeModules } = require('react-native');
+      const hasModule = !!NativeModules.NotificationListenerModule;
+      setModuleAvailable(hasModule);
+      
+      console.log('[NotificationAccessPrompt] Native module available:', hasModule);
+      
+      if (!hasModule) {
+        console.warn('[NotificationAccessPrompt] NotificationListenerModule not available!');
+        setError('Notification module not available. Please rebuild the app.');
+        setCheckFailed(true);
+        setIsEnabled(false);
+        setChecking(false);
+        return;
+      }
+
       const enabled = await notificationListener.isEnabled();
+      console.log('[NotificationAccessPrompt] Notification access enabled:', enabled);
+      
       setIsEnabled(enabled);
+      setCheckFailed(false);
+      
       if (enabled && onEnabled) {
+        console.log('[NotificationAccessPrompt] Access enabled, calling onEnabled callback');
         onEnabled();
       }
+      
       setError(null);
-    } catch (error) {
-      console.error('Error checking notification access:', error);
-      setError('Failed to check notification access status');
+    } catch (error: any) {
+      console.error('[NotificationAccessPrompt] Error checking notification access:', error);
+      const errorMessage = error?.message || 'Failed to check notification access status';
+      setError(errorMessage);
+      setCheckFailed(true);
+      // Fail-safe: assume not enabled if check fails
+      setIsEnabled(false);
     } finally {
       setChecking(false);
     }
@@ -49,12 +98,19 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
 
   const handleOpenSettings = () => {
     try {
+      console.log('[NotificationAccessPrompt] Opening notification settings...');
       setError(null);
       notificationListener.openSettings();
-    } catch (error) {
-      console.error('Error opening settings:', error);
-      setError('Failed to open settings. Please go to Settings → Apps → Special app access → Notification access manually.');
+    } catch (error: any) {
+      console.error('[NotificationAccessPrompt] Error opening settings:', error);
+      const errorMessage = error?.message || 'Failed to open settings';
+      setError(`Failed to open settings: ${errorMessage}. Please go to Settings → Apps → Special app access → Notification access manually.`);
     }
+  };
+
+  const handleRetry = () => {
+    console.log('[NotificationAccessPrompt] Manual retry requested');
+    checkStatus();
   };
 
   if (Platform.OS !== 'android') {
@@ -69,9 +125,18 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
     );
   }
 
-  if (isEnabled) {
+  // Only hide if explicitly confirmed as enabled (not on error)
+  if (isEnabled && !checkFailed && !error) {
+    console.log('[NotificationAccessPrompt] Access enabled, hiding prompt');
     return null; // Hide completely when enabled
   }
+
+  // Show prompt if:
+  // - Not enabled, OR
+  // - Check failed, OR
+  // - Error occurred, OR
+  // - Module unavailable
+  console.log('[NotificationAccessPrompt] Showing prompt - enabled:', isEnabled, 'checkFailed:', checkFailed, 'error:', error, 'moduleAvailable:', moduleAvailable);
 
   return (
     <View style={styles.container}>
@@ -112,21 +177,45 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
           </View>
         )}
 
-        <TouchableOpacity
-          style={styles.enableButton}
-          onPress={handleOpenSettings}
-          activeOpacity={0.8}
-        >
-          <LinearGradient
-            colors={[colors.category.work, colors.category.work + 'CC']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.enableButtonGradient}
+        {moduleAvailable === false && (
+          <View style={styles.errorContainer}>
+            <Ionicons name="warning-outline" size={20} color={colors.error || '#FF6B6B'} />
+            <Text style={styles.errorText}>
+              Native notification module not found. Please rebuild the app with native code.
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.buttonRow}>
+          <TouchableOpacity
+            style={[styles.enableButton, styles.primaryButton]}
+            onPress={handleOpenSettings}
+            activeOpacity={0.8}
           >
-            <Ionicons name="settings-outline" size={20} color={colors.background} />
-            <Text style={styles.enableButtonText}>Open Settings</Text>
-          </LinearGradient>
-        </TouchableOpacity>
+            <LinearGradient
+              colors={[colors.category.work, colors.category.work + 'CC']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.enableButtonGradient}
+            >
+              <Ionicons name="settings-outline" size={20} color={colors.background} />
+              <Text style={styles.enableButtonText}>Open Settings</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {(checkFailed || error) && (
+            <TouchableOpacity
+              style={[styles.enableButton, styles.retryButton]}
+              onPress={handleRetry}
+              activeOpacity={0.8}
+            >
+              <View style={styles.retryButtonContent}>
+                <Ionicons name="refresh-outline" size={20} color={colors.category.work} />
+                <Text style={styles.retryButtonText}>Check Again</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+        </View>
 
         <Text style={styles.hint}>
           Tap "Open Settings" to go to Notification access settings. Then find and enable "Personal Operating System" in the list.
@@ -253,5 +342,33 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.caption,
     color: colors.error || '#FF6B6B',
     flex: 1,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: spacing.s,
+    marginBottom: spacing.s,
+  },
+  primaryButton: {
+    flex: 1,
+  },
+  retryButton: {
+    flex: 0,
+    minWidth: 120,
+  },
+  retryButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.s,
+    padding: spacing.m,
+    borderRadius: borderRadius.medium,
+    borderWidth: 1,
+    borderColor: colors.category.work,
+    backgroundColor: 'transparent',
+  },
+  retryButtonText: {
+    fontSize: typography.fontSize.body,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.category.work,
   },
 });

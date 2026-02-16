@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using POS.Application.DTOs.CBT;
 using POS.Application.Services.CBT;
@@ -10,6 +11,7 @@ namespace POS.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/cbt")]
+[Tags("CBT")]
 public class CBTController : BaseController
 {
     private readonly CBTService _cbtService;
@@ -174,5 +176,80 @@ public class CBTController : BaseController
             return NotFound("Behavioral activity not found");
         }
         return Success(activity, "Activity completed successfully");
+    }
+
+    /// <summary>
+    /// Get behavioral activity by ID
+    /// </summary>
+    [HttpGet("activities/{id}")]
+    public async Task<IActionResult> GetBehavioralActivityById(string id)
+    {
+        var userId = GetUserId();
+        var activity = await _cbtService.GetBehavioralActivityByIdAsync(id, userId);
+        if (activity == null)
+        {
+            return NotFound("Behavioral activity not found");
+        }
+        return Success(activity);
+    }
+
+    /// <summary>
+    /// Delete behavioral activity
+    /// </summary>
+    [HttpDelete("activities/{id}")]
+    public async Task<IActionResult> DeleteBehavioralActivity(string id)
+    {
+        var userId = GetUserId();
+        var deleted = await _cbtService.DeleteBehavioralActivityAsync(id, userId);
+        if (!deleted)
+        {
+            return NotFound("Behavioral activity not found");
+        }
+        return Success("Behavioral activity deleted successfully");
+    }
+
+    /// <summary>
+    /// Get mood entry by ID
+    /// </summary>
+    [HttpGet("moods/{id}")]
+    public async Task<IActionResult> GetMoodEntryById(string id)
+    {
+        var userId = GetUserId();
+        var mood = await _cbtService.GetMoodEntryByIdAsync(id, userId);
+        if (mood == null)
+        {
+            return NotFound("Mood entry not found");
+        }
+        return Success(mood);
+    }
+
+    /// <summary>
+    /// Update mood entry
+    /// </summary>
+    [HttpPatch("moods/{id}")]
+    public async Task<IActionResult> UpdateMoodEntry(string id, [FromBody] UpdateMoodEntryRequest request)
+    {
+        var userId = GetUserId();
+        var mood = await _cbtService.UpdateMoodEntryAsync(id, request, userId);
+        if (mood == null)
+        {
+            return NotFound("Mood entry not found");
+        }
+        return Success(mood);
+    }
+
+    /// <summary>
+    /// Delete mood entry
+    /// </summary>
+    [HttpDelete("moods/{id}")]
+    public async Task<IActionResult> DeleteMoodEntry(string id)
+    {
+        var userId = GetUserId();
+        var deleted = await _cbtService.DeleteMoodEntryAsync(id, userId);
+        if (!deleted)
+        {
+            return NotFound("Mood entry not found");
+        }
+        return Success("Mood entry deleted successfully");
     }
 }

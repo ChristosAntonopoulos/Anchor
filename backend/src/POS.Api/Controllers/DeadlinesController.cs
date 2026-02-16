@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using POS.Application.DTOs.Deadlines;
 using POS.Application.Services.Deadlines;
 using POS.Core.Exceptions;
+using POS.Shared.Results;
 
 namespace POS.Api.Controllers;
 
@@ -10,6 +12,7 @@ namespace POS.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Tags("Deadlines")]
 public class DeadlinesController : BaseController
 {
     private readonly DeadlineService _deadlineService;
@@ -23,6 +26,7 @@ public class DeadlinesController : BaseController
     /// Get all active deadlines
     /// </summary>
     [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<List<DeadlineDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetDeadlines()
     {
         var userId = GetUserId();
@@ -34,6 +38,8 @@ public class DeadlinesController : BaseController
     /// Create a deadline
     /// </summary>
     [HttpPost]
+    [ProducesResponseType(typeof(ApiResponse<DeadlineDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateDeadline([FromBody] CreateDeadlineRequest request)
     {
         var userId = GetUserId();
@@ -45,6 +51,9 @@ public class DeadlinesController : BaseController
     /// Update a deadline
     /// </summary>
     [HttpPut("{id}")]
+    [ProducesResponseType(typeof(ApiResponse<DeadlineDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateDeadline(string id, [FromBody] UpdateDeadlineRequest request)
     {
         if (request.Id != id)
@@ -61,6 +70,8 @@ public class DeadlinesController : BaseController
     /// Delete a deadline
     /// </summary>
     [HttpDelete("{id}")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteDeadline(string id)
     {
         var userId = GetUserId();

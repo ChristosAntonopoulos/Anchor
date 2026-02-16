@@ -9,6 +9,7 @@ namespace POS.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Tags("Utilities")]
 public class CategoryController : BaseController
 {
     private readonly CategoryService _categoryService;

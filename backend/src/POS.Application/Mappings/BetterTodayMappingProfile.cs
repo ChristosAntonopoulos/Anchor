@@ -19,9 +19,9 @@ public class BetterTodayMappingProfile : Profile
         CreateMap<CreateBetterItemDto, BetterItem>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
             .ForMember(dest => dest.UserId, opt => opt.Ignore())
-            .ForMember(dest => dest.Date, opt => opt.MapFrom(src => DateTime.UtcNow.Date))
+            .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.Date ?? DateTime.UtcNow.Date))
             .ForMember(dest => dest.Completed, opt => opt.MapFrom(src => false))
-            .ForMember(dest => dest.Source, opt => opt.MapFrom(src => "user"))
+            .ForMember(dest => dest.Source, opt => opt.MapFrom(src => src.Source ?? "user"))
             .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
             .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
     }

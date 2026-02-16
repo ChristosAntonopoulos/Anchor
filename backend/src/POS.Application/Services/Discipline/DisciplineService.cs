@@ -329,4 +329,95 @@ public class DisciplineService
         
         return discipline;
     }
+
+    /// <summary>
+    /// Create discipline entry
+    /// </summary>
+    public async Task<DisciplineEntryDto> CreateDisciplineAsync(CreateDisciplineRequest request, string userId)
+    {
+        _logger.LogInformation("Creating discipline entry for user {UserId}", userId);
+        
+        var date = DateTime.Parse(request.Date).Date;
+        
+        var filter = Builders<DisciplineEntry>.Filter.And(
+            Builders<DisciplineEntry>.Filter.Eq(d => d.UserId, userId),
+            Builders<DisciplineEntry>.Filter.Eq(d => d.Date, date)
+        );
+        
+        var existing = await _context.DisciplineEntries.Find(filter).FirstOrDefaultAsync();
+        if (existing != null)
+        {
+            throw new ArgumentException($"Discipline entry already exists for date {request.Date}");
+        }
+        
+        var discipline = new DisciplineEntry
+        {
+            UserId = userId,
+            Date = date,
+            Blocks = request.Blocks != null && request.Blocks.Count > 0
+                ? _mapper.Map<List<DisciplineBlock>>(request.Blocks)
+                : CreateDefaultBlocks(),
+            Note = request.Note,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        
+        await _context.DisciplineEntries.InsertOneAsync(discipline);
+        return _mapper.Map<DisciplineEntryDto>(discipline);
+    }
+
+    /// <summary>
+    /// Get discipline entry by date
+    /// </summary>
+    public async Task<DisciplineEntryDto?> GetDisciplineByDateAsync(string userId, DateTime date)
+    {
+        _logger.LogInformation("Getting discipline entry for date {Date} for user {UserId}", date, userId);
+        
+        var filter = Builders<DisciplineEntry>.Filter.And(
+            Builders<DisciplineEntry>.Filter.Eq(d => d.UserId, userId),
+            Builders<DisciplineEntry>.Filter.Eq(d => d.Date, date.Date)
+        );
+        
+        var discipline = await _context.DisciplineEntries.Find(filter).FirstOrDefaultAsync();
+        return discipline != null ? _mapper.Map<DisciplineEntryDto>(discipline) : null;
+    }
+
+    /// <summary>
+    /// Get discipline entries by date range
+    /// </summary>
+    public async Task<List<DisciplineEntryDto>> GetDisciplineByDateRangeAsync(string userId, DateTime startDate, DateTime endDate)
+    {
+        _logger.LogInformation("Getting discipline entries from {StartDate} to {EndDate} for user {UserId}", startDate, endDate, userId);
+        
+        var filter = Builders<DisciplineEntry>.Filter.And(
+            Builders<DisciplineEntry>.Filter.Eq(d => d.UserId, userId),
+            Builders<DisciplineEntry>.Filter.Gte(d => d.Date, startDate.Date),
+            Builders<DisciplineEntry>.Filter.Lte(d => d.Date, endDate.Date)
+        );
+        
+        var sort = Builders<DisciplineEntry>.Sort.Descending(d => d.Date);
+        
+        var entries = await _context.DisciplineEntries
+            .Find(filter)
+            .Sort(sort)
+            .ToListAsync();
+        
+        return _mapper.Map<List<DisciplineEntryDto>>(entries);
+    }
+
+    /// <summary>
+    /// Delete discipline entry by date
+    /// </summary>
+    public async Task<bool> DeleteDisciplineAsync(string userId, DateTime date)
+    {
+        _logger.LogInformation("Deleting discipline entry for date {Date} for user {UserId}", date, userId);
+        
+        var filter = Builders<DisciplineEntry>.Filter.And(
+            Builders<DisciplineEntry>.Filter.Eq(d => d.UserId, userId),
+            Builders<DisciplineEntry>.Filter.Eq(d => d.Date, date.Date)
+        );
+        
+        var result = await _context.DisciplineEntries.DeleteOneAsync(filter);
+        return result.DeletedCount > 0;
+    }
 }

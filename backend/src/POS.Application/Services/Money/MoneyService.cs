@@ -98,4 +98,84 @@ public class MoneyService
         
         return _mapper.Map<List<IncomeEntryDto>>(incomeEntries);
     }
+
+    /// <summary>
+    /// Get income entry by ID
+    /// </summary>
+    public async Task<IncomeEntryDto?> GetIncomeByIdAsync(string id, string userId)
+    {
+        _logger.LogInformation("Getting income entry {IncomeId} for user {UserId}", id, userId);
+        
+        var filter = Builders<IncomeEntry>.Filter.And(
+            Builders<IncomeEntry>.Filter.Eq(i => i.Id, id),
+            Builders<IncomeEntry>.Filter.Eq(i => i.UserId, userId)
+        );
+        
+        var income = await _context.IncomeEntries.Find(filter).FirstOrDefaultAsync();
+        return income != null ? _mapper.Map<IncomeEntryDto>(income) : null;
+    }
+
+    /// <summary>
+    /// Update income entry
+    /// </summary>
+    public async Task<IncomeEntryDto?> UpdateIncomeAsync(string id, UpdateIncomeRequest request, string userId)
+    {
+        _logger.LogInformation("Updating income entry {IncomeId} for user {UserId}", id, userId);
+        
+        var filter = Builders<IncomeEntry>.Filter.And(
+            Builders<IncomeEntry>.Filter.Eq(i => i.Id, id),
+            Builders<IncomeEntry>.Filter.Eq(i => i.UserId, userId)
+        );
+        
+        var existing = await _context.IncomeEntries.Find(filter).FirstOrDefaultAsync();
+        if (existing == null)
+        {
+            return null;
+        }
+        
+        var updateBuilder = Builders<IncomeEntry>.Update
+            .Set(i => i.UpdatedAt, DateTime.UtcNow);
+        
+        if (request.Date != null)
+        {
+            var incomeDate = DateTime.Parse(request.Date);
+            updateBuilder = updateBuilder.Set(i => i.Date, incomeDate);
+        }
+        
+        if (request.Source != null)
+        {
+            updateBuilder = updateBuilder.Set(i => i.Source, request.Source);
+        }
+        
+        if (request.Amount.HasValue)
+        {
+            updateBuilder = updateBuilder.Set(i => i.Amount, request.Amount.Value);
+        }
+        
+        if (request.Currency != null)
+        {
+            updateBuilder = updateBuilder.Set(i => i.Currency, request.Currency);
+        }
+        
+        await _context.IncomeEntries.UpdateOneAsync(filter, updateBuilder);
+        
+        var updated = await _context.IncomeEntries.Find(filter).FirstOrDefaultAsync();
+        return updated != null ? _mapper.Map<IncomeEntryDto>(updated) : null;
+    }
+
+    /// <summary>
+    /// Delete income entry
+    /// </summary>
+    public async Task<bool> DeleteIncomeAsync(string id, string userId)
+    {
+        _logger.LogInformation("Deleting income entry {IncomeId} for user {UserId}", id, userId);
+        
+        var filter = Builders<IncomeEntry>.Filter.And(
+            Builders<IncomeEntry>.Filter.Eq(i => i.Id, id),
+            Builders<IncomeEntry>.Filter.Eq(i => i.UserId, userId)
+        );
+        
+        var result = await _context.IncomeEntries.DeleteOneAsync(filter);
+        return result.DeletedCount > 0;
+    }
 }

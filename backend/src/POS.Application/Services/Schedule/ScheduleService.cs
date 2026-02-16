@@ -104,4 +104,113 @@ public class ScheduleService
         var result = await _context.ScheduleBlockInstances.DeleteOneAsync(filter);
         return result.DeletedCount > 0;
     }
+
+    /// <summary>
+    /// Get schedule block instance by ID
+    /// </summary>
+    public async Task<ScheduleBlockInstanceDto?> GetBlockInstanceByIdAsync(string id, string userId)
+    {
+        _logger.LogInformation("Getting schedule block instance {BlockId} for user {UserId}", id, userId);
+        
+        var filter = Builders<ScheduleBlockInstance>.Filter.And(
+            Builders<ScheduleBlockInstance>.Filter.Eq(sb => sb.Id, id),
+            Builders<ScheduleBlockInstance>.Filter.Eq(sb => sb.UserId, userId)
+        );
+        
+        var block = await _context.ScheduleBlockInstances.Find(filter).FirstOrDefaultAsync();
+        return block != null ? _mapper.Map<ScheduleBlockInstanceDto>(block) : null;
+    }
+
+    /// <summary>
+    /// Get all schedule block definitions
+    /// </summary>
+    public async Task<List<ScheduleBlockDefinitionDto>> GetAllDefinitionsAsync(string userId)
+    {
+        _logger.LogInformation("Getting all schedule block definitions for user {UserId}", userId);
+        
+        var filter = Builders<ScheduleBlockDefinition>.Filter.Eq(d => d.UserId, userId);
+        var sort = Builders<ScheduleBlockDefinition>.Sort.Ascending(d => d.Priority).Ascending(d => d.Title);
+        
+        var definitions = await _context.ScheduleBlockDefinitions
+            .Find(filter)
+            .Sort(sort)
+            .ToListAsync();
+        
+        return _mapper.Map<List<ScheduleBlockDefinitionDto>>(definitions);
+    }
+
+    /// <summary>
+    /// Get schedule block definition by ID
+    /// </summary>
+    public async Task<ScheduleBlockDefinitionDto?> GetDefinitionByIdAsync(string id, string userId)
+    {
+        _logger.LogInformation("Getting schedule block definition {DefinitionId} for user {UserId}", id, userId);
+        
+        var filter = Builders<ScheduleBlockDefinition>.Filter.And(
+            Builders<ScheduleBlockDefinition>.Filter.Eq(d => d.Id, id),
+            Builders<ScheduleBlockDefinition>.Filter.Eq(d => d.UserId, userId)
+        );
+        
+        var definition = await _context.ScheduleBlockDefinitions.Find(filter).FirstOrDefaultAsync();
+        return definition != null ? _mapper.Map<ScheduleBlockDefinitionDto>(definition) : null;
+    }
+
+    /// <summary>
+    /// Update schedule block definition
+    /// </summary>
+    public async Task<ScheduleBlockDefinitionDto?> UpdateDefinitionAsync(string id, UpdateScheduleBlockDefinitionRequest request, string userId)
+    {
+        _logger.LogInformation("Updating schedule block definition {DefinitionId} for user {UserId}", id, userId);
+        
+        var filter = Builders<ScheduleBlockDefinition>.Filter.And(
+            Builders<ScheduleBlockDefinition>.Filter.Eq(d => d.Id, id),
+            Builders<ScheduleBlockDefinition>.Filter.Eq(d => d.UserId, userId)
+        );
+        
+        var existing = await _context.ScheduleBlockDefinitions.Find(filter).FirstOrDefaultAsync();
+        if (existing == null)
+        {
+            return null;
+        }
+        
+        var updateBuilder = Builders<ScheduleBlockDefinition>.Update
+            .Set(d => d.UpdatedAt, DateTime.UtcNow);
+        
+        if (request.Title != null) updateBuilder = updateBuilder.Set(d => d.Title, request.Title);
+        if (request.Kind != null) updateBuilder = updateBuilder.Set(d => d.Kind, Enum.Parse<ScheduleBlockKind>(request.Kind, true));
+        if (request.Recurrence != null) updateBuilder = updateBuilder.Set(d => d.Recurrence, Enum.Parse<RecurrenceType>(request.Recurrence, true));
+        if (request.DaysOfWeek != null) updateBuilder = updateBuilder.Set(d => d.DaysOfWeek, request.DaysOfWeek);
+        if (request.MinPerWeek.HasValue) updateBuilder = updateBuilder.Set(d => d.MinPerWeek, request.MinPerWeek.Value);
+        if (request.MaxPerWeek.HasValue) updateBuilder = updateBuilder.Set(d => d.MaxPerWeek, request.MaxPerWeek.Value);
+        if (request.FixedStartTime != null) updateBuilder = updateBuilder.Set(d => d.FixedStartTime, request.FixedStartTime);
+        if (request.FixedEndTime != null) updateBuilder = updateBuilder.Set(d => d.FixedEndTime, request.FixedEndTime);
+        if (request.PreferredTimeTag != null) updateBuilder = updateBuilder.Set(d => d.PreferredTimeTag, request.PreferredTimeTag);
+        if (request.DurationMinutes.HasValue) updateBuilder = updateBuilder.Set(d => d.DurationMinutes, request.DurationMinutes.Value);
+        if (request.Energy != null) updateBuilder = updateBuilder.Set(d => d.Energy, Enum.Parse<EnergyLevel>(request.Energy, true));
+        if (request.Tags != null) updateBuilder = updateBuilder.Set(d => d.Tags, request.Tags);
+        if (request.Enabled.HasValue) updateBuilder = updateBuilder.Set(d => d.Enabled, request.Enabled.Value);
+        if (request.Priority.HasValue) updateBuilder = updateBuilder.Set(d => d.Priority, request.Priority.Value);
+        if (request.RoutineActivities != null) updateBuilder = updateBuilder.Set(d => d.RoutineActivities, request.RoutineActivities);
+        
+        await _context.ScheduleBlockDefinitions.UpdateOneAsync(filter, updateBuilder);
+        
+        var updated = await _context.ScheduleBlockDefinitions.Find(filter).FirstOrDefaultAsync();
+        return updated != null ? _mapper.Map<ScheduleBlockDefinitionDto>(updated) : null;
+    }
+
+    /// <summary>
+    /// Delete schedule block definition
+    /// </summary>
+    public async Task<bool> DeleteDefinitionAsync(string id, string userId)
+    {
+        _logger.LogInformation("Deleting schedule block definition {DefinitionId} for user {UserId}", id, userId);
+        
+        var filter = Builders<ScheduleBlockDefinition>.Filter.And(
+            Builders<ScheduleBlockDefinition>.Filter.Eq(d => d.Id, id),
+            Builders<ScheduleBlockDefinition>.Filter.Eq(d => d.UserId, userId)
+        );
+        
+        var result = await _context.ScheduleBlockDefinitions.DeleteOneAsync(filter);
+        return result.DeletedCount > 0;
+    }
 }

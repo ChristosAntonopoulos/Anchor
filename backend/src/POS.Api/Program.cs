@@ -1,3 +1,4 @@
+using System.Reflection;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Mvc;
@@ -146,8 +147,52 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title = "Personal Operating System API",
         Version = "v1",
-        Description = "API for Personal Operating System mobile app"
+        Description = @"
+RESTful API for Personal Operating System (POS) mobile app.
+
+This API provides full CRUD operations for all data entities including:
+- Better Items (daily focus items)
+- Tasks (execution items)
+- Schedule Blocks (time management)
+- Discipline Entries (habit tracking)
+- Diet Entries (diet compliance)
+- Income Entries (money tracking)
+- Deadlines (commitment tracking)
+- Weekly Reviews (reflection)
+- CBT Entries (cognitive behavioral therapy)
+- Notifications (app notifications)
+
+All endpoints return standardized ApiResponse<T> format.
+Date parameters should be in YYYY-MM-DD format.
+        ",
+        Contact = new OpenApiContact
+        {
+            Name = "POS API Support"
+        }
     });
+    
+    // Include XML comments from API project
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath);
+    }
+    
+    // Include XML comments from Application layer (for DTOs)
+    var applicationXmlFile = "POS.Application.xml";
+    var applicationXmlPath = Path.Combine(AppContext.BaseDirectory, applicationXmlFile);
+    if (File.Exists(applicationXmlPath))
+    {
+        c.IncludeXmlComments(applicationXmlPath);
+    }
+    
+    // Enable annotations for better Swagger generation
+    c.EnableAnnotations();
+    
+    // Group endpoints by controller name (tags)
+    c.TagActionsBy(api => new[] { api.GroupName ?? api.ActionDescriptor.RouteValues["controller"] ?? "Default" });
+    c.DocInclusionPredicate((name, api) => true);
 });
 
 var app = builder.Build();
@@ -162,6 +207,13 @@ if (enableSwagger)
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "POS API v1");
         c.RoutePrefix = "swagger"; // Swagger UI at /swagger
+        c.DocumentTitle = "POS API Documentation";
+        c.DefaultModelsExpandDepth(-1); // Hide schemas by default
+        c.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.List); // Expand endpoints list
+        c.EnableDeepLinking();
+        c.EnableFilter();
+        c.ShowExtensions();
+        c.EnableValidator();
         // Enable network access - use relative paths so it works with IP addresses
         c.ConfigObject.Urls = new[] { new Swashbuckle.AspNetCore.SwaggerUI.UrlDescriptor { Name = "POS API v1", Url = "/swagger/v1/swagger.json" } };
     });
@@ -185,40 +237,89 @@ app.UseCors();
 // Map controllers
 app.MapControllers();
 
-// Auto-seed database on startup if enabled (Development only)
-if (app.Environment.IsDevelopment())
+// Auto-seed database on startup if enabled and database doesn't exist
+try
 {
-    try
+    using var scope = app.Services.CreateScope();
+    var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+    
+    // Read auto-seed configuration
+    var databaseSettings = configuration.GetSection("Database").Get<DatabaseSettings>();
+    var autoSeedEnabled = databaseSettings?.AutoSeedOnStartup ?? false;
+    
+    if (!autoSeedEnabled)
     {
-        using var scope = app.Services.CreateScope();
-        var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-        
-        // Read auto-seed configuration
-        var databaseSettings = configuration.GetSection("Database").Get<DatabaseSettings>();
-        var autoSeedEnabled = databaseSettings?.AutoSeedOnStartup ?? false;
-        
-        if (!autoSeedEnabled)
-        {
-            logger.LogInformation("Auto-seeding is disabled in configuration. Skipping auto-seed.");
-        }
+        logger.LogInformation("Auto-seeding is disabled in configuration. Skipping auto-seed.");
+    }
         else
         {
-            logger.LogInformation("Auto-seeding is enabled. Cleaning all collections and reseeding database...");
-            // Always clean all collections first to remove old structure data
-            await seeder.DeleteAllCollectionsAsync();
-            // Then seed with new structure
-            await seeder.SeedAsync();
-            logger.LogInformation("Database auto-seeding completed successfully. Set 'Database:AutoSeedOnStartup' to false to disable.");
+            // Check if database is already seeded
+            var isSeeded = await seeder.IsSeededAsync();
+            
+            if (isSeeded)
+            {
+                logger.LogInformation("Database is already seeded with valid data. Skipping auto-seed.");
+            }
+            else
+            {
+                // Check if collections exist but are empty, or have old data
+                var hasEmptyCollections = await seeder.HasEmptyCollectionsAsync();
+                var hasOldData = await seeder.HasOldDataAsync();
+                
+                if (hasEmptyCollections)
+                {
+                    logger.LogInformation("Database exists but collections are empty. Seeding with initial data...");
+                    // Seed without deleting (collections are already empty)
+                    await seeder.SeedAsync(deleteExisting: false);
+                }
+                else if (hasOldData)
+                {
+                    logger.LogInformation("Database has old/invalid data. Cleaning and reseeding...");
+                    // Delete old data and seed fresh
+                    if (app.Environment.IsDevelopment())
+                    {
+                        // In development, clean all collections
+                        await seeder.DeleteAllCollectionsAsync();
+                        await seeder.SeedAsync();
+                    }
+                    else
+                    {
+                        // In production, delete user data and reseed
+                        await seeder.SeedAsync(deleteExisting: true);
+                    }
+                }
+                else
+                {
+                    logger.LogInformation("Database is not seeded. Starting auto-seeding...");
+                    
+                    // In development, clean all collections first to remove old structure data
+                    // In production, just seed without deleting (safer)
+                    if (app.Environment.IsDevelopment())
+                    {
+                        logger.LogInformation("Development mode: Cleaning all collections before seeding...");
+                        await seeder.DeleteAllCollectionsAsync();
+                        // Seed with deleteExisting=true (default) since we already deleted
+                        await seeder.SeedAsync();
+                    }
+                    else
+                    {
+                        logger.LogInformation("Production mode: Seeding without deleting existing data...");
+                        // Seed without deleting existing data in production
+                        await seeder.SeedAsync(deleteExisting: false);
+                    }
+                }
+                
+                logger.LogInformation("Database auto-seeding completed successfully. Set 'Database:AutoSeedOnStartup' to false to disable.");
+            }
         }
-    }
-    catch (Exception ex)
-    {
-        var logger = app.Services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "Error during auto-seeding on startup. Application will continue without seeded data.");
-        // Don't throw - allow app to start even if seeding fails
-    }
+}
+catch (Exception ex)
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogError(ex, "Error during auto-seeding on startup. Application will continue without seeded data.");
+    // Don't throw - allow app to start even if seeding fails
 }
 
 app.Run();

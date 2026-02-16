@@ -137,15 +137,24 @@ public class DataSeeder
     /// <summary>
     /// Seed all initial data for the default user
     /// </summary>
-    public async System.Threading.Tasks.Task SeedAsync(string? userId = null)
+    /// <param name="userId">User ID to seed data for</param>
+    /// <param name="deleteExisting">Whether to delete existing data before seeding (default: true)</param>
+    public async System.Threading.Tasks.Task SeedAsync(string? userId = null, bool deleteExisting = true)
     {
         userId ??= AppConstants.DefaultUserId;
-        _logger.LogInformation("Starting database seeding for user {UserId}", userId);
+        _logger.LogInformation("Starting database seeding for user {UserId} (deleteExisting: {DeleteExisting})", userId, deleteExisting);
 
         try
         {
-            // Delete all existing data first
-            await DeleteAllDataAsync(userId);
+            // Delete all existing data first if requested (default behavior)
+            if (deleteExisting)
+            {
+                await DeleteAllDataAsync(userId);
+            }
+            else
+            {
+                _logger.LogInformation("Skipping deletion of existing data (deleteExisting=false)");
+            }
 
             // Seed in order (dependencies first)
             await new UserSeeder(_context, _loggerFactory.CreateLogger<UserSeeder>()).SeedAsync(userId);
@@ -201,5 +210,40 @@ public class DataSeeder
 
         // If any of these exist, database is seeded
         return hasBetterItems || hasTasks || hasSchedule;
+    }
+
+    /// <summary>
+    /// Check if collections exist but are empty (database exists but no data)
+    /// </summary>
+    public async System.Threading.Tasks.Task<bool> HasEmptyCollectionsAsync(string? userId = null)
+    {
+        userId ??= AppConstants.DefaultUserId;
+        
+        // Check if collections exist but have no data for the user
+        var userCount = await _context.Users.CountDocumentsAsync(u => u.UserId == userId);
+        var betterItemsCount = await _context.BetterItems.CountDocumentsAsync(bi => bi.UserId == userId);
+        var tasksCount = await _context.Tasks.CountDocumentsAsync(t => t.UserId == userId);
+        var scheduleCount = await _context.ScheduleBlockInstances.CountDocumentsAsync(sb => sb.UserId == userId);
+        
+        // If user exists but no other data, collections are empty
+        return userCount > 0 && betterItemsCount == 0 && tasksCount == 0 && scheduleCount == 0;
+    }
+
+    /// <summary>
+    /// Check if collections have old/invalid data that should be cleaned
+    /// </summary>
+    public async System.Threading.Tasks.Task<bool> HasOldDataAsync(string? userId = null)
+    {
+        userId ??= AppConstants.DefaultUserId;
+        
+        // Check if there's any data at all
+        var totalCount = await _context.Users.CountDocumentsAsync(u => u.UserId == userId) +
+                        await _context.BetterItems.CountDocumentsAsync(bi => bi.UserId == userId) +
+                        await _context.Tasks.CountDocumentsAsync(t => t.UserId == userId) +
+                        await _context.ScheduleBlockInstances.CountDocumentsAsync(sb => sb.UserId == userId);
+        
+        // If there's data but it's not properly seeded (no today's data), consider it old
+        var isSeeded = await IsSeededAsync(userId);
+        return totalCount > 0 && !isSeeded;
     }
 }

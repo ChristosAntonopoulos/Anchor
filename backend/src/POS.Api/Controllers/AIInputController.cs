@@ -10,6 +10,7 @@ namespace POS.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/ai-input")]
+[Tags("Utilities")]
 public class AIInputController : BaseController
 {
     private readonly AIInputService _aiInputService;

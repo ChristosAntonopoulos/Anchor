@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using POS.Application.DTOs.Tasks;
 using POS.Application.Services.Tasks;
 using POS.Core.Exceptions;
+using POS.Shared.Results;
 
 namespace POS.Api.Controllers;
 
@@ -10,6 +12,7 @@ namespace POS.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Tags("Tasks")]
 public class TasksController : BaseController
 {
     private readonly TaskService _taskService;
@@ -23,6 +26,7 @@ public class TasksController : BaseController
     /// Get all tasks for today
     /// </summary>
     [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<List<TaskDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetTasks()
     {
         var userId = GetUserId();
@@ -34,6 +38,8 @@ public class TasksController : BaseController
     /// Create a task
     /// </summary>
     [HttpPost]
+    [ProducesResponseType(typeof(ApiResponse<TaskDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateTask([FromBody] CreateTaskRequest request)
     {
         var userId = GetUserId();
@@ -45,6 +51,8 @@ public class TasksController : BaseController
     /// Complete a task
     /// </summary>
     [HttpPost("{id}/complete")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CompleteTask(string id, [FromBody] CompleteTaskRequest request)
     {
         if (request.Id != id)
@@ -61,6 +69,9 @@ public class TasksController : BaseController
     /// Update a task (partial update)
     /// </summary>
     [HttpPatch("{id}")]
+    [ProducesResponseType(typeof(ApiResponse<TaskDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateTask(string id, [FromBody] UpdateTaskRequest request)
     {
         var userId = GetUserId();
@@ -72,6 +83,8 @@ public class TasksController : BaseController
     /// Delete a task
     /// </summary>
     [HttpDelete("{id}")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteTask(string id)
     {
         var userId = GetUserId();
@@ -87,6 +100,8 @@ public class TasksController : BaseController
     /// Get tasks near a location
     /// </summary>
     [HttpGet("nearby")]
+    [ProducesResponseType(typeof(ApiResponse<List<TaskDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetTasksNearby([FromQuery] double latitude, [FromQuery] double longitude, [FromQuery] double? radiusKm = 5.0)
     {
         var userId = GetUserId();

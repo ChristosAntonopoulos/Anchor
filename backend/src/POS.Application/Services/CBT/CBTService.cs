@@ -290,4 +290,102 @@ public class CBTService
         var completedActivity = await _context.BehavioralActivities.Find(filter).FirstOrDefaultAsync();
         return completedActivity != null ? _mapper.Map<BehavioralActivityDto>(completedActivity) : null;
     }
+
+    /// <summary>
+    /// Get behavioral activity by ID
+    /// </summary>
+    public async Task<BehavioralActivityDto?> GetBehavioralActivityByIdAsync(string id, string userId)
+    {
+        _logger.LogInformation("Getting behavioral activity {ActivityId} for user {UserId}", id, userId);
+        
+        var filter = Builders<BehavioralActivity>.Filter.And(
+            Builders<BehavioralActivity>.Filter.Eq(a => a.Id, id),
+            Builders<BehavioralActivity>.Filter.Eq(a => a.UserId, userId)
+        );
+        
+        var activity = await _context.BehavioralActivities.Find(filter).FirstOrDefaultAsync();
+        return activity != null ? _mapper.Map<BehavioralActivityDto>(activity) : null;
+    }
+
+    /// <summary>
+    /// Delete behavioral activity
+    /// </summary>
+    public async Task<bool> DeleteBehavioralActivityAsync(string id, string userId)
+    {
+        _logger.LogInformation("Deleting behavioral activity {ActivityId} for user {UserId}", id, userId);
+        
+        var filter = Builders<BehavioralActivity>.Filter.And(
+            Builders<BehavioralActivity>.Filter.Eq(a => a.Id, id),
+            Builders<BehavioralActivity>.Filter.Eq(a => a.UserId, userId)
+        );
+        
+        var result = await _context.BehavioralActivities.DeleteOneAsync(filter);
+        return result.DeletedCount > 0;
+    }
+
+    /// <summary>
+    /// Get mood entry by ID
+    /// </summary>
+    public async Task<MoodEntryDto?> GetMoodEntryByIdAsync(string id, string userId)
+    {
+        _logger.LogInformation("Getting mood entry {MoodId} for user {UserId}", id, userId);
+        
+        var filter = Builders<MoodEntry>.Filter.And(
+            Builders<MoodEntry>.Filter.Eq(m => m.Id, id),
+            Builders<MoodEntry>.Filter.Eq(m => m.UserId, userId)
+        );
+        
+        var mood = await _context.MoodEntries.Find(filter).FirstOrDefaultAsync();
+        return mood != null ? _mapper.Map<MoodEntryDto>(mood) : null;
+    }
+
+    /// <summary>
+    /// Update mood entry
+    /// </summary>
+    public async Task<MoodEntryDto?> UpdateMoodEntryAsync(string id, UpdateMoodEntryRequest request, string userId)
+    {
+        _logger.LogInformation("Updating mood entry {MoodId} for user {UserId}", id, userId);
+        
+        var filter = Builders<MoodEntry>.Filter.And(
+            Builders<MoodEntry>.Filter.Eq(m => m.Id, id),
+            Builders<MoodEntry>.Filter.Eq(m => m.UserId, userId)
+        );
+        
+        var existing = await _context.MoodEntries.Find(filter).FirstOrDefaultAsync();
+        if (existing == null)
+        {
+            return null;
+        }
+        
+        var updateBuilder = Builders<MoodEntry>.Update
+            .Set(m => m.UpdatedAt, DateTime.UtcNow);
+        
+        if (request.Date.HasValue) updateBuilder = updateBuilder.Set(m => m.Date, request.Date.Value);
+        if (request.Mood != null) updateBuilder = updateBuilder.Set(m => m.Mood, request.Mood);
+        if (request.Intensity.HasValue) updateBuilder = updateBuilder.Set(m => m.Intensity, request.Intensity.Value);
+        if (request.Notes != null) updateBuilder = updateBuilder.Set(m => m.Notes, request.Notes);
+        if (request.Triggers != null) updateBuilder = updateBuilder.Set(m => m.Triggers, request.Triggers);
+        if (request.Activities != null) updateBuilder = updateBuilder.Set(m => m.Activities, request.Activities);
+        
+        await _context.MoodEntries.UpdateOneAsync(filter, updateBuilder);
+        
+        var updated = await _context.MoodEntries.Find(filter).FirstOrDefaultAsync();
+        return updated != null ? _mapper.Map<MoodEntryDto>(updated) : null;
+    }
+
+    /// <summary>
+    /// Delete mood entry
+    /// </summary>
+    public async Task<bool> DeleteMoodEntryAsync(string id, string userId)
+    {
+        _logger.LogInformation("Deleting mood entry {MoodId} for user {UserId}", id, userId);
+        
+        var filter = Builders<MoodEntry>.Filter.And(
+            Builders<MoodEntry>.Filter.Eq(m => m.Id, id),
+            Builders<MoodEntry>.Filter.Eq(m => m.UserId, userId)
+        );
+        
+        var result = await _context.MoodEntries.DeleteOneAsync(filter);
+        return result.DeletedCount > 0;
+    }
 }
