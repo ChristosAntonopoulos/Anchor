@@ -61,26 +61,11 @@ web-build/
 
 # Native
 ios/
-# Android - ignore build artifacts but keep source files
-# Note: mobile/android/ source files are needed for custom native modules
-android/app/build/
+# Android - let mobile/.gitignore handle mobile/android/ specifics
+# Only ignore generic android directories at root level (if any exist)
 android/build/
 android/.gradle/
 android/local.properties
-android/app/debug.keystore
-android/app/.cxx/
-android/app/src/debug/
-android/app/src/debugOptimized/
-# But allow mobile/android/ source files (handled by mobile/.gitignore)
-!mobile/android/app/src/
-!mobile/android/app/proguard-rules.pro
-!mobile/android/build.gradle
-!mobile/android/settings.gradle
-!mobile/android/gradle.properties
-!mobile/android/gradlew
-!mobile/android/gradlew.bat
-# Allow Gradle wrapper files (needed for builds)
-!mobile/android/gradle/wrapper/
 .kotlin/
 *.orig.*
 *.jks
