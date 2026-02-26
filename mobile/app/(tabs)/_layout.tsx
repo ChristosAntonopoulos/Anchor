@@ -124,6 +124,12 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="unlocks"
+          options={{
+            href: null, // Hide from tab bar - accessible through menu
+          }}
+        />
+        <Tabs.Screen
           name="discipline"
           options={{
             href: null, // Hide from tab bar

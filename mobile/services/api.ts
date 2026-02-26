@@ -27,6 +27,7 @@ import type {
   AppNotificationCount,
   DisciplineEntry,
   CreatePhoneUnlockEntryRequest,
+  PhoneUnlockEntry,
 } from '../types';
 import { API_CONFIG, getApiUrl } from '../constants/apiConfig';
 import {
@@ -102,6 +103,7 @@ export interface APIClient {
   
   // Phone Unlock endpoints
   createPhoneUnlockEntry(request: CreatePhoneUnlockEntryRequest): Promise<void>;
+  getPhoneUnlockEntries(startDate?: string, endDate?: string): Promise<PhoneUnlockEntry[]>;
 }
 
 // HTTP API Client Implementation
@@ -718,6 +720,21 @@ class HTTPAPIClient implements APIClient {
       unwrapResponse(response.data);
     } catch (error) {
       throw this.handleError(error, 'Failed to create phone unlock entry');
+    }
+  }
+
+  async getPhoneUnlockEntries(startDate?: string, endDate?: string): Promise<PhoneUnlockEntry[]> {
+    try {
+      const queryParams = new URLSearchParams();
+      if (startDate) queryParams.append('startDate', startDate);
+      if (endDate) queryParams.append('endDate', endDate);
+      
+      const url = `/phone-unlock${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      const response = await this.axiosInstance.get<ApiResponse<PhoneUnlockEntry[]>>(url);
+      const data = unwrapResponse(response.data);
+      return data || [];
+    } catch (error) {
+      throw this.handleError(error, 'Failed to get phone unlock entries');
     }
   }
 

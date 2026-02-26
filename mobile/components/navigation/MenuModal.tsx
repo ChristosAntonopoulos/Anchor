@@ -18,6 +18,7 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { title: 'Discipline', icon: 'star-outline', route: '/(tabs)/discipline', color: colors.category.health },
+  { title: 'Unlocks', icon: 'lock-open-outline', route: '/(tabs)/unlocks', color: colors.category.stability },
   { title: 'Notifications', icon: 'notifications-outline', route: '/more/notifications', color: colors.category.work },
   { title: 'Money', icon: 'cash-outline', route: '/more/money', color: colors.category.leverage },
   { title: 'Deadlines', icon: 'calendar-outline', route: '/more/deadlines', color: colors.category.work },

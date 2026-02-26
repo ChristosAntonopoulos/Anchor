@@ -15,10 +15,13 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
   const [error, setError] = useState<string | null>(null);
   const [moduleAvailable, setModuleAvailable] = useState<boolean | null>(null);
   const [checkFailed, setCheckFailed] = useState(false);
+  const [isNothingPhone, setIsNothingPhone] = useState(false);
+  const [settingsMethod, setSettingsMethod] = useState<string | null>(null);
   const appState = useRef(AppState.currentState);
 
   useEffect(() => {
     console.log('[NotificationAccessPrompt] Component mounted, checking status...');
+    checkDeviceInfo();
     checkStatus();
     
     // Check status when app comes to foreground
@@ -42,6 +45,18 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
       clearInterval(interval);
     };
   }, []);
+  
+  const checkDeviceInfo = async () => {
+    try {
+      const deviceInfo = await notificationListener.getDeviceInfo();
+      const isNothing = deviceInfo.manufacturer?.toLowerCase().includes('nothing') || 
+                       deviceInfo.brand?.toLowerCase().includes('nothing');
+      setIsNothingPhone(isNothing);
+      console.log('[NotificationAccessPrompt] Device info:', deviceInfo, 'Is Nothing Phone:', isNothing);
+    } catch (error) {
+      console.warn('[NotificationAccessPrompt] Could not get device info:', error);
+    }
+  };
 
   const checkStatus = async () => {
     if (Platform.OS !== 'android') {
@@ -97,7 +112,7 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
     }
   };
 
-  const handleOpenSettings = () => {
+  const handleOpenSettings = async () => {
     try {
       console.log('[NotificationAccessPrompt] Opening notification settings...');
       setError(null);
@@ -111,18 +126,25 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
         return;
       }
       
-      // openSettings() now returns gracefully instead of throwing
-      notificationListener.openSettings();
+      // openSettings() now returns a promise with the method used
+      const method = await notificationListener.openSettings();
+      setSettingsMethod(method);
+      console.log('[NotificationAccessPrompt] Settings opened using method:', method);
       
       // Give it a moment, then check if settings were actually opened
-      // If the module isn't working, we'll catch it on the next status check
       setTimeout(() => {
         checkStatus();
       }, 1000);
     } catch (error: any) {
       console.error('[NotificationAccessPrompt] Error opening settings:', error);
       const errorMessage = error?.message || 'Failed to open settings';
-      setError(`Failed to open settings: ${errorMessage}. Please go to Settings → Apps → Special app access → Notification access manually.`);
+      
+      // Show Nothing Phone specific instructions if it's a Nothing Phone
+      if (isNothingPhone) {
+        setError(`Could not open settings automatically. Please follow these steps manually:\n\n1. Go to Settings\n2. Tap "Apps"\n3. Tap "Special app access"\n4. Tap "Notification access"\n5. Find "Personal Operating System" and toggle it ON`);
+      } else {
+        setError(`Failed to open settings: ${errorMessage}. Please go to Settings → Apps → Special app access → Notification access manually.`);
+      }
     }
   };
 
@@ -235,12 +257,38 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
           )}
         </View>
 
-        <Text style={styles.hint}>
-          Tap "Open Settings" to go to Notification access settings. Then find and enable "Personal Operating System" in the list.
-        </Text>
-        <Text style={styles.hintSecondary}>
-          Note: This is different from regular app permissions. Look for "Notification access" in Settings → Apps → Special app access.
-        </Text>
+        {isNothingPhone && settingsMethod !== 'standard' && (
+          <View style={styles.nothingPhoneInstructions}>
+            <Ionicons name="information-circle-outline" size={20} color={colors.category.work} />
+            <View style={styles.instructionsContent}>
+              <Text style={styles.instructionsTitle}>Nothing Phone Instructions:</Text>
+              <Text style={styles.instructionsText}>
+                1. Go to Settings{'\n'}
+                2. Tap "Apps"{'\n'}
+                3. Tap "Special app access"{'\n'}
+                4. Tap "Notification access"{'\n'}
+                5. Find "Personal Operating System" and toggle it ON
+              </Text>
+            </View>
+          </View>
+        )}
+        
+        {!isNothingPhone && (
+          <>
+            <Text style={styles.hint}>
+              Tap "Open Settings" to go to Notification access settings. Then find and enable "Personal Operating System" in the list.
+            </Text>
+            <Text style={styles.hintSecondary}>
+              Note: This is different from regular app permissions. Look for "Notification access" in Settings → Apps → Special app access.
+            </Text>
+          </>
+        )}
+        
+        {isNothingPhone && settingsMethod === 'standard' && (
+          <Text style={styles.hint}>
+            Tap "Open Settings" to go to Notification access settings. Then find and enable "Personal Operating System" in the list.
+          </Text>
+        )}
       </LinearGradient>
     </View>
   );
@@ -388,5 +436,30 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
     color: colors.category.work,
+  },
+  nothingPhoneInstructions: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.s,
+    padding: spacing.m,
+    backgroundColor: colors.category.work + '15',
+    borderRadius: borderRadius.small,
+    marginBottom: spacing.m,
+    borderWidth: 1,
+    borderColor: colors.category.work + '30',
+  },
+  instructionsContent: {
+    flex: 1,
+  },
+  instructionsTitle: {
+    fontSize: typography.fontSize.caption,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.category.work,
+    marginBottom: spacing.xs,
+  },
+  instructionsText: {
+    fontSize: typography.fontSize.caption,
+    color: colors.textSecondary,
+    lineHeight: 18,
   },
 });

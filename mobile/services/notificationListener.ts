@@ -33,8 +33,14 @@ export interface NotificationListenerService {
 
   /**
    * Open Android settings to enable notification access
+   * Returns a promise with the method used: "standard", "app_details", "general", or error
    */
-  openSettings(): void;
+  openSettings(): Promise<string>;
+  
+  /**
+   * Get device information (manufacturer, model, etc.)
+   */
+  getDeviceInfo(): Promise<{ manufacturer: string; model: string; brand: string; device: string; sdkInt: number }>;
 
   /**
    * Get currently active notifications
@@ -86,34 +92,53 @@ class NotificationListenerServiceImpl implements NotificationListenerService {
     }
   }
 
-  openSettings(): void {
+  async openSettings(): Promise<string> {
     console.log('[NotificationListener] openSettings() called');
     
     if (!isAndroid) {
       console.warn('[NotificationListener] Not Android platform');
-      // Don't throw - just log and return gracefully
-      return;
+      throw new Error('Notification settings are only available on Android');
     }
     
     if (!NotificationListenerModule) {
       console.warn('[NotificationListener] NotificationListenerModule is not available!');
       console.warn('[NotificationListener] Cannot open settings - native module not registered');
-      // Don't throw - just log and return gracefully
-      return;
+      throw new Error('Notification module not available');
     }
     
     try {
       console.log('[NotificationListener] Opening notification access settings...');
-      NotificationListenerModule.openNotificationSettings();
-      console.log('[NotificationListener] Settings intent sent successfully');
+      const method = await NotificationListenerModule.openNotificationSettings();
+      console.log('[NotificationListener] Settings opened successfully using method:', method);
+      return method;
     } catch (error: any) {
       console.error('[NotificationListener] Error opening notification settings:', error);
       console.error('[NotificationListener] Error details:', {
         message: error?.message,
         code: error?.code,
       });
-      // Don't throw - just log the error
-      // The UI component will handle showing an appropriate message
+      throw error;
+    }
+  }
+  
+  async getDeviceInfo(): Promise<{ manufacturer: string; model: string; brand: string; device: string; sdkInt: number }> {
+    console.log('[NotificationListener] getDeviceInfo() called');
+    
+    if (!isAndroid) {
+      throw new Error('Device info is only available on Android');
+    }
+    
+    if (!NotificationListenerModule) {
+      throw new Error('Notification module not available');
+    }
+    
+    try {
+      const deviceInfo = await NotificationListenerModule.getDeviceInfo();
+      console.log('[NotificationListener] Device info:', deviceInfo);
+      return deviceInfo;
+    } catch (error: any) {
+      console.error('[NotificationListener] Error getting device info:', error);
+      throw error;
     }
   }
 

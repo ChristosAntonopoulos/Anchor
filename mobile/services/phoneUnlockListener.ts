@@ -11,6 +11,10 @@ const isAndroid = Platform.OS === 'android';
 // Log module availability on load
 console.log('[PhoneUnlockListener] Platform:', Platform.OS);
 console.log('[PhoneUnlockListener] Native module available:', !!PhoneUnlockModule);
+if (PhoneUnlockModule) {
+  console.log('[PhoneUnlockListener] Module name:', PhoneUnlockModule.getName?.() || 'Unknown');
+  console.log('[PhoneUnlockListener] Available methods:', Object.keys(PhoneUnlockModule));
+}
 
 // Create event emitter
 const eventEmitter = isAndroid && PhoneUnlockModule
