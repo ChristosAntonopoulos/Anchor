@@ -71,6 +71,7 @@ builder.Services.AddScoped<AIInputService>();
 builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<CBTService>();
 builder.Services.AddScoped<NotificationService>();
+builder.Services.AddScoped<POS.Application.Services.PhoneUnlock.PhoneUnlockService>();
 
 // Register database seeder
 builder.Services.AddScoped<DataSeeder>();

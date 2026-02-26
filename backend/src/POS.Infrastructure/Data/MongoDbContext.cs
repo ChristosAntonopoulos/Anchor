@@ -100,4 +100,8 @@ public class MongoDbContext
         _database.GetCollection<Notification>("notifications");
     public IMongoCollection<NotificationSettings> NotificationSettings => 
         _database.GetCollection<NotificationSettings>("notificationSettings");
+
+    // Phone Unlock collection
+    public IMongoCollection<PhoneUnlockEntry> PhoneUnlockEntries => 
+        _database.GetCollection<PhoneUnlockEntry>("phoneUnlockEntries");
 }

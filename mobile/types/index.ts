@@ -370,3 +370,19 @@ export interface SubmitWeeklyReviewRequest {
   avoided: string;
   nextFocus: string;
 }
+
+// Phone Unlock Types
+export interface PhoneUnlockEntry {
+  id: string;
+  reason: string;
+  unlockedAt: string; // ISO datetime string
+  unlockMethod?: string;
+  createdAt: string; // ISO datetime string
+  updatedAt?: string; // ISO datetime string
+}
+
+export interface CreatePhoneUnlockEntryRequest {
+  reason: string;
+  unlockedAt?: string; // ISO datetime string (optional - defaults to now)
+  unlockMethod?: string;
+}

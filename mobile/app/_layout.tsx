@@ -1,11 +1,21 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { Platform } from 'react-native';
 import { ErrorBoundary } from '../components/shared/ErrorBoundary';
 import { useCategoryStore } from '../store/useCategoryStore';
+import { phoneUnlockListener } from '../services/phoneUnlockListener';
+import { apiClient } from '../services/api';
+import { PhoneUnlockReasonModal } from '../components/phoneUnlock/PhoneUnlockReasonModal';
+import type { CreatePhoneUnlockEntryRequest } from '../types';
 
 export default function RootLayout() {
   const { fetchCategories } = useCategoryStore();
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const [unlockTime, setUnlockTime] = useState<number>(Date.now());
+  const unsubscribeRef = useRef<(() => void) | null>(null);
+  const lastUnlockTimeRef = useRef<number>(0);
+  const DEBOUNCE_MS = 2000; // Prevent duplicate modals within 2 seconds
 
   useEffect(() => {
     // Polyfill for window.addEventListener if it doesn't exist (React Native doesn't have window)
@@ -66,6 +76,54 @@ export default function RootLayout() {
     };
   }, [fetchCategories]);
 
+  // Phone unlock detection (Android only)
+  useEffect(() => {
+    if (Platform.OS !== 'android') {
+      return; // Only Android supports unlock detection
+    }
+
+    console.log('[RootLayout] Setting up phone unlock listener');
+
+    // Start listening for unlock events
+    const unsubscribe = phoneUnlockListener.startListening((unlockTimeMs: number) => {
+      const now = Date.now();
+      const timeSinceLastUnlock = now - lastUnlockTimeRef.current;
+
+      // Debounce: ignore if unlock happened very recently (within 2 seconds)
+      if (timeSinceLastUnlock < DEBOUNCE_MS) {
+        console.log('[RootLayout] Ignoring duplicate unlock event (debounced)');
+        return;
+      }
+
+      console.log('[RootLayout] Phone unlock detected:', unlockTimeMs);
+      lastUnlockTimeRef.current = now;
+      setUnlockTime(unlockTimeMs);
+      setShowUnlockModal(true);
+    });
+
+    unsubscribeRef.current = unsubscribe;
+
+    // Cleanup on unmount
+    return () => {
+      console.log('[RootLayout] Cleaning up phone unlock listener');
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
+      phoneUnlockListener.stopListening();
+    };
+  }, []);
+
+  const handleUnlockReasonSubmit = async (request: CreatePhoneUnlockEntryRequest) => {
+    await apiClient.createPhoneUnlockEntry(request);
+    console.log('[RootLayout] Phone unlock entry saved successfully');
+    // Modal will call onClose on success
+  };
+
+  const handleUnlockModalClose = () => {
+    setShowUnlockModal(false);
+  };
+
   return (
     <ErrorBoundary>
       <StatusBar style="light" />
@@ -77,6 +135,12 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="more" />
       </Stack>
+      <PhoneUnlockReasonModal
+        visible={showUnlockModal}
+        onSubmit={handleUnlockReasonSubmit}
+        unlockTime={unlockTime}
+        onClose={handleUnlockModalClose}
+      />
     </ErrorBoundary>
   );
 }

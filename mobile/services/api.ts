@@ -26,6 +26,7 @@ import type {
   NotificationInsights,
   AppNotificationCount,
   DisciplineEntry,
+  CreatePhoneUnlockEntryRequest,
 } from '../types';
 import { API_CONFIG, getApiUrl } from '../constants/apiConfig';
 import {
@@ -98,6 +99,9 @@ export interface APIClient {
   getNotificationSettings(): Promise<NotificationSettings>;
   updateNotificationSettings(settings: Partial<NotificationSettings>): Promise<NotificationSettings>;
   getNotificationApps(): Promise<AppNotificationCount[]>;
+  
+  // Phone Unlock endpoints
+  createPhoneUnlockEntry(request: CreatePhoneUnlockEntryRequest): Promise<void>;
 }
 
 // HTTP API Client Implementation
@@ -705,6 +709,15 @@ class HTTPAPIClient implements APIClient {
       return data || [];
     } catch (error) {
       throw this.handleError(error, 'Failed to get notification apps');
+    }
+  }
+
+  async createPhoneUnlockEntry(request: CreatePhoneUnlockEntryRequest): Promise<void> {
+    try {
+      const response = await this.axiosInstance.post<ApiResponse<void>>('/phone-unlock', request);
+      unwrapResponse(response.data);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to create phone unlock entry');
     }
   }
 
