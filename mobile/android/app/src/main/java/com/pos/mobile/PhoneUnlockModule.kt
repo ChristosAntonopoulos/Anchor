@@ -83,6 +83,9 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
 
     private fun sendUnlockEvent(unlockTime: Long) {
         try {
+            // Bring app to foreground
+            bringAppToForeground()
+            
             val params = Arguments.createMap().apply {
                 putDouble("unlockTime", unlockTime.toDouble())
             }
@@ -94,6 +97,20 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
             android.util.Log.d(TAG, "Unlock event sent to React Native: $unlockTime")
         } catch (e: Exception) {
             android.util.Log.e(TAG, "Error sending unlock event to React Native", e)
+        }
+    }
+
+    private fun bringAppToForeground() {
+        try {
+            val context = reactApplicationContext.applicationContext
+            val intent = Intent(context, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            }
+            context.startActivity(intent)
+            android.util.Log.d(TAG, "Brought app to foreground")
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "Error bringing app to foreground", e)
         }
     }
 

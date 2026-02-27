@@ -1,6 +1,7 @@
 package com.pos.mobile
 
 import android.app.Application
+import android.content.Intent
 import android.content.res.Configuration
 
 import com.facebook.react.PackageList
@@ -27,6 +28,7 @@ class MainApplication : Application(), ReactApplication {
               // add(MyReactNativePackage())
               add(NotificationListenerPackage())
               add(PhoneUnlockPackage())
+              add(ForegroundServicePackage())
             }
 
           override fun getJSMainModuleName(): String = ".expo/.virtual-metro-entry"
@@ -49,6 +51,23 @@ class MainApplication : Application(), ReactApplication {
     }
     loadReactNative(this)
     ApplicationLifecycleDispatcher.onApplicationCreate(this)
+    
+    // Start foreground service to keep app running in background
+    startForegroundService()
+  }
+
+  private fun startForegroundService() {
+    try {
+      val serviceIntent = Intent(this, POSForegroundService::class.java)
+      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+        startForegroundService(serviceIntent)
+      } else {
+        startService(serviceIntent)
+      }
+      android.util.Log.d("MainApplication", "Foreground service started")
+    } catch (e: Exception) {
+      android.util.Log.e("MainApplication", "Error starting foreground service", e)
+    }
   }
 
   override fun onConfigurationChanged(newConfig: Configuration) {
