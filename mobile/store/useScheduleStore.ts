@@ -33,11 +33,8 @@ export const useScheduleStore = create<ScheduleStore>((set, get) => ({
   updateBlock: async (id: string, updates: { title?: string; startTime?: string; endTime?: string }) => {
     try {
       await apiClient.updateScheduleBlock({ id, ...updates });
-      const currentBlocks = get().blocks;
-      const updatedBlocks = currentBlocks.map(block =>
-        block.id === id ? { ...block, ...updates } : block
-      );
-      set({ blocks: updatedBlocks });
+      // Refresh data to get updated state from server
+      await get().fetchSchedule();
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Failed to update schedule block'

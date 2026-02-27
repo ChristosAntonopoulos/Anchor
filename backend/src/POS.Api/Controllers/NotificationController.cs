@@ -1,6 +1,9 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 using POS.Application.DTOs.Notifications;
 using POS.Application.Services.Notifications;
+using POS.Shared.Results;
 
 namespace POS.Api.Controllers;
 
@@ -23,6 +26,9 @@ public class NotificationController : BaseController
     /// Create a notification
     /// </summary>
     [HttpPost]
+    [ProducesResponseType(typeof(ApiResponse<NotificationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreateNotification([FromBody] CreateNotificationRequest request)
     {
         var userId = GetUserId();
@@ -34,6 +40,8 @@ public class NotificationController : BaseController
     /// Get notifications with filtering, grouping, and pagination
     /// </summary>
     [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetNotifications(
         [FromQuery] string? groupBy = null,
         [FromQuery] string? filter = null,
@@ -59,6 +67,9 @@ public class NotificationController : BaseController
     /// Get a single notification
     /// </summary>
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ApiResponse<NotificationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetNotification(string id)
     {
         var userId = GetUserId();
@@ -70,6 +81,9 @@ public class NotificationController : BaseController
     /// Update a notification (mark read/dismissed)
     /// </summary>
     [HttpPatch("{id}")]
+    [ProducesResponseType(typeof(ApiResponse<NotificationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> UpdateNotification(string id, [FromBody] UpdateNotificationRequest request)
     {
         if (request.Id != id)
@@ -86,6 +100,9 @@ public class NotificationController : BaseController
     /// Delete a notification
     /// </summary>
     [HttpDelete("{id}")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DeleteNotification(string id)
     {
         var userId = GetUserId();
@@ -97,6 +114,8 @@ public class NotificationController : BaseController
     /// Get notification insights
     /// </summary>
     [HttpGet("insights")]
+    [ProducesResponseType(typeof(ApiResponse<NotificationInsightsDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetNotificationInsights(
         [FromQuery] DateTime? startDate = null,
         [FromQuery] DateTime? endDate = null)
@@ -110,6 +129,8 @@ public class NotificationController : BaseController
     /// Get notification settings
     /// </summary>
     [HttpGet("settings")]
+    [ProducesResponseType(typeof(ApiResponse<NotificationSettingsDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetNotificationSettings()
     {
         var userId = GetUserId();
@@ -121,6 +142,9 @@ public class NotificationController : BaseController
     /// Update notification settings
     /// </summary>
     [HttpPut("settings")]
+    [ProducesResponseType(typeof(ApiResponse<NotificationSettingsDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> UpdateNotificationSettings([FromBody] UpdateNotificationSettingsRequest request)
     {
         var userId = GetUserId();
@@ -132,6 +156,9 @@ public class NotificationController : BaseController
     /// Get list of apps from notifications
     /// </summary>
     [HttpGet("apps")]
+    [SwaggerOperation(OperationId = "Notifications_GetApps", Summary = "Get list of apps from notifications")]
+    [ProducesResponseType(typeof(ApiResponse<List<AppNotificationCount>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetApps()
     {
         var userId = GetUserId();

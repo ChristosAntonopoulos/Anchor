@@ -28,6 +28,7 @@ public class BetterItemsController : BaseController
     [HttpPost("complete")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CompleteItem([FromBody] CompleteBetterItemRequest request)
     {
         var userId = GetUserId();
@@ -41,6 +42,7 @@ public class BetterItemsController : BaseController
     [HttpPost("accept")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> AcceptItem([FromBody] AcceptBetterItemRequest request)
     {
         var userId = GetUserId();
@@ -54,6 +56,7 @@ public class BetterItemsController : BaseController
     [HttpPost("edit")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> EditItem([FromBody] EditBetterItemRequest request)
     {
         var userId = GetUserId();
@@ -67,6 +70,7 @@ public class BetterItemsController : BaseController
     [HttpPost("reject")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> RejectItem([FromBody] RejectBetterItemRequest request)
     {
         var userId = GetUserId();
@@ -80,6 +84,7 @@ public class BetterItemsController : BaseController
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponse<BetterItemDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreateBetterItem([FromBody] CreateBetterItemDto request)
     {
         var userId = GetUserId();
@@ -92,6 +97,7 @@ public class BetterItemsController : BaseController
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<List<BetterItemDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetAllBetterItems([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
     {
         var userId = GetUserId();
@@ -106,6 +112,7 @@ public class BetterItemsController : BaseController
     [ProducesResponseType(typeof(ApiResponse<BetterItemDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetBetterItemById(string id)
     {
         var userId = GetUserId();
@@ -124,6 +131,7 @@ public class BetterItemsController : BaseController
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DeleteBetterItem(string id)
     {
         var userId = GetUserId();

@@ -16,6 +16,18 @@ class MainActivity : ReactActivity() {
     // coloring the background, status bar, and navigation bar.
     // This is required for expo-splash-screen.
     setTheme(R.style.AppTheme);
+    
+    // Check if app was opened from notification with unlock time
+    intent?.let { intent ->
+      if (intent.hasExtra("unlockTime") && intent.getBooleanExtra("showUnlockModal", false)) {
+        val unlockTime = intent.getLongExtra("unlockTime", 0L)
+        if (unlockTime > 0) {
+          android.util.Log.d("MainActivity", "App opened from notification with unlockTime: $unlockTime")
+          PhoneUnlockModule.setPendingUnlockTime(unlockTime)
+        }
+      }
+    }
+    
     super.onCreate(null)
   }
 

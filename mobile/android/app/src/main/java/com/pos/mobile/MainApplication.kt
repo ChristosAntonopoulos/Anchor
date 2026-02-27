@@ -29,6 +29,7 @@ class MainApplication : Application(), ReactApplication {
               add(NotificationListenerPackage())
               add(PhoneUnlockPackage())
               add(ForegroundServicePackage())
+              add(OverlayPermissionPackage())
             }
 
           override fun getJSMainModuleName(): String = ".expo/.virtual-metro-entry"

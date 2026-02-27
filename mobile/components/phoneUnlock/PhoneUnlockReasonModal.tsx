@@ -34,20 +34,54 @@ export function PhoneUnlockReasonModal({
     setLoading(true);
     
     try {
-      await onSubmit({
+      console.log('[PhoneUnlockReasonModal] Submitting unlock entry, unlockTime:', unlockTime);
+      
+      // Validate unlockTime is a valid number
+      if (!unlockTime || isNaN(unlockTime)) {
+        throw new Error('Invalid unlock time');
+      }
+      
+      const request = {
         reason: trimmedReason,
         unlockedAt: new Date(unlockTime).toISOString(),
-      });
+      };
+      
+      console.log('[PhoneUnlockReasonModal] Request payload:', request);
+      
+      await onSubmit(request);
+      
+      console.log('[PhoneUnlockReasonModal] Submit successful');
+      
       // Reset form
       setReason('');
       setError(null);
-      // Close modal on success
+      
+      // Close modal on success - add small delay to ensure state updates complete
+      // Wrap in try-catch to prevent crashes
       if (onClose) {
-        onClose();
+        setTimeout(() => {
+          try {
+            console.log('[PhoneUnlockReasonModal] Calling onClose');
+            onClose();
+          } catch (closeError) {
+            console.error('[PhoneUnlockReasonModal] Error calling onClose:', closeError);
+          }
+        }, 100);
       }
     } catch (err: any) {
-      console.error('Failed to save unlock reason:', err);
-      setError(err?.message || 'Failed to save. Please try again.');
+      console.error('[PhoneUnlockReasonModal] Failed to save unlock reason:', err);
+      console.error('[PhoneUnlockReasonModal] Error details:', {
+        message: err?.message,
+        stack: err?.stack,
+        response: err?.response,
+      });
+      
+      // Show user-friendly error message
+      const errorMessage = err?.response?.data?.message 
+        || err?.message 
+        || 'Failed to save. Please check your connection and try again.';
+      
+      setError(errorMessage);
       // Don't close modal on error - user needs to retry
     } finally {
       setLoading(false);
@@ -59,7 +93,12 @@ export function PhoneUnlockReasonModal({
       visible={visible}
       transparent={false}
       animationType="fade"
-      onRequestClose={() => {}} // Prevent closing without entering reason
+      onRequestClose={() => {
+        // Allow closing only if not loading (prevents accidental closes during submit)
+        if (!loading) {
+          onClose?.();
+        }
+      }}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

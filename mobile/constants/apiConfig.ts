@@ -22,8 +22,10 @@ const isDev = typeof __DEV__ !== 'undefined' ? __DEV__ : true;
  *   - HTTPS: port 7246 (bound to 0.0.0.0:7246 - has SSL certificate issues in emulator)
  * 
  * DEFAULT: Uses Android emulator address with HTTP (10.0.2.2:5000) - avoids SSL certificate problems
+ * 
+ * CURRENT SETTING: Using physical device IP (192.168.1.43) for testing on real device
  */
-const DEV_API_BASE_URL = 'http://10.0.2.2:5000/api';
+const DEV_API_BASE_URL = 'http://192.168.1.43:5000/api';
 
 /**
  * Production API Base URL Configuration

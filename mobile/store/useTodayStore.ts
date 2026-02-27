@@ -56,14 +56,8 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
   completeBetterItem: async (id: string) => {
     try {
       await apiClient.completeBetterItem({ id });
-      const currentData = get().data;
-      if (currentData) {
-        const item = currentData.betterItems.find(item => item.id === id);
-        if (item) {
-          item.completed = true;
-          set({ data: { ...currentData } });
-        }
-      }
+      // Refresh data to get updated state from server
+      await get().fetchToday();
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Failed to complete item'
@@ -74,14 +68,8 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
   acceptBetterItem: async (id: string) => {
     try {
       await apiClient.acceptBetterItem({ id });
-      const currentData = get().data;
-      if (currentData) {
-        const item = currentData.betterItems.find(item => item.id === id);
-        if (item) {
-          item.completed = true;
-          set({ data: { ...currentData } });
-        }
-      }
+      // Refresh data to get updated state from server
+      await get().fetchToday();
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Failed to accept item'
@@ -92,14 +80,8 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
   editBetterItem: async (id: string, title: string) => {
     try {
       await apiClient.editBetterItem({ id, title });
-      const currentData = get().data;
-      if (currentData) {
-        const item = currentData.betterItems.find(item => item.id === id);
-        if (item) {
-          item.title = title;
-          set({ data: { ...currentData } });
-        }
-      }
+      // Refresh data to get updated state from server
+      await get().fetchToday();
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Failed to edit item'
@@ -110,11 +92,8 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
   rejectBetterItem: async (id: string) => {
     try {
       await apiClient.rejectBetterItem({ id });
-      const currentData = get().data;
-      if (currentData) {
-        currentData.betterItems = currentData.betterItems.filter(item => item.id !== id);
-        set({ data: { ...currentData } });
-      }
+      // Refresh data to get updated state from server
+      await get().fetchToday();
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Failed to reject item'
@@ -148,16 +127,7 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
   updateTask: async (id: string, request: UpdateTaskRequest) => {
     try {
       await apiClient.updateTask(id, request);
-      const currentData = get().data;
-      if (currentData) {
-        const task = currentData.tasks.find(t => t.id === id);
-        if (task) {
-          // Update task in place
-          Object.assign(task, request);
-          set({ data: { ...currentData } });
-        }
-      }
-      // Also refresh to get latest from server
+      // Refresh data to get updated state from server
       await get().fetchToday();
     } catch (error) {
       set({ 
@@ -181,14 +151,8 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
   completeTask: async (id: string) => {
     try {
       await apiClient.completeTask({ id });
-      const currentData = get().data;
-      if (currentData) {
-        const task = currentData.tasks.find(task => task.id === id);
-        if (task) {
-          task.completed = true;
-          set({ data: { ...currentData } });
-        }
-      }
+      // Refresh data to get updated state from server
+      await get().fetchToday();
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Failed to complete task'
@@ -211,11 +175,8 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
   updateDiet: async (diet: Partial<DietEntry>) => {
     try {
       await apiClient.updateDiet({ diet });
-      const currentData = get().data;
-      if (currentData) {
-        currentData.diet = { ...currentData.diet, ...diet };
-        set({ data: { ...currentData } });
-      }
+      // Refresh data to get updated state from server
+      await get().fetchToday();
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Failed to update diet'

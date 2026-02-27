@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 using POS.Application.DTOs.AIInput;
 using POS.Application.Services.AIInput;
 using POS.Shared.Results;
@@ -21,9 +22,27 @@ public class AIInputController : BaseController
     }
 
     /// <summary>
-    /// Submit natural language input for AI processing
+    /// Submit natural language input for AI processing to create tasks, schedule blocks, or other entities
     /// </summary>
+    /// <param name="request">AI input request. Text is required.</param>
+    /// <returns>AI processing result with created entities</returns>
+    /// <remarks>
+    /// Processes natural language input and automatically creates tasks, schedule blocks, or other relevant entities.
+    /// Example request:
+    /// <code>
+    /// {
+    ///   "text": "Meeting with John tomorrow at 2pm about the project"
+    /// }
+    /// </code>
+    /// The AI will parse this and create appropriate schedule blocks or tasks.
+    /// </remarks>
+    /// <response code="200">Input processed successfully</response>
+    /// <response code="400">Validation error - text is required</response>
     [HttpPost]
+    [SwaggerOperation(OperationId = "AIInput_SubmitInput", Summary = "Submit natural language input for AI processing")]
+    [ProducesResponseType(typeof(ApiResponse<AIInputDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> SubmitInput([FromBody] SubmitAIInputRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Text))
@@ -40,9 +59,18 @@ public class AIInputController : BaseController
     }
 
     /// <summary>
-    /// Get pending inputs (for debugging/monitoring)
+    /// Get pending AI inputs that are waiting to be processed (for debugging/monitoring)
     /// </summary>
+    /// <returns>List of pending AI inputs</returns>
+    /// <remarks>
+    /// Returns inputs that have been submitted but not yet processed by the AI system.
+    /// Useful for monitoring and debugging the AI processing pipeline.
+    /// </remarks>
+    /// <response code="200">List of pending inputs retrieved successfully</response>
     [HttpGet("pending")]
+    [SwaggerOperation(OperationId = "AIInput_GetPendingInputs", Summary = "Get pending AI inputs")]
+    [ProducesResponseType(typeof(ApiResponse<List<AIInputDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetPendingInputs()
     {
         var userId = GetUserId();

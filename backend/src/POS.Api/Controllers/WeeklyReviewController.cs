@@ -26,6 +26,7 @@ public class WeeklyReviewController : BaseController
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<WeeklyReviewDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetWeeklyReview()
     {
         var userId = GetUserId();
@@ -39,6 +40,7 @@ public class WeeklyReviewController : BaseController
     [HttpPost("submit")]
     [ProducesResponseType(typeof(ApiResponse<WeeklyReviewDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> SubmitWeeklyReview([FromBody] SubmitWeeklyReviewRequest request)
     {
         var userId = GetUserId();
@@ -53,6 +55,7 @@ public class WeeklyReviewController : BaseController
     [ProducesResponseType(typeof(ApiResponse<WeeklyReviewDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetWeeklyReviewById(string id)
     {
         var userId = GetUserId();
@@ -70,6 +73,7 @@ public class WeeklyReviewController : BaseController
     [HttpGet("range")]
     [ProducesResponseType(typeof(ApiResponse<WeeklyReviewDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<List<WeeklyReviewDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetWeeklyReviewsByDateRange([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
     {
         var userId = GetUserId();
@@ -92,6 +96,7 @@ public class WeeklyReviewController : BaseController
     [ProducesResponseType(typeof(ApiResponse<WeeklyReviewDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> UpdateWeeklyReview(string id, [FromBody] UpdateWeeklyReviewRequest request)
     {
         var userId = GetUserId();
@@ -110,6 +115,7 @@ public class WeeklyReviewController : BaseController
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DeleteWeeklyReview(string id)
     {
         var userId = GetUserId();

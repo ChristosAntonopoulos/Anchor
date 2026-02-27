@@ -26,6 +26,7 @@ public class DietController : BaseController
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<DietEntryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetDiet()
     {
         var userId = GetUserId();
@@ -39,6 +40,7 @@ public class DietController : BaseController
     [HttpPut]
     [ProducesResponseType(typeof(ApiResponse<DietEntryDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> UpdateDiet([FromBody] UpdateDietRequest request)
     {
         var userId = GetUserId();
@@ -52,6 +54,7 @@ public class DietController : BaseController
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponse<DietEntryDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreateDiet([FromBody] CreateDietRequest request)
     {
         var userId = GetUserId();
@@ -66,6 +69,7 @@ public class DietController : BaseController
     [ProducesResponseType(typeof(ApiResponse<DietEntryDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetDietByDate([FromRoute] string date)
     {
         var userId = GetUserId();
@@ -88,6 +92,7 @@ public class DietController : BaseController
     [HttpGet("range")]
     [ProducesResponseType(typeof(ApiResponse<DietEntryDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<List<DietEntryDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetDietByDateRange([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
     {
         var userId = GetUserId();
@@ -110,6 +115,7 @@ public class DietController : BaseController
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DeleteDiet([FromRoute] string date)
     {
         var userId = GetUserId();

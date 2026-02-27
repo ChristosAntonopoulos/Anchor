@@ -35,6 +35,16 @@ export interface PhoneUnlockListenerService {
    * Stop listening for phone unlock events
    */
   stopListening(): void;
+
+  /**
+   * Get pending unlock time if app was opened from notification
+   */
+  getPendingUnlockTime(): Promise<number | null>;
+
+  /**
+   * Clear pending unlock time
+   */
+  clearPendingUnlockTime(): void;
 }
 
 class PhoneUnlockListenerServiceImpl implements PhoneUnlockListenerService {
@@ -103,6 +113,53 @@ class PhoneUnlockListenerServiceImpl implements PhoneUnlockListenerService {
       console.log('[PhoneUnlockListener] Stopped listening for unlock events');
     } catch (error: any) {
       console.error('[PhoneUnlockListener] Error stopping unlock listener:', error);
+    }
+  }
+
+  async getPendingUnlockTime(): Promise<number | null> {
+    console.log('[PhoneUnlockListener] getPendingUnlockTime() called');
+    
+    if (!isAndroid || !PhoneUnlockModule) {
+      return null;
+    }
+    
+    try {
+      const time = await PhoneUnlockModule.getPendingUnlockTime();
+      console.log('[PhoneUnlockListener] Pending unlock time:', time);
+      return time ? Number(time) : null;
+    } catch (error: any) {
+      console.error('[PhoneUnlockListener] Error getting pending unlock time:', error);
+      return null;
+    }
+  }
+
+  clearPendingUnlockTime(): void {
+    console.log('[PhoneUnlockListener] clearPendingUnlockTime() called');
+    
+    if (!isAndroid) {
+      console.log('[PhoneUnlockListener] Not Android, skipping clear');
+      return;
+    }
+    
+    if (!PhoneUnlockModule) {
+      console.log('[PhoneUnlockListener] PhoneUnlockModule not available, skipping clear');
+      return;
+    }
+    
+    // Check if the method exists before calling
+    if (typeof PhoneUnlockModule.clearPendingUnlockTime !== 'function') {
+      console.log('[PhoneUnlockListener] clearPendingUnlockTime method not available, skipping');
+      return;
+    }
+    
+    try {
+      // Call the native method - wrap in try-catch to prevent any crashes
+      PhoneUnlockModule.clearPendingUnlockTime();
+      console.log('[PhoneUnlockListener] Cleared pending unlock time');
+    } catch (error: any) {
+      // Log but don't throw - this is not critical
+      console.log('[PhoneUnlockListener] Error clearing pending unlock time (non-critical):', error?.message || 'Unknown error');
+      // Don't re-throw - we don't want this to crash the app
     }
   }
 }

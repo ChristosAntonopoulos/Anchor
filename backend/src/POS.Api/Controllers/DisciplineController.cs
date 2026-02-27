@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 using POS.Application.DTOs.Discipline;
 using POS.Application.Services.Discipline;
 using POS.Shared.Results;
@@ -26,6 +27,7 @@ public class DisciplineController : BaseController
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<DisciplineEntryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetDiscipline()
     {
         var userId = GetUserId();
@@ -39,6 +41,7 @@ public class DisciplineController : BaseController
     [HttpPut]
     [ProducesResponseType(typeof(ApiResponse<DisciplineEntryDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> UpdateDiscipline([FromBody] UpdateDisciplineRequest request)
     {
         var userId = GetUserId();
@@ -52,6 +55,7 @@ public class DisciplineController : BaseController
     [HttpPatch("{date}/block/{blockId}/item/{itemId}/toggle")]
     [ProducesResponseType(typeof(ApiResponse<DisciplineEntryDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> ToggleItem(
         [FromRoute] string date,
         [FromRoute] string blockId,
@@ -74,6 +78,7 @@ public class DisciplineController : BaseController
     [HttpPatch("{date}/block/{blockId}/item/{itemId}/increment")]
     [ProducesResponseType(typeof(ApiResponse<DisciplineEntryDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> IncrementCounter(
         [FromRoute] string date,
         [FromRoute] string blockId,
@@ -95,6 +100,7 @@ public class DisciplineController : BaseController
     [HttpPatch("{date}/block/{blockId}/item/{itemId}/decrement")]
     [ProducesResponseType(typeof(ApiResponse<DisciplineEntryDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DecrementCounter(
         [FromRoute] string date,
         [FromRoute] string blockId,
@@ -116,6 +122,7 @@ public class DisciplineController : BaseController
     [HttpPatch("{date}/block/{blockId}/item/{itemId}/set")]
     [ProducesResponseType(typeof(ApiResponse<DisciplineEntryDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> SetCounter(
         [FromRoute] string date,
         [FromRoute] string blockId,
@@ -133,11 +140,28 @@ public class DisciplineController : BaseController
     }
 
     /// <summary>
-    /// Create discipline entry
+    /// Create a new discipline entry for a specific date
     /// </summary>
+    /// <param name="request">Discipline entry request. Date is required.</param>
+    /// <returns>Created discipline entry with default blocks if not provided</returns>
+    /// <remarks>
+    /// Example request:
+    /// <code>
+    /// {
+    ///   "date": "2024-02-26",
+    ///   "note": "Feeling motivated today"
+    /// }
+    /// </code>
+    /// Date format: YYYY-MM-DD
+    /// If blocks are not provided, default blocks will be used.
+    /// </remarks>
+    /// <response code="200">Discipline entry created successfully</response>
+    /// <response code="400">Validation error - missing required fields or invalid date format</response>
     [HttpPost]
+    [SwaggerOperation(OperationId = "Discipline_CreateEntry", Summary = "Create a new discipline entry")]
     [ProducesResponseType(typeof(ApiResponse<DisciplineEntryDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreateDiscipline([FromBody] CreateDisciplineRequest request)
     {
         var userId = GetUserId();
@@ -152,6 +176,7 @@ public class DisciplineController : BaseController
     [ProducesResponseType(typeof(ApiResponse<DisciplineEntryDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetDisciplineByDate([FromRoute] string date)
     {
         var userId = GetUserId();
@@ -174,6 +199,7 @@ public class DisciplineController : BaseController
     [HttpGet("range")]
     [ProducesResponseType(typeof(ApiResponse<DisciplineEntryDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<List<DisciplineEntryDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetDisciplineByDateRange([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
     {
         var userId = GetUserId();
@@ -196,6 +222,7 @@ public class DisciplineController : BaseController
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DeleteDiscipline([FromRoute] string date)
     {
         var userId = GetUserId();

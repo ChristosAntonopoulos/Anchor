@@ -162,14 +162,33 @@ This API provides full CRUD operations for all data entities including:
 - Weekly Reviews (reflection)
 - CBT Entries (cognitive behavioral therapy)
 - Notifications (app notifications)
+- Phone Unlock Entries (unlock tracking)
 
 All endpoints return standardized ApiResponse<T> format.
 Date parameters should be in YYYY-MM-DD format.
         ",
         Contact = new OpenApiContact
         {
-            Name = "POS API Support"
+            Name = "POS API Support",
+            Email = "support@pos-api.com"
+        },
+        License = new OpenApiLicense
+        {
+            Name = "Proprietary",
+            Url = new Uri("https://example.com/license")
         }
+    });
+    
+    // Add server definitions for different environments
+    c.AddServer(new OpenApiServer
+    {
+        Url = "http://185.193.66.50:31247",
+        Description = "Production server"
+    });
+    c.AddServer(new OpenApiServer
+    {
+        Url = "http://localhost:5000",
+        Description = "Development server (local)"
     });
     
     // Include XML comments from API project
@@ -188,8 +207,11 @@ Date parameters should be in YYYY-MM-DD format.
         c.IncludeXmlComments(applicationXmlPath);
     }
     
-    // Enable annotations for better Swagger generation
+    // Enable annotations for better Swagger generation (allows [SwaggerOperation], [SwaggerResponse], etc.)
     c.EnableAnnotations();
+    
+    // Show required properties first in Swagger UI
+    c.SupportNonNullableReferenceTypes();
     
     // Use fully qualified type names for schema IDs to avoid conflicts between types with same name in different namespaces
     c.CustomSchemaIds(type => type.FullName?.Replace("+", ".") ?? type.Name);

@@ -185,10 +185,11 @@ export const useNotificationStore = create<NotificationStore>((set, get) => {
 
     markAsRead: async (id: string) => {
       try {
-        await apiClient.updateNotification(id, { isRead: true });
+        // API returns updated notification, use it to update state
+        const updated = await apiClient.updateNotification(id, { isRead: true });
         set((state) => ({
           backendNotifications: state.backendNotifications.map(n =>
-            n.id === id ? { ...n, isRead: true } : n
+            n.id === id ? updated : n
           ),
         }));
       } catch (error) {
@@ -199,10 +200,11 @@ export const useNotificationStore = create<NotificationStore>((set, get) => {
 
     markAsDismissed: async (id: string) => {
       try {
-        await apiClient.updateNotification(id, { isDismissed: true });
+        // API returns updated notification, use it to update state
+        const updated = await apiClient.updateNotification(id, { isDismissed: true });
         set((state) => ({
           backendNotifications: state.backendNotifications.map(n =>
-            n.id === id ? { ...n, isDismissed: true } : n
+            n.id === id ? updated : n
           ),
         }));
       } catch (error) {
@@ -214,9 +216,8 @@ export const useNotificationStore = create<NotificationStore>((set, get) => {
     deleteNotification: async (id: string) => {
       try {
         await apiClient.deleteNotification(id);
-        set((state) => ({
-          backendNotifications: state.backendNotifications.filter(n => n.id !== id),
-        }));
+        // Refresh notifications to ensure state matches server
+        await get().fetchNotifications();
       } catch (error) {
         console.error('Error deleting notification:', error);
         throw error;

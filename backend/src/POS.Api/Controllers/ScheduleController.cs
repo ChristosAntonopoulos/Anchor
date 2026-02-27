@@ -27,6 +27,7 @@ public class ScheduleController : BaseController
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<List<ScheduleBlockInstanceDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetSchedule()
     {
         var userId = GetUserId();
@@ -40,6 +41,7 @@ public class ScheduleController : BaseController
     [HttpPost("definitions")]
     [ProducesResponseType(typeof(ApiResponse<ScheduleBlockDefinitionDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreateDefinition([FromBody] CreateScheduleBlockDefinitionDto dto)
     {
         var userId = GetUserId();
@@ -54,6 +56,7 @@ public class ScheduleController : BaseController
     [ProducesResponseType(typeof(ApiResponse<ScheduleBlockInstanceDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> UpdateBlock(string id, [FromBody] UpdateScheduleBlockRequest request)
     {
         if (request.Id != id)
@@ -72,6 +75,7 @@ public class ScheduleController : BaseController
     [HttpDelete("{id}")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DeleteBlock(string id)
     {
         var userId = GetUserId();
@@ -90,6 +94,7 @@ public class ScheduleController : BaseController
     [ProducesResponseType(typeof(ApiResponse<ScheduleBlockInstanceDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetBlockInstanceById(string id)
     {
         var userId = GetUserId();
@@ -106,6 +111,7 @@ public class ScheduleController : BaseController
     /// </summary>
     [HttpGet("definitions")]
     [ProducesResponseType(typeof(ApiResponse<List<ScheduleBlockDefinitionDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetAllDefinitions()
     {
         var userId = GetUserId();
@@ -120,6 +126,7 @@ public class ScheduleController : BaseController
     [ProducesResponseType(typeof(ApiResponse<ScheduleBlockDefinitionDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetDefinitionById(string id)
     {
         var userId = GetUserId();
@@ -138,6 +145,7 @@ public class ScheduleController : BaseController
     [ProducesResponseType(typeof(ApiResponse<ScheduleBlockDefinitionDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> UpdateDefinition(string id, [FromBody] UpdateScheduleBlockDefinitionRequest request)
     {
         var userId = GetUserId();
@@ -156,6 +164,7 @@ public class ScheduleController : BaseController
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DeleteDefinition(string id)
     {
         var userId = GetUserId();

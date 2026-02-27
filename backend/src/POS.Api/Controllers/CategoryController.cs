@@ -1,6 +1,9 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 using POS.Application.DTOs.Category;
 using POS.Application.Services.Category;
+using POS.Shared.Results;
 
 namespace POS.Api.Controllers;
 
@@ -23,6 +26,9 @@ public class CategoryController : BaseController
     /// Get all active categories
     /// </summary>
     [HttpGet]
+    [SwaggerOperation(OperationId = "Categories_GetCategories", Summary = "Get all active categories")]
+    [ProducesResponseType(typeof(ApiResponse<List<CategoryDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetCategories()
     {
         var categories = await _categoryService.GetAllCategoriesAsync();
@@ -33,6 +39,10 @@ public class CategoryController : BaseController
     /// Get category by ID
     /// </summary>
     [HttpGet("{id}")]
+    [SwaggerOperation(OperationId = "Categories_GetCategory", Summary = "Get category by ID")]
+    [ProducesResponseType(typeof(ApiResponse<CategoryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetCategory(string id)
     {
         var category = await _categoryService.GetCategoryByIdAsync(id);
