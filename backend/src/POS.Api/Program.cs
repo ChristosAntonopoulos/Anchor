@@ -114,7 +114,7 @@ builder.Services.AddCors(options =>
         else
         {
             // In production, allow all origins for mobile app access
-            // Production server: http://185.193.66.50:35555
+            // Production server: http://185.193.66.50:31247
             // Expo Go uses dynamic IPs and various origins depending on device and network
             // This is acceptable for mobile API access (no browser-based attacks)
             // Consider adding rate limiting and authentication for additional security
@@ -251,11 +251,12 @@ app.UseSerilogRequestLogging();
 // Use exception handling middleware (must be early in pipeline)
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-// Only redirect to HTTPS in production
-if (!app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
+// HTTPS redirection disabled - service is HTTP-only (NodePort 31247)
+// If HTTPS is needed in the future, configure it at the Kubernetes Ingress/LoadBalancer level
+// if (!app.Environment.IsDevelopment())
+// {
+//     app.UseHttpsRedirection();
+// }
 
 // Use CORS
 app.UseCors();

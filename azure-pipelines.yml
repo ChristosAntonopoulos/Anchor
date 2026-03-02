@@ -401,10 +401,10 @@ stages:
         SERVICE_IP=$(kubectl get service pos-api-service -n $(kubernetesNamespace) -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
         if [ -n "$SERVICE_IP" ]; then
           echo "API Service External IP: $SERVICE_IP"
-          echo "API Base URL: http://$SERVICE_IP:35555/api"
+          echo "API Base URL: http://$SERVICE_IP:31247/api"
           echo ""
           echo "Update mobile app configuration with this URL:"
-          echo "  EXPO_PUBLIC_API_URL=http://$SERVICE_IP:35555/api"
+          echo "  EXPO_PUBLIC_API_URL=http://$SERVICE_IP:31247/api"
         else
           echo "LoadBalancer IP not yet assigned. Check service status:"
           kubectl get service pos-api-service -n $(kubernetesNamespace)
