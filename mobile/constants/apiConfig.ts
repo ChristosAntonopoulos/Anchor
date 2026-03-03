@@ -1,8 +1,20 @@
 // API configuration for backend connection
 // Environment-aware base URL configuration
 
-// Check if we're in development mode
-const isDev = typeof __DEV__ !== 'undefined' ? __DEV__ : true;
+import Constants from 'expo-constants';
+
+// Better production detection using expo-constants
+// executionEnvironment values: 'standalone' (production build), 'bare' (bare RN), 'storeClient' (Expo Go)
+// Standalone = production build (APK/IPA)
+// Bare = bare React Native workflow  
+// StoreClient = Expo Go (development)
+const isProduction = 
+  Constants.executionEnvironment === 'standalone' ||
+  Constants.executionEnvironment === 'bare' ||
+  (typeof __DEV__ !== 'undefined' && !__DEV__);
+
+// Development mode: Expo Go or development builds
+const isDev = !isProduction && (typeof __DEV__ !== 'undefined' ? __DEV__ : true);
 
 /**
  * Development API Base URL Configuration
@@ -39,20 +51,20 @@ const DEV_API_BASE_URL = 'http://192.168.1.43:5000/api';
  */
 const PROD_API_BASE_URL = 'http://185.193.66.50:31247/api';
 
-// Priority: EXPO_PUBLIC_API_URL > Dev URL (in dev mode) > Production URL (in production)
+// Priority: EXPO_PUBLIC_API_URL > Production URL > Dev URL
 const getApiBaseUrl = (): string => {
-  // If EXPO_PUBLIC_API_URL is set, use it (highest priority)
+  // Highest priority: Explicit environment variable (set by EAS build or manually)
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL;
   }
   
-  // In development mode, use local backend (works with Android emulator via 10.0.2.2)
-  if (isDev) {
-    return DEV_API_BASE_URL;
+  // Production builds: use production URL
+  if (isProduction) {
+    return PROD_API_BASE_URL;
   }
   
-  // In production builds, use production server
-  return PROD_API_BASE_URL;
+  // Development mode: use dev URL
+  return DEV_API_BASE_URL;
 };
 
 const apiBaseUrl = getApiBaseUrl();
@@ -66,9 +78,16 @@ export const API_CONFIG = {
 };
 
 // Log API URL on initialization (helps verify correct URL in production builds)
+// Always log in development, log once in production for debugging
 if (__DEV__) {
   console.log('🔗 API Base URL:', API_CONFIG.baseURL);
   console.log('🔗 EXPO_PUBLIC_API_URL:', process.env.EXPO_PUBLIC_API_URL || '(not set)');
+  console.log('🔗 Environment:', isProduction ? 'Production' : 'Development');
+} else {
+  // Production logging - log once on first load
+  // Use a simple console.log that won't be stripped in production
+  console.log('[API] Base URL:', API_CONFIG.baseURL);
+  console.log('[API] Environment: Production');
 }
 
 // Helper to get full URL for an endpoint
