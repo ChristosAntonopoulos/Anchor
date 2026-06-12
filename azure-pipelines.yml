@@ -93,7 +93,7 @@ stages:
       inputs:
         versionSpec: '18.x'
 
-    - script: 'npm install -g eas-cli'
+    - script: 'npm install -g eas-cli@20.1.0'
       displayName: 'Install EAS CLI'
 
     - script: |
@@ -146,38 +146,73 @@ stages:
       continueOnError: true
 
     - script: |
+        set -euo pipefail
         cd mobile
         echo "Starting EAS build for Android APK..."
         echo "Build profile: production"
         echo "API URL: http://185.193.66.50:31247/api"
         echo ""
         echo "This will start a cloud build. It may take 10-15 minutes."
-        eas build --platform android --profile production --non-interactive --wait
-      displayName: 'Build Android APK with EAS (wait for completion)'
-      env:
-        EXPO_TOKEN: $(EXPO_TOKEN)
-      continueOnError: false
-      timeoutInMinutes: 25
 
-    - script: |
-        cd mobile
-        echo "Downloading the completed APK..."
-        eas build:download --latest --platform android --output ./pos-mobile.apk --non-interactive
-        
+        eas build --platform android --profile production --non-interactive --wait --json > eas-build-output.json
+
+        node <<'NODE'
+        const fs = require('fs');
+        const raw = fs.readFileSync('eas-build-output.json', 'utf8').trim();
+        const parsed = JSON.parse(raw);
+        const build = Array.isArray(parsed) ? parsed[0] : parsed;
+        if (!build?.id) {
+          console.error('ERROR: Could not read build id from EAS output');
+          console.error(raw.slice(0, 500));
+          process.exit(1);
+        }
+        const status = String(build.status || '').toUpperCase();
+        if (status !== 'FINISHED') {
+          console.error(`ERROR: Build finished with status ${build.status}`);
+          process.exit(1);
+        }
+        const artifactUrl =
+          build.artifacts?.buildUrl ||
+          build.artifacts?.applicationArchiveUrl ||
+          null;
+        fs.writeFileSync('eas-build-id.txt', build.id);
+        if (artifactUrl) {
+          fs.writeFileSync('eas-artifact-url.txt', artifactUrl);
+        }
+        console.log(`Build ID: ${build.id}`);
+        console.log(`Build status: ${build.status}`);
+        NODE
+
+        if [ -f eas-artifact-url.txt ]; then
+          echo "Downloading APK from EAS artifact URL..."
+          curl -fsSL "$(cat eas-artifact-url.txt)" -o ./pos-mobile.apk
+        else
+          echo "Artifact URL not in build output; using eas build:download --build-id..."
+          BUILD_ID="$(cat eas-build-id.txt)"
+          eas build:download --build-id "$BUILD_ID" --non-interactive
+          APK_FILE="$(find . -maxdepth 1 -name '*.apk' -type f | head -1)"
+          if [ -z "$APK_FILE" ]; then
+            echo "ERROR: eas build:download did not produce an APK file"
+            exit 1
+          fi
+          mv "$APK_FILE" ./pos-mobile.apk
+        fi
+
         if [ ! -f "./pos-mobile.apk" ]; then
           echo "ERROR: APK file not found after download"
           echo "Build may have failed. Check Expo dashboard for details."
           exit 1
         fi
-        
+
         APK_SIZE=$(du -h ./pos-mobile.apk | cut -f1)
         echo "✅ APK downloaded successfully!"
         echo "Size: $APK_SIZE"
         ls -lh ./pos-mobile.apk
-      displayName: 'Download APK from EAS'
+      displayName: 'Build and download Android APK with EAS'
       env:
         EXPO_TOKEN: $(EXPO_TOKEN)
       continueOnError: false
+      timeoutInMinutes: 25
 
     - task: PublishBuildArtifacts@1
       displayName: 'Publish APK as artifact'
