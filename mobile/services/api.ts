@@ -81,6 +81,7 @@ export interface APIClient {
   editBetterItem(request: EditBetterItemRequest): Promise<void>;
   rejectBetterItem(request: RejectBetterItemRequest): Promise<void>;
   updateScheduleBlock(request: UpdateScheduleBlockRequest): Promise<void>;
+  updateScheduleChecklistItem(blockId: string, itemId: string, completed: boolean): Promise<void>;
   createTask(request: CreateTaskRequest): Promise<void>;
   getTodayFocus(): Promise<Task[]>;
   getInbox(limit?: number): Promise<TaskInboxResponse>;
@@ -317,6 +318,18 @@ class HTTPAPIClient implements APIClient {
       unwrapResponse(response.data);
     } catch (error) {
       throw this.handleError(error, 'Failed to update schedule block');
+    }
+  }
+
+  async updateScheduleChecklistItem(blockId: string, itemId: string, completed: boolean): Promise<void> {
+    try {
+      const response = await this.axiosInstance.patch<ApiResponse<void>>(
+        `/schedule/${blockId}/checklist/${itemId}`,
+        { completed }
+      );
+      unwrapResponse(response.data);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to update checklist item');
     }
   }
 

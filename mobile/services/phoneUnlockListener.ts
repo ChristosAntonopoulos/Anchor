@@ -8,9 +8,20 @@ const { PhoneUnlockModule } = NativeModules;
 
 const isAndroid = Platform.OS === 'android';
 
-const eventEmitter = isAndroid && PhoneUnlockModule
-  ? new NativeEventEmitter(PhoneUnlockModule)
-  : null;
+let eventEmitter: NativeEventEmitter | null = null;
+
+function getEventEmitter(): NativeEventEmitter | null {
+  if (!isAndroid || !PhoneUnlockModule) return null;
+  if (!eventEmitter) {
+    try {
+      eventEmitter = new NativeEventEmitter(PhoneUnlockModule);
+    } catch (error) {
+      console.warn('[PhoneUnlockListener] Failed to create event emitter:', error);
+      return null;
+    }
+  }
+  return eventEmitter;
+}
 
 if (__DEV__ && isAndroid && !isExpoGo && !hasPhoneUnlockModule) {
   console.log('[PhoneUnlockListener] Module unavailable — use: npx expo run:android');
@@ -61,13 +72,14 @@ class PhoneUnlockListenerServiceImpl implements PhoneUnlockListenerService {
       PhoneUnlockModule.startListening();
       
       // Subscribe to events
-      if (!eventEmitter) {
+      const emitter = getEventEmitter();
+      if (!emitter) {
         console.warn('[PhoneUnlockListener] Event emitter not available, cannot subscribe to unlock events');
         return () => {};
       }
 
       console.log('[PhoneUnlockListener] Subscribing to onPhoneUnlock events');
-      this.subscription = eventEmitter.addListener('onPhoneUnlock', (event: { unlockTime: number }) => {
+      this.subscription = emitter.addListener('onPhoneUnlock', (event: { unlockTime: number }) => {
         console.log('[PhoneUnlockListener] Phone unlock event received:', event.unlockTime);
         callback(event.unlockTime);
       });

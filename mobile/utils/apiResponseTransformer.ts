@@ -53,6 +53,18 @@ export function transformScheduleBlock(dto: any): any {
     title: dto.title,
     startTime: dto.startTime,
     endTime: dto.endTime,
+    routineActivities: dto.routineActivities,
+    checklistItems: (dto.checklistItems || []).map((item: any, index: number) => {
+      const rawMinutes = Number(item.durationMinutes);
+      const durationMinutes = Number.isFinite(rawMinutes) && rawMinutes > 0 ? rawMinutes : 5;
+      return {
+        id: item.id || `step-${index}`,
+        title: item.title || 'Step',
+        durationMinutes,
+        completed: Boolean(item.completed),
+        order: Number.isFinite(Number(item.order)) ? Number(item.order) : index,
+      };
+    }),
   };
 }
 

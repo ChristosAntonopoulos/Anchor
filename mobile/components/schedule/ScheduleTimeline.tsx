@@ -10,9 +10,10 @@ interface ScheduleTimelineProps {
   refreshing?: boolean;
   onRefresh?: () => void;
   onUpdateBlock?: (id: string, updates: { title?: string; startTime?: string; endTime?: string }) => void;
+  onItemComplete?: (blockId: string, itemId: string) => Promise<void>;
 }
 
-export function ScheduleTimeline({ blocks, currentBlockId, refreshing, onRefresh, onUpdateBlock }: ScheduleTimelineProps) {
+export function ScheduleTimeline({ blocks, currentBlockId, refreshing, onRefresh, onUpdateBlock, onItemComplete }: ScheduleTimelineProps) {
   if (blocks.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -38,6 +39,7 @@ export function ScheduleTimeline({ blocks, currentBlockId, refreshing, onRefresh
           block={block}
           isCurrent={block.id === currentBlockId}
           onUpdate={onUpdateBlock ? (updates) => onUpdateBlock(block.id, updates) : undefined}
+          onItemComplete={onItemComplete}
         />
       ))}
     </ScrollView>

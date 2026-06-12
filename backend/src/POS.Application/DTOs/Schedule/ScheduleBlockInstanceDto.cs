@@ -15,4 +15,5 @@ public class ScheduleBlockInstanceDto : ResponseDto
     public string Source { get; set; } = string.Empty; // ai|user
     public DateTime Date { get; set; }
     public List<string>? RoutineActivities { get; set; } // Activities for this routine instance
+    public List<ScheduleChecklistItemDto>? ChecklistItems { get; set; }
 }

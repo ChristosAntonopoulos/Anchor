@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using POS.Core.Entities.Schedule;
+using POS.Core.Schedule;
 using POS.Infrastructure.Data;
 
 namespace POS.Infrastructure.Data.Seeders;
@@ -85,6 +86,12 @@ public class ScheduleSeeder
                 CreatedAt = DateTime.UtcNow
             }
         };
+
+        foreach (var block in scheduleBlocks)
+        {
+            block.ChecklistItems = ScheduleChecklistBuilder.BuildForBlock(block);
+            block.ChecklistVersion = ScheduleChecklistBuilder.CurrentChecklistVersion;
+        }
 
         await _context.ScheduleBlockInstances.InsertManyAsync(scheduleBlocks);
         _logger.LogInformation("Seeded {Count} Schedule Blocks for user {UserId}", scheduleBlocks.Count, userId);

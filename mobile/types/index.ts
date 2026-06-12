@@ -249,6 +249,15 @@ export interface DietEntry {
   photoUri?: string;
 }
 
+// Timed checklist step within a schedule block (saved per day)
+export interface ScheduleChecklistItem {
+  id: string;
+  title: string;
+  durationMinutes: number;
+  completed: boolean;
+  order: number;
+}
+
 // ScheduleBlock
 export interface ScheduleBlock {
   id: string;
@@ -256,6 +265,7 @@ export interface ScheduleBlock {
   startTime: string; // HH:mm format
   endTime: string; // HH:mm format
   routineActivities?: string[]; // List of activities for routine blocks
+  checklistItems?: ScheduleChecklistItem[];
 }
 
 // Deadline

@@ -201,7 +201,7 @@ export default function RootLayout() {
     return () => {
       subscription.remove();
     };
-  }, [checkPendingUnlock]);
+  }, []);
 
   const handleUnlockReasonSubmit = async (request: CreatePhoneUnlockEntryRequest) => {
     try {

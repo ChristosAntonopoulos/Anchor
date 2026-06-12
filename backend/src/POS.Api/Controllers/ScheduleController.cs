@@ -50,6 +50,29 @@ public class ScheduleController : BaseController
     }
 
     /// <summary>
+    /// Mark a checklist item complete/incomplete for today's block.
+    /// </summary>
+    [HttpPatch("{blockId}/checklist/{itemId}")]
+    [ProducesResponseType(typeof(ApiResponse<ScheduleBlockInstanceDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateChecklistItem(
+        string blockId,
+        string itemId,
+        [FromBody] UpdateScheduleChecklistItemRequest request)
+    {
+        var userId = GetUserId();
+        try
+        {
+            var block = await _scheduleService.UpdateChecklistItemAsync(blockId, itemId, request, userId);
+            return Success(block);
+        }
+        catch (NotFoundException)
+        {
+            return NotFound("Schedule block or checklist item not found");
+        }
+    }
+
+    /// <summary>
     /// Update a schedule block
     /// </summary>
     [HttpPut("{id}")]

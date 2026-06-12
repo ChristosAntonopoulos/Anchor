@@ -8,7 +8,7 @@ import { useTodayStore } from '../../store/useTodayStore';
 import { ScheduleTimeline } from '../../components/schedule/ScheduleTimeline';
 
 export default function ScheduleScreen() {
-  const { blocks, loading, fetchSchedule, updateBlock } = useScheduleStore();
+  const { blocks, loading, fetchSchedule, updateBlock, completeChecklistItem } = useScheduleStore();
   const { data: todayData, fetchToday } = useTodayStore();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -55,6 +55,7 @@ export default function ScheduleScreen() {
           refreshing={refreshing}
           onRefresh={onRefresh}
           onUpdateBlock={updateBlock}
+          onItemComplete={completeChecklistItem}
         />
       </SafeAreaView>
     </LinearGradient>

@@ -4,6 +4,7 @@ using MongoDB.Driver;
 using POS.Application.DTOs.Schedule;
 using POS.Core.Entities.Schedule;
 using POS.Core.Exceptions;
+using POS.Core.Schedule;
 using POS.Infrastructure.Data;
 
 namespace POS.Application.Services.Schedule;
@@ -40,8 +41,70 @@ public class ScheduleService
         var blocks = await _context.ScheduleBlockInstances.Find(filter)
             .SortBy(sb => sb.StartTime)
             .ToListAsync();
-        
+
+        foreach (var block in blocks)
+            await EnsureChecklistItemsAsync(block);
+
         return _mapper.Map<List<ScheduleBlockInstanceDto>>(blocks);
+    }
+
+    /// <summary>
+    /// Toggle completion on a checklist item for today's block instance.
+    /// </summary>
+    public async Task<ScheduleBlockInstanceDto> UpdateChecklistItemAsync(
+        string blockId,
+        string itemId,
+        UpdateScheduleChecklistItemRequest request,
+        string userId)
+    {
+        var block = await GetBlockEntityAsync(blockId, userId);
+        await EnsureChecklistItemsAsync(block);
+
+        var item = block.ChecklistItems?.FirstOrDefault(i => i.Id == itemId)
+            ?? throw new NotFoundException("ScheduleChecklistItem", itemId);
+
+        item.Completed = request.Completed;
+        block.UpdatedAt = DateTime.UtcNow;
+
+        await SaveBlockAsync(block);
+        return _mapper.Map<ScheduleBlockInstanceDto>(block);
+    }
+
+    private async Task<ScheduleBlockInstance> GetBlockEntityAsync(string blockId, string userId)
+    {
+        var filter = Builders<ScheduleBlockInstance>.Filter.And(
+            Builders<ScheduleBlockInstance>.Filter.Eq(sb => sb.Id, blockId),
+            Builders<ScheduleBlockInstance>.Filter.Eq(sb => sb.UserId, userId));
+
+        return await _context.ScheduleBlockInstances.Find(filter).FirstOrDefaultAsync()
+            ?? throw new NotFoundException("ScheduleBlock", blockId);
+    }
+
+    private async Task EnsureChecklistItemsAsync(ScheduleBlockInstance block)
+    {
+        var needsBuild = block.ChecklistItems is not { Count: > 0 };
+        var needsUpgrade = block.ChecklistVersion < ScheduleChecklistBuilder.CurrentChecklistVersion
+            || (block.ChecklistItems is { Count: > 0 } checkItems
+                && ScheduleChecklistBuilder.LooksLikeLegacyEqualSplit(checkItems));
+
+        if (!needsBuild && !needsUpgrade)
+            return;
+
+        block.ChecklistItems = ScheduleChecklistBuilder.RebuildPreservingCompletion(
+            block,
+            block.ChecklistItems);
+        block.ChecklistVersion = ScheduleChecklistBuilder.CurrentChecklistVersion;
+        block.UpdatedAt = DateTime.UtcNow;
+        await SaveBlockAsync(block);
+        _logger.LogInformation(
+            "Generated {Count} checklist items for schedule block {BlockId} (v{Version})",
+            block.ChecklistItems.Count, block.Id, block.ChecklistVersion);
+    }
+
+    private async Task SaveBlockAsync(ScheduleBlockInstance block)
+    {
+        var filter = Builders<ScheduleBlockInstance>.Filter.Eq(sb => sb.Id, block.Id);
+        await _context.ScheduleBlockInstances.ReplaceOneAsync(filter, block);
     }
 
     /// <summary>
