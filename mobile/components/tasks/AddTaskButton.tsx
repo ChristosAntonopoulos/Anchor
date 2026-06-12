@@ -7,10 +7,19 @@ import type { CategoryName } from '../../types';
 
 interface AddTaskButtonProps {
   onAddTask: (title: string, category: CategoryName) => void;
-  disabled: boolean;
+  disabled?: boolean;
+  /** Shown on the button when collapsed */
+  label?: string;
+  /** Alert when disabled and user taps */
+  limitMessage?: string;
 }
 
-export function AddTaskButton({ onAddTask, disabled }: AddTaskButtonProps) {
+export function AddTaskButton({
+  onAddTask,
+  disabled = false,
+  label = '+ Add Task',
+  limitMessage = 'Limit reached.',
+}: AddTaskButtonProps) {
   const { categories, fetchCategories, getCategoryColor } = useCategoryStore();
   const [showInput, setShowInput] = useState(false);
   const [title, setTitle] = useState('');
@@ -24,7 +33,7 @@ export function AddTaskButton({ onAddTask, disabled }: AddTaskButtonProps) {
 
   const handlePress = () => {
     if (disabled) {
-      Alert.alert('Limit Reached', 'Maximum 5 tasks allowed per day.');
+      Alert.alert('Limit Reached', limitMessage);
       return;
     }
     setShowInput(true);
@@ -140,7 +149,7 @@ export function AddTaskButton({ onAddTask, disabled }: AddTaskButtonProps) {
         style={styles.buttonGradient}
       >
         <Text style={[styles.buttonText, disabled && styles.buttonTextDisabled]}>
-          + Add Task
+          {label}
         </Text>
       </LinearGradient>
     </TouchableOpacity>

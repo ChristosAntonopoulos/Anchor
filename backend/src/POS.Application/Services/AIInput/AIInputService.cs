@@ -12,11 +12,16 @@ namespace POS.Application.Services.AIInput;
 public class AIInputService
 {
     private readonly MongoDbContext _context;
+    private readonly BotSystemIntakeClient _botSystem;
     private readonly ILogger<AIInputService> _logger;
 
-    public AIInputService(MongoDbContext context, ILogger<AIInputService> logger)
+    public AIInputService(
+        MongoDbContext context,
+        BotSystemIntakeClient botSystem,
+        ILogger<AIInputService> logger)
     {
         _context = context;
+        _botSystem = botSystem;
         _logger = logger;
     }
 
@@ -45,14 +50,41 @@ public class AIInputService
 
         _logger.LogInformation("AI input {InputId} submitted successfully", input.Id);
 
+        _ = _botSystem.TryRunIntakeAsync(input.Id, input.Text, userId, CancellationToken.None);
+
         return new AIInputDto
         {
             Id = input.Id,
             Text = input.Text,
             Status = input.Status,
-            CreatedAt = input.CreatedAt
+            CreatedAt = input.CreatedAt,
+            UpdatedAt = input.UpdatedAt
         };
     }
+
+    public async Task<AIInputDto?> GetInputAsync(string inputId, string userId)
+    {
+        var input = await _context.AIInputs
+            .Find(i => i.Id == inputId && i.UserId == userId)
+            .FirstOrDefaultAsync();
+
+        if (input == null)
+            return null;
+
+        return MapToDto(input);
+    }
+
+    private static AIInputDto MapToDto(POS.Core.Entities.AIInput.AIInput input) => new()
+    {
+        Id = input.Id,
+        Text = input.Text,
+        Status = input.Status,
+        CreatedAt = input.CreatedAt,
+        UpdatedAt = input.UpdatedAt,
+        ProcessedAt = input.ProcessedAt,
+        Result = input.Result,
+        Error = input.Error
+    };
 
     /// <summary>
     /// Get pending inputs (for debugging/monitoring)
@@ -68,12 +100,6 @@ public class AIInputService
 
         var inputs = await _context.AIInputs.Find(filter).ToListAsync();
 
-        return inputs.Select(i => new AIInputDto
-        {
-            Id = i.Id,
-            Text = i.Text,
-            Status = i.Status,
-            CreatedAt = i.CreatedAt
-        }).ToList();
+        return inputs.Select(MapToDto).ToList();
     }
 }

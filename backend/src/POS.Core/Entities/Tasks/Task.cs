@@ -58,4 +58,30 @@ public class Task : DayAnchoredEntity
 
     [BsonElement("order")]
     public int? Order { get; set; } // Manual ordering
+
+    /// <summary>
+    /// Lifecycle: inbox | today | done | archived | snoozed
+    /// </summary>
+    [BsonElement("status")]
+    public string? Status { get; set; }
+
+    /// <summary>
+    /// Rank on today's focus list (1 = highest). Only meaningful when status is today.
+    /// </summary>
+    [BsonElement("focusRank")]
+    public int? FocusRank { get; set; }
+
+    /// <summary>
+    /// Day the user committed to work on this task (UTC date).
+    /// </summary>
+    [BsonElement("plannedDate")]
+    [BsonDateTimeOptions(Kind = DateTimeKind.Utc, DateOnly = true)]
+    public DateTime? PlannedDate { get; set; }
+
+    [BsonElement("snoozedUntil")]
+    [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
+    public DateTime? SnoozedUntil { get; set; }
+
+    [BsonElement("aiInputId")]
+    public string? AiInputId { get; set; }
 }

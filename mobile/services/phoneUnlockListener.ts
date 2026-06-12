@@ -2,27 +2,18 @@
 // Bridges native PhoneUnlockModule to React Native
 
 import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
+import { hasPhoneUnlockModule, isExpoGo } from '../utils/nativeModuleSupport';
 
 const { PhoneUnlockModule } = NativeModules;
 
-// Check if running on Android
 const isAndroid = Platform.OS === 'android';
 
-// Log module availability on load
-console.log('[PhoneUnlockListener] Platform:', Platform.OS);
-console.log('[PhoneUnlockListener] Native module available:', !!PhoneUnlockModule);
-if (PhoneUnlockModule) {
-  console.log('[PhoneUnlockListener] Module name:', PhoneUnlockModule.getName?.() || 'Unknown');
-  console.log('[PhoneUnlockListener] Available methods:', Object.keys(PhoneUnlockModule));
-}
-
-// Create event emitter
 const eventEmitter = isAndroid && PhoneUnlockModule
   ? new NativeEventEmitter(PhoneUnlockModule)
   : null;
 
-if (!eventEmitter && isAndroid) {
-  console.warn('[PhoneUnlockListener] Event emitter not created - module unavailable');
+if (__DEV__ && isAndroid && !isExpoGo && !hasPhoneUnlockModule) {
+  console.log('[PhoneUnlockListener] Module unavailable — use: npx expo run:android');
 }
 
 export interface PhoneUnlockListenerService {

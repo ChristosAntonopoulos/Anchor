@@ -82,7 +82,7 @@ export function CBTInput({ onSubmit, disabled }: CBTInputProps) {
             </TouchableOpacity>
           </View>
           <Text style={styles.hint}>
-            💭 AI will analyze your thoughts, identify patterns, and help you reframe them.
+            💭 AI analyzes your thoughts, logs mood, and suggests activities that may help.
             {Platform.OS === 'ios' || Platform.OS === 'android' ? ' Tap the mic to use voice input.' : ''}
           </Text>
         </LinearGradient>

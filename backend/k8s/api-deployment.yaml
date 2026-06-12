@@ -46,6 +46,16 @@ spec:
             secretKeyRef:
               name: pos-api-secrets
               key: ConnectionStrings__MongoDb
+        - name: BotSystem__BaseUrl
+          valueFrom:
+            configMapKeyRef:
+              name: pos-api-config
+              key: BotSystem__BaseUrl
+        - name: BotSystem__IntakeBotKey
+          valueFrom:
+            configMapKeyRef:
+              name: pos-api-config
+              key: BotSystem__IntakeBotKey
         resources:
           requests:
             memory: "256Mi"

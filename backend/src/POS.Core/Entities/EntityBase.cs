@@ -6,6 +6,7 @@ namespace POS.Core.Entities;
 /// <summary>
 /// Base class for all domain entities in MongoDB
 /// </summary>
+[BsonIgnoreExtraElements]
 public abstract class EntityBase
 {
     [BsonId]

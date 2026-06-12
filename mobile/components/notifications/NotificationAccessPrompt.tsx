@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 import { notificationListener } from '../../services/notificationListener';
+import { hasNotificationListenerModule, isExpoGo } from '../../utils/nativeModuleSupport';
 
 interface NotificationAccessPromptProps {
   onEnabled?: () => void;
@@ -71,16 +72,11 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
     setCheckFailed(false);
 
     try {
-      // Check if native module is available first
-      const { NativeModules } = require('react-native');
-      const hasModule = !!NativeModules.NotificationListenerModule;
+      const hasModule = hasNotificationListenerModule;
       setModuleAvailable(hasModule);
       
-      console.log('[NotificationAccessPrompt] Native module available:', hasModule);
-      
       if (!hasModule) {
-        console.warn('[NotificationAccessPrompt] NotificationListenerModule not available!');
-        setError('Notification module not available. This feature requires a rebuild with native code enabled.');
+        setError('Notification module not available. Run: npx expo run:android');
         setCheckFailed(true);
         setIsEnabled(false);
         setChecking(false);
@@ -153,8 +149,8 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
     checkStatus();
   };
 
-  if (Platform.OS !== 'android') {
-    return null; // Only show on Android
+  if (Platform.OS !== 'android' || isExpoGo) {
+    return null;
   }
 
   if (checking) {

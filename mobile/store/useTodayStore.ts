@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { TodayResponse, BetterItem, Task, DisciplineEntry, DietEntry, UpdateTaskRequest, CreateTaskRequest, CategoryName } from '../types';
 import { apiClient } from '../services/api';
+import { submitIntakeAndRefresh } from '../services/intakeService';
 
 interface TodayStore {
   // State
@@ -103,7 +104,7 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
 
   createTask: async (title: string, category: 'work' | 'leverage' | 'health' | 'stability') => {
     try {
-      await apiClient.createTask({ title, category });
+      await apiClient.createTask({ title, category, status: 'today' });
       await get().fetchToday(); // Refresh data
     } catch (error) {
       set({ 
@@ -186,17 +187,12 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
 
   submitAIInput: async (text: string) => {
     try {
-      await apiClient.submitAIInput(text);
-      // Refresh data after a delay to see AI-processed results
-      // The AI service will process this and create tasks/schedule blocks
-      setTimeout(() => {
-        get().fetchToday();
-      }, 2000);
+      await submitIntakeAndRefresh(text);
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Failed to submit input'
       });
-      throw error; // Re-throw so component can handle it
+      throw error;
     }
   },
 

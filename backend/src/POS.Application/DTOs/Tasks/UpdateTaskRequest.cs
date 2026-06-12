@@ -83,4 +83,13 @@ public class UpdateTaskRequest
     /// </summary>
     [Range(0, int.MaxValue, ErrorMessage = "Order must be a non-negative number")]
     public int? Order { get; set; }
+
+    [RegularExpression("^(inbox|today|done|archived|snoozed)$", ErrorMessage = "Invalid status")]
+    public string? Status { get; set; }
+
+    public int? FocusRank { get; set; }
+
+    public DateTime? PlannedDate { get; set; }
+
+    public DateTime? SnoozedUntil { get; set; }
 }

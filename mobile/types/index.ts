@@ -127,6 +127,17 @@ export interface CompleteBehavioralActivityRequest {
   notes?: string;
 }
 
+export interface AIInput {
+  id: string;
+  text: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  createdAt: string;
+  updatedAt?: string;
+  processedAt?: string;
+  result?: string;
+  error?: string;
+}
+
 export type DeadlineStatus = 'on track' | 'behind';
 
 // Day
@@ -175,12 +186,20 @@ export interface Reminder {
   triggered: boolean;
 }
 
+// Task workflow status
+export type TaskWorkflowStatus = 'inbox' | 'today' | 'done' | 'archived' | 'snoozed';
+
 // Task
 export interface Task {
   id: string;
   title: string;
   category: CategoryName; // Category name/id as string
   completed: boolean;
+  status?: TaskWorkflowStatus;
+  focusRank?: number;
+  plannedDate?: string;
+  snoozedUntil?: string;
+  aiInputId?: string;
   source?: 'ai' | 'user' | 'notification';
   notes?: string;
   privateNotes?: string;
@@ -316,6 +335,8 @@ export interface UpdateScheduleBlockRequest {
 export interface CreateTaskRequest {
   title: string;
   category: CategoryName;
+  /** inbox (default) or today (focus list, max 5) */
+  status?: 'inbox' | 'today';
   notes?: string;
   privateNotes?: string;
   subtasks?: Subtask[];
@@ -333,6 +354,10 @@ export interface UpdateTaskRequest {
   title?: string;
   category?: CategoryName;
   completed?: boolean;
+  status?: TaskWorkflowStatus;
+  focusRank?: number;
+  plannedDate?: string;
+  snoozedUntil?: string;
   notes?: string;
   privateNotes?: string;
   subtasks?: Subtask[];
@@ -349,6 +374,13 @@ export interface UpdateTaskRequest {
 export interface CompleteTaskRequest {
   id: string;
 }
+
+export interface TaskInboxResponse {
+  items: Task[];
+  totalCount: number;
+}
+
+export const MAX_TODAY_FOCUS = 5;
 
 export interface UpdateDisciplineRequest {
   discipline: Partial<DisciplineEntry>;

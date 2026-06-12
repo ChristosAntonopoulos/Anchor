@@ -86,7 +86,7 @@ export function NaturalLanguageInput({ onSubmit, disabled }: NaturalLanguageInpu
             </TouchableOpacity>
           </View>
           <Text style={styles.hint}>
-            💡 AI will determine if it's a task, schedule, or deadline, and set the category and recurrence.
+            💡 AI creates tasks, mood entries, thought records, and suggested activities from what you write.
             {Platform.OS === 'ios' || Platform.OS === 'android' ? ' Tap the mic to use voice input.' : ''}
           </Text>
         </LinearGradient>

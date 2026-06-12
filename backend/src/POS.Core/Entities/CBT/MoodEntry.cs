@@ -5,6 +5,7 @@ namespace POS.Core.Entities.CBT;
 /// <summary>
 /// Mood Entry - Daily mood tracking
 /// </summary>
+[BsonIgnoreExtraElements]
 public class MoodEntry : EntityBase
 {
     [BsonElement("date")]

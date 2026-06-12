@@ -7,9 +7,10 @@ import type { BehavioralActivity } from '../../types';
 
 interface ActivityListProps {
   activities: BehavioralActivity[];
+  onComplete?: (activity: BehavioralActivity) => void;
 }
 
-export function ActivityList({ activities }: ActivityListProps) {
+export function ActivityList({ activities, onComplete }: ActivityListProps) {
   if (activities.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -29,7 +30,11 @@ export function ActivityList({ activities }: ActivityListProps) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Scheduled</Text>
           {pendingActivities.map((activity) => (
-            <BehavioralActivityCard key={activity.id} activity={activity} />
+            <BehavioralActivityCard
+              key={activity.id}
+              activity={activity}
+              onComplete={onComplete ? () => onComplete(activity) : undefined}
+            />
           ))}
         </View>
       )}

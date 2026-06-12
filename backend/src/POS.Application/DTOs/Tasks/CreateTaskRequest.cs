@@ -80,4 +80,10 @@ public class CreateTaskRequest
     /// </summary>
     [Range(0, int.MaxValue, ErrorMessage = "Order must be a non-negative number")]
     public int? Order { get; set; }
+
+    /// <summary>
+    /// Where to place the task: inbox (default) or today (focus list).
+    /// </summary>
+    [RegularExpression("^(inbox|today)$", ErrorMessage = "Status must be inbox or today")]
+    public string? Status { get; set; }
 }

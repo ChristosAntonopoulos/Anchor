@@ -4,6 +4,7 @@
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
+    "start:local": "cross-env EXPO_PUBLIC_API_URL=http://localhost:5000/api expo start",
     "start:tunnel": "expo start --tunnel",
     "start:production": "cross-env EXPO_PUBLIC_API_URL=http://185.193.66.50:31247/api expo start",
     "android": "expo run:android",

@@ -192,14 +192,14 @@ public class CBTService
 
         if (date.HasValue)
         {
-            var dateStart = date.Value.Date;
+            var dateStart = DateTime.SpecifyKind(date.Value.Date, DateTimeKind.Utc);
             var dateEnd = dateStart.AddDays(1);
             filter = filterBuilder.And(
                 filter,
                 filterBuilder.Or(
                     filterBuilder.And(
-                        filterBuilder.Eq(a => a.ScheduledDate, dateStart),
-                        filterBuilder.Exists(a => a.ScheduledDate, true)
+                        filterBuilder.Gte(a => a.ScheduledDate, dateStart),
+                        filterBuilder.Lt(a => a.ScheduledDate, dateEnd)
                     ),
                     filterBuilder.And(
                         filterBuilder.Gte(a => a.CreatedAt, dateStart),
@@ -209,11 +209,14 @@ public class CBTService
             );
         }
 
-        var sort = Builders<BehavioralActivity>.Sort.Descending(a => a.CreatedAt);
+        var sort = Builders<BehavioralActivity>.Sort
+            .Ascending(a => a.IsCompleted)
+            .Descending(a => a.CreatedAt);
 
         var activities = await _context.BehavioralActivities
             .Find(filter)
             .Sort(sort)
+            .Limit(100)
             .ToListAsync();
 
         return _mapper.Map<List<BehavioralActivityDto>>(activities);

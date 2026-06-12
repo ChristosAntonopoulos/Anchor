@@ -14,6 +14,7 @@ using POS.Application.Services.Schedule;
 using POS.Application.Services.Tasks;
 using POS.Application.Services.Today;
 using POS.Application.Services.WeeklyReview;
+using POS.Application.Configuration;
 using POS.Application.Services.AIInput;
 using POS.Application.Services.Category;
 using POS.Application.Services.CBT;
@@ -67,6 +68,8 @@ builder.Services.AddScoped<DietService>();
 builder.Services.AddScoped<MoneyService>();
 builder.Services.AddScoped<DeadlineService>();
 builder.Services.AddScoped<WeeklyReviewService>();
+builder.Services.Configure<BotSystemOptions>(builder.Configuration.GetSection(BotSystemOptions.SectionName));
+builder.Services.AddHttpClient<BotSystemIntakeClient>();
 builder.Services.AddScoped<AIInputService>();
 builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<CBTService>();
@@ -263,6 +266,21 @@ app.UseCors();
 
 // Map controllers
 app.MapControllers();
+
+// Migrate legacy task documents (idempotent)
+try
+{
+    using var migrationScope = app.Services.CreateScope();
+    var taskService = migrationScope.ServiceProvider.GetRequiredService<TaskService>();
+    var migrationLogger = migrationScope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    await taskService.MigrateLegacyStatusesAsync();
+    migrationLogger.LogInformation("Task status migration completed.");
+}
+catch (Exception ex)
+{
+    var migrationLogger = app.Services.GetRequiredService<ILogger<Program>>();
+    migrationLogger.LogWarning(ex, "Task status migration failed. Application will continue.");
+}
 
 // Auto-seed database on startup if enabled and database doesn't exist
 try

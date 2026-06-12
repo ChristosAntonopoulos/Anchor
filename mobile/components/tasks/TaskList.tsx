@@ -8,14 +8,20 @@ interface TaskListProps {
   tasks: Task[];
   onToggleTask: (id: string) => void;
   onTaskPress?: (task: Task) => void;
+  emptyMessage?: string;
 }
 
-export function TaskList({ tasks, onToggleTask, onTaskPress }: TaskListProps) {
+export function TaskList({
+  tasks,
+  onToggleTask,
+  onTaskPress,
+  emptyMessage = 'Add one task that makes today successful.',
+}: TaskListProps) {
   if (tasks.length === 0) {
     return (
       <View style={styles.emptyContainer}>
         <Ionicons name="checkmark-circle-outline" size={48} color={colors.textSecondary} style={styles.emptyIcon} />
-        <Text style={styles.emptyText}>Add one task that makes today successful.</Text>
+        <Text style={styles.emptyText}>{emptyMessage}</Text>
       </View>
     );
   }

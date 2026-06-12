@@ -15,9 +15,10 @@ interface TaskDetailModalProps {
   visible: boolean;
   onClose: () => void;
   onSave: (updates: Partial<Task>) => Promise<void>;
+  onDemote?: () => Promise<void>;
 }
 
-export function TaskDetailModal({ task, visible, onClose, onSave }: TaskDetailModalProps) {
+export function TaskDetailModal({ task, visible, onClose, onSave, onDemote }: TaskDetailModalProps) {
   const { categories, fetchCategories, getCategoryColor } = useCategoryStore();
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<CategoryName>('work');
@@ -353,6 +354,15 @@ export function TaskDetailModal({ task, visible, onClose, onSave }: TaskDetailMo
                 keyboardType="numeric"
               />
             </View>
+
+            {onDemote ? (
+              <View style={styles.section}>
+                <TouchableOpacity style={styles.demoteButton} onPress={onDemote}>
+                  <Ionicons name="arrow-down-circle-outline" size={20} color={colors.textSecondary} />
+                  <Text style={styles.demoteButtonText}>Move to inbox</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
           </ScrollView>
 
           {/* Location Picker Modal */}
@@ -593,5 +603,20 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.medium,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  demoteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.s,
+    padding: spacing.m,
+    borderRadius: borderRadius.medium,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  demoteButtonText: {
+    fontSize: typography.fontSize.body,
+    color: colors.textSecondary,
   },
 });

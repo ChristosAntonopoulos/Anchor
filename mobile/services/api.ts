@@ -28,6 +28,17 @@ import type {
   DisciplineEntry,
   CreatePhoneUnlockEntryRequest,
   PhoneUnlockEntry,
+  AIInput,
+  CBTEntry,
+  MoodEntry,
+  BehavioralActivity,
+  UpdateCBTEntryRequest,
+  CreateMoodEntryRequest,
+  CreateBehavioralActivityRequest,
+  UpdateBehavioralActivityRequest,
+  CompleteBehavioralActivityRequest,
+  Task,
+  TaskInboxResponse,
 } from '../types';
 import { API_CONFIG, getApiUrl } from '../constants/apiConfig';
 import {
@@ -71,6 +82,10 @@ export interface APIClient {
   rejectBetterItem(request: RejectBetterItemRequest): Promise<void>;
   updateScheduleBlock(request: UpdateScheduleBlockRequest): Promise<void>;
   createTask(request: CreateTaskRequest): Promise<void>;
+  getTodayFocus(): Promise<Task[]>;
+  getInbox(limit?: number): Promise<TaskInboxResponse>;
+  promoteTask(id: string): Promise<Task>;
+  demoteTask(id: string): Promise<Task>;
   updateTask(id: string, request: UpdateTaskRequest): Promise<void>;
   completeTask(request: CompleteTaskRequest): Promise<void>;
   getTasksNearby(latitude: number, longitude: number, radiusKm?: number): Promise<Task[]>;
@@ -82,7 +97,8 @@ export interface APIClient {
   updateDiet(request: UpdateDietRequest): Promise<void>;
   createIncome(request: CreateIncomeRequest): Promise<void>;
   submitWeeklyReview(request: SubmitWeeklyReviewRequest): Promise<void>;
-  submitAIInput(text: string): Promise<void>;
+  submitAIInput(text: string): Promise<AIInput>;
+  getAIInput(id: string): Promise<AIInput>;
   
   // Notification endpoints
   createNotification(notification: NotificationData): Promise<Notification>;
@@ -308,9 +324,53 @@ class HTTPAPIClient implements APIClient {
     try {
       const response = await this.axiosInstance.post<ApiResponse<any>>('/tasks', request);
       unwrapResponse(response.data);
-      // Ignore returned TaskDto, frontend expects void
     } catch (error) {
       throw this.handleError(error, 'Failed to create task');
+    }
+  }
+
+  async getTodayFocus(): Promise<Task[]> {
+    try {
+      const response = await this.axiosInstance.get<ApiResponse<Task[]>>('/tasks/today');
+      const data = unwrapResponse(response.data);
+      return (data || []).map(transformTask);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to get today focus tasks');
+    }
+  }
+
+  async getInbox(limit: number = 50): Promise<TaskInboxResponse> {
+    try {
+      const response = await this.axiosInstance.get<ApiResponse<TaskInboxResponse>>(
+        `/tasks/inbox?limit=${limit}`
+      );
+      const data = unwrapResponse(response.data);
+      return {
+        items: (data.items || []).map(transformTask),
+        totalCount: data.totalCount ?? 0,
+      };
+    } catch (error) {
+      throw this.handleError(error, 'Failed to get inbox tasks');
+    }
+  }
+
+  async promoteTask(id: string): Promise<Task> {
+    try {
+      const response = await this.axiosInstance.post<ApiResponse<Task>>(`/tasks/${id}/promote`);
+      const data = unwrapResponse(response.data);
+      return transformTask(data);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to promote task');
+    }
+  }
+
+  async demoteTask(id: string): Promise<Task> {
+    try {
+      const response = await this.axiosInstance.post<ApiResponse<Task>>(`/tasks/${id}/demote`);
+      const data = unwrapResponse(response.data);
+      return transformTask(data);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to demote task');
     }
   }
 
@@ -459,12 +519,21 @@ class HTTPAPIClient implements APIClient {
     }
   }
 
-  async submitAIInput(text: string): Promise<void> {
+  async submitAIInput(text: string): Promise<AIInput> {
     try {
-      const response = await this.axiosInstance.post<ApiResponse<void>>('/ai-input', { text });
-      unwrapResponse(response.data);
+      const response = await this.axiosInstance.post<ApiResponse<AIInput>>('/ai-input', { text });
+      return unwrapResponse(response.data);
     } catch (error) {
       throw this.handleError(error, 'Failed to submit input for AI processing');
+    }
+  }
+
+  async getAIInput(id: string): Promise<AIInput> {
+    try {
+      const response = await this.axiosInstance.get<ApiResponse<AIInput>>(`/ai-input/${encodeURIComponent(id)}`);
+      return unwrapResponse(response.data);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to get AI input status');
     }
   }
 

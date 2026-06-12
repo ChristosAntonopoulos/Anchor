@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using POS.Application.DTOs.Discipline;
 using POS.Application.DTOs.Today;
+using POS.Application.Services.Tasks;
 using POS.Core.Entities;
 using POS.Core.Entities.BetterToday;
 using POS.Core.Entities.Deadlines;
@@ -21,12 +22,18 @@ namespace POS.Application.Services.Today;
 public class TodayService
 {
     private readonly MongoDbContext _context;
+    private readonly TaskService _taskService;
     private readonly IMapper _mapper;
     private readonly ILogger<TodayService> _logger;
 
-    public TodayService(MongoDbContext context, IMapper mapper, ILogger<TodayService> logger)
+    public TodayService(
+        MongoDbContext context,
+        TaskService taskService,
+        IMapper mapper,
+        ILogger<TodayService> logger)
     {
         _context = context;
+        _taskService = taskService;
         _mapper = mapper;
         _logger = logger;
     }
@@ -76,19 +83,8 @@ public class TodayService
             Completed = bi.Completed
         }).ToList();
 
-        // Get Tasks for today
-        var tasksFilter = Builders<POS.Core.Entities.Tasks.Task>.Filter.And(
-            Builders<POS.Core.Entities.Tasks.Task>.Filter.Eq(t => t.UserId, userId),
-            Builders<POS.Core.Entities.Tasks.Task>.Filter.Eq(t => t.Date, today)
-        );
-        var tasks = await _context.Tasks.Find(tasksFilter).ToListAsync();
-        todayResponse.Tasks = tasks.Select(t => new TaskDto
-        {
-            Id = t.Id,
-            Title = t.Title,
-            Category = t.Category,
-            Completed = t.Completed
-        }).ToList();
+        // Get today's focus tasks (full DTO)
+        todayResponse.Tasks = await _taskService.GetTodayFocusTasksAsync(userId);
 
         // Get Discipline Entry for today
         DisciplineEntry? discipline = null;

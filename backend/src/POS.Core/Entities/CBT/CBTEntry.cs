@@ -6,6 +6,7 @@ namespace POS.Core.Entities.CBT;
 /// <summary>
 /// CBT Entry - Main entry point for CBT journaling
 /// </summary>
+[BsonIgnoreExtraElements]
 public class CBTEntry : EntityBase
 {
     [BsonElement("text")]

@@ -61,12 +61,6 @@ public class AIInputController : BaseController
     /// <summary>
     /// Get pending AI inputs that are waiting to be processed (for debugging/monitoring)
     /// </summary>
-    /// <returns>List of pending AI inputs</returns>
-    /// <remarks>
-    /// Returns inputs that have been submitted but not yet processed by the AI system.
-    /// Useful for monitoring and debugging the AI processing pipeline.
-    /// </remarks>
-    /// <response code="200">List of pending inputs retrieved successfully</response>
     [HttpGet("pending")]
     [SwaggerOperation(OperationId = "AIInput_GetPendingInputs", Summary = "Get pending AI inputs")]
     [ProducesResponseType(typeof(ApiResponse<List<AIInputDto>>), StatusCodes.Status200OK)]
@@ -76,5 +70,22 @@ public class AIInputController : BaseController
         var userId = GetUserId();
         var inputs = await _aiInputService.GetPendingInputsAsync(userId);
         return Success(inputs);
+    }
+
+    /// <summary>
+    /// Get AI input status by id (for polling after submit).
+    /// </summary>
+    [HttpGet("{id}")]
+    [SwaggerOperation(OperationId = "AIInput_GetInput", Summary = "Get AI input status")]
+    [ProducesResponseType(typeof(ApiResponse<AIInputDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetInput(string id)
+    {
+        var userId = GetUserId();
+        var input = await _aiInputService.GetInputAsync(id, userId);
+        if (input == null)
+            return NotFound("AI input not found");
+
+        return Success(input);
     }
 }

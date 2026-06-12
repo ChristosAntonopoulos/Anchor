@@ -5,6 +5,7 @@ namespace POS.Core.Entities.CBT;
 /// <summary>
 /// Behavioral Activity - Behavioral activation activities
 /// </summary>
+[BsonIgnoreExtraElements]
 public class BehavioralActivity : EntityBase
 {
     [BsonElement("title")]

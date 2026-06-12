@@ -1,4 +1,5 @@
 using POS.Application.DTOs.Discipline;
+using POS.Application.DTOs.Tasks;
 
 namespace POS.Application.DTOs.Today;
 

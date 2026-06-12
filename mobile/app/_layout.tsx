@@ -8,6 +8,7 @@ import { phoneUnlockListener } from '../services/phoneUnlockListener';
 import { apiClient } from '../services/api';
 import { PhoneUnlockReasonModal } from '../components/phoneUnlock/PhoneUnlockReasonModal';
 import type { CreatePhoneUnlockEntryRequest } from '../types';
+import { hasPhoneUnlockModule, isExpoGo } from '../utils/nativeModuleSupport';
 
 export default function RootLayout() {
   const { fetchCategories } = useCategoryStore();
@@ -97,22 +98,17 @@ export default function RootLayout() {
       return; // Only Android supports unlock detection
     }
 
-    console.log('[RootLayout] Setting up phone unlock listener');
-    console.log('[RootLayout] Checking native module availability...');
-
-    // Check if native module is available
-    const { NativeModules } = require('react-native');
-    const hasModule = !!NativeModules.PhoneUnlockModule;
-    console.log('[RootLayout] PhoneUnlockModule available:', hasModule);
-    if (hasModule) {
-      console.log('[RootLayout] PhoneUnlockModule methods:', Object.keys(NativeModules.PhoneUnlockModule));
-    } else {
-      console.error('[RootLayout] PhoneUnlockModule NOT AVAILABLE!');
-      console.error('[RootLayout] Available native modules:', Object.keys(NativeModules));
-      console.error('[RootLayout] You need to rebuild the app (not just reload) for native modules to work.');
-      console.error('[RootLayout] In Android Studio: Build > Rebuild Project');
+    if (isExpoGo) {
+      console.log('[RootLayout] Expo Go: skipping phone unlock listener (requires dev build)');
       return;
     }
+
+    if (!hasPhoneUnlockModule) {
+      console.log('[RootLayout] PhoneUnlockModule unavailable — run: npx expo run:android');
+      return;
+    }
+
+    console.log('[RootLayout] Setting up phone unlock listener');
 
     // Mark as set up before starting listener
     listenerSetupRef.current = true;

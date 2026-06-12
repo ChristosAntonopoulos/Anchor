@@ -27,4 +27,10 @@ public class TaskDto : ResponseDto
     public List<ReminderDto>? Reminders { get; set; }
     public DateTime? CompletedAt { get; set; }
     public int? Order { get; set; }
+
+    public string Status { get; set; } = POS.Core.Constants.TaskStatus.Inbox;
+    public int? FocusRank { get; set; }
+    public DateTime? PlannedDate { get; set; }
+    public DateTime? SnoozedUntil { get; set; }
+    public string? AiInputId { get; set; }
 }

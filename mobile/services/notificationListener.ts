@@ -3,26 +3,18 @@
 
 import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
 import type { NotificationData } from '../types/notifications';
+import { hasNotificationListenerModule, isExpoGo } from '../utils/nativeModuleSupport';
 
 const { NotificationListenerModule } = NativeModules;
 
-// Check if running on Android
 const isAndroid = Platform.OS === 'android';
 
-// Log module availability on load
-console.log('[NotificationListener] Platform:', Platform.OS);
-console.log('[NotificationListener] Native module available:', !!NotificationListenerModule);
-if (NotificationListenerModule) {
-  console.log('[NotificationListener] Module name:', NotificationListenerModule.getName?.() || 'Unknown');
-}
-
-// Create event emitter
 const eventEmitter = isAndroid && NotificationListenerModule
   ? new NativeEventEmitter(NotificationListenerModule)
   : null;
 
-if (!eventEmitter && isAndroid) {
-  console.warn('[NotificationListener] Event emitter not created - module unavailable');
+if (__DEV__ && isAndroid && !isExpoGo && !hasNotificationListenerModule) {
+  console.log('[NotificationListener] Module unavailable — use: npx expo run:android');
 }
 
 export interface NotificationListenerService {

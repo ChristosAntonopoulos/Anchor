@@ -6,30 +6,52 @@ import { CBTInput } from '../../components/cbt/CBTInput';
 import { ThoughtRecordList } from '../../components/cbt/ThoughtRecordList';
 import { MoodTracker } from '../../components/cbt/MoodTracker';
 import { ActivityList } from '../../components/cbt/ActivityList';
+import { ActivityCompletionModal } from '../../components/cbt/ActivityCompletionModal';
+import { submitIntakeAndRefresh } from '../../services/intakeService';
 import { colors, spacing, typography } from '../../constants/designTokens';
+import type { BehavioralActivity } from '../../types';
 
 export default function CBTScreen() {
-  const { entries, activities, loading, fetchCBTEntries, submitCBTEntry, fetchBehavioralActivities } = useCBTStore();
+  const {
+    entries,
+    activities,
+    loading,
+    fetchCBTEntries,
+    fetchBehavioralActivities,
+    completeActivity,
+  } = useCBTStore();
   const [activeTab, setActiveTab] = useState<'thoughts' | 'mood' | 'activities'>('thoughts');
   const [refreshing, setRefreshing] = useState(false);
+  const [completingActivity, setCompletingActivity] = useState<BehavioralActivity | null>(null);
 
   useEffect(() => {
-    fetchCBTEntries();
+    const today = new Date().toISOString().slice(0, 10);
+    fetchCBTEntries(today);
     fetchBehavioralActivities();
-  }, []);
+  }, [fetchCBTEntries, fetchBehavioralActivities]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
+    const today = new Date().toISOString().slice(0, 10);
     await Promise.all([
-      fetchCBTEntries(),
+      fetchCBTEntries(today),
       fetchBehavioralActivities(),
     ]);
     setRefreshing(false);
   };
 
   const handleSubmit = async (text: string) => {
-    await submitCBTEntry(text);
-    await fetchCBTEntries();
+    await submitIntakeAndRefresh(text);
+    const today = new Date().toISOString().slice(0, 10);
+    await fetchCBTEntries(today);
+    await fetchBehavioralActivities();
+    setActiveTab('activities');
+  };
+
+  const handleCompleteActivity = async (request: Parameters<typeof completeActivity>[1]) => {
+    if (!completingActivity) return;
+    await completeActivity(completingActivity.id, request);
+    setCompletingActivity(null);
   };
 
   return (
@@ -48,7 +70,6 @@ export default function CBTScreen() {
       >
         <CBTInput onSubmit={handleSubmit} disabled={loading} />
 
-        {/* Tab Selector */}
         <View style={styles.tabContainer}>
           <View style={styles.tabRow}>
             <View
@@ -78,11 +99,22 @@ export default function CBTScreen() {
           </View>
         </View>
 
-        {/* Content based on active tab */}
         {activeTab === 'thoughts' && <ThoughtRecordList entries={entries} />}
         {activeTab === 'mood' && <MoodTracker />}
-        {activeTab === 'activities' && <ActivityList activities={activities} />}
+        {activeTab === 'activities' && (
+          <ActivityList
+            activities={activities}
+            onComplete={(activity) => setCompletingActivity(activity)}
+          />
+        )}
       </ScrollView>
+
+      <ActivityCompletionModal
+        visible={completingActivity != null}
+        activityTitle={completingActivity?.title ?? ''}
+        onClose={() => setCompletingActivity(null)}
+        onSubmit={handleCompleteActivity}
+      />
     </LinearGradient>
   );
 }
