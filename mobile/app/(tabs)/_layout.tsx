@@ -1,15 +1,24 @@
 import { Tabs } from 'expo-router';
 import { Platform, TouchableOpacity, View, StyleSheet } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius, shadows } from '../../constants/designTokens';
 import { MenuModal } from '../../components/navigation/MenuModal';
+import { YesterdayAssessmentModal } from '../../components/day/YesterdayAssessmentModal';
+import { useDayBootstrap } from '../../hooks/useDayBootstrap';
+import { useTodayStore } from '../../store/useTodayStore';
 
 export default function TabLayout() {
   const [menuVisible, setMenuVisible] = useState(false);
   const insets = useSafeAreaInsets();
+  const { data, fetchToday } = useTodayStore();
+  const { bootstrap, showAssessment, dismissAssessment } = useDayBootstrap(data?.dayBootstrap);
+
+  useEffect(() => {
+    void fetchToday();
+  }, [fetchToday]);
 
   // Custom menu button component (larger, centered)
   const MenuTabButton = ({ onPress, accessibilityState }: any) => {
@@ -137,6 +146,11 @@ export default function TabLayout() {
         />
       </Tabs>
       <MenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} />
+      <YesterdayAssessmentModal
+        visible={showAssessment}
+        bootstrap={bootstrap}
+        onDismiss={dismissAssessment}
+      />
     </>
   );
 }

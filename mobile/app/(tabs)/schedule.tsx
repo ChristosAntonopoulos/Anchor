@@ -13,8 +13,8 @@ export default function ScheduleScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    fetchSchedule();
-  }, [fetchSchedule]);
+    void Promise.all([fetchSchedule(), fetchToday()]);
+  }, [fetchSchedule, fetchToday]);
 
   const onRefresh = async () => {
     setRefreshing(true);

@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using POS.Api.Middleware;
 using POS.Application.Mappings;
 using POS.Application.Services.BetterToday;
+using POS.Application.Services.Day;
 using POS.Application.Services.Deadlines;
 using POS.Application.Services.Diet;
 using POS.Application.Services.Discipline;
@@ -27,6 +28,7 @@ using POS.Application.Validators.Tasks;
 using POS.Application.Validators.WeeklyReview;
 using POS.Core.Configuration;
 using POS.Infrastructure.Data;
+using POS.Infrastructure.Services;
 using POS.Infrastructure.Data.Seeders;
 using Serilog;
 
@@ -59,6 +61,10 @@ builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssembly(typeof(CreateScheduleBlockDefinitionValidator).Assembly);
 
 // Register services
+builder.Services.AddScoped<DayBootstrapService>();
+builder.Services.AddScoped<UserDayClock>();
+builder.Services.AddScoped<ScheduleMaterializationService>();
+builder.Services.AddHttpClient<BotSystemDayStartClient>();
 builder.Services.AddScoped<TodayService>();
 builder.Services.AddScoped<ScheduleService>();
 builder.Services.AddScoped<BetterItemService>();

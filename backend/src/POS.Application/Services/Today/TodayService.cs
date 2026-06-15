@@ -1,12 +1,15 @@
 using AutoMapper;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
+using POS.Application.DTOs.Day;
 using POS.Application.DTOs.Discipline;
 using POS.Application.DTOs.Today;
+using POS.Application.Services.Day;
 using POS.Application.Services.Tasks;
 using POS.Core.Entities;
 using POS.Core.Entities.BetterToday;
 using POS.Core.Entities.Deadlines;
+using DayEntity = POS.Core.Entities.Day;
 using POS.Core.Entities.Diet;
 using POS.Core.Entities.Discipline;
 using POS.Core.Entities.Schedule;
@@ -23,17 +26,23 @@ public class TodayService
 {
     private readonly MongoDbContext _context;
     private readonly TaskService _taskService;
+    private readonly DayBootstrapService _dayBootstrapService;
+    private readonly UserDayClock _dayClock;
     private readonly IMapper _mapper;
     private readonly ILogger<TodayService> _logger;
 
     public TodayService(
         MongoDbContext context,
         TaskService taskService,
+        DayBootstrapService dayBootstrapService,
+        UserDayClock dayClock,
         IMapper mapper,
         ILogger<TodayService> logger)
     {
         _context = context;
         _taskService = taskService;
+        _dayBootstrapService = dayBootstrapService;
+        _dayClock = dayClock;
         _mapper = mapper;
         _logger = logger;
     }
@@ -42,25 +51,27 @@ public class TodayService
     {
         _logger.LogInformation("Getting today's data for user {UserId}", userId);
 
-        var today = DateTime.UtcNow.Date;
+        var dayBootstrap = await _dayBootstrapService.EnsureDayBootstrapAsync(userId);
+        var today = await _dayClock.GetTodayAsync(userId);
         var todayResponse = new TodayResponseDto
         {
             Day = new DayDto
             {
                 Date = today.ToString("yyyy-MM-dd")
-            }
+            },
+            DayBootstrap = dayBootstrap
         };
 
         // Get or create Day entity
-        var dayFilter = Builders<Day>.Filter.And(
-            Builders<Day>.Filter.Eq(d => d.UserId, userId),
-            Builders<Day>.Filter.Eq(d => d.Date, today)
+        var dayFilter = Builders<DayEntity>.Filter.And(
+            Builders<DayEntity>.Filter.Eq(d => d.UserId, userId),
+            Builders<DayEntity>.Filter.Eq(d => d.Date, today)
         );
         var day = await _context.Days.Find(dayFilter).FirstOrDefaultAsync();
         
         if (day == null)
         {
-            day = new Day
+            day = new DayEntity
             {
                 UserId = userId,
                 Date = today

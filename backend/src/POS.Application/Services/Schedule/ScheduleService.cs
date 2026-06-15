@@ -2,6 +2,7 @@ using AutoMapper;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using POS.Application.DTOs.Schedule;
+using POS.Application.Services.Day;
 using POS.Core.Entities.Schedule;
 using POS.Core.Exceptions;
 using POS.Core.Schedule;
@@ -16,12 +17,21 @@ public class ScheduleService
 {
     private readonly MongoDbContext _context;
     private readonly IMapper _mapper;
+    private readonly DayBootstrapService _dayBootstrapService;
+    private readonly UserDayClock _dayClock;
     private readonly ILogger<ScheduleService> _logger;
 
-    public ScheduleService(MongoDbContext context, IMapper mapper, ILogger<ScheduleService> logger)
+    public ScheduleService(
+        MongoDbContext context,
+        IMapper mapper,
+        DayBootstrapService dayBootstrapService,
+        UserDayClock dayClock,
+        ILogger<ScheduleService> logger)
     {
         _context = context;
         _mapper = mapper;
+        _dayBootstrapService = dayBootstrapService;
+        _dayClock = dayClock;
         _logger = logger;
     }
 
@@ -31,8 +41,10 @@ public class ScheduleService
     public async Task<List<ScheduleBlockInstanceDto>> GetTodayScheduleAsync(string userId)
     {
         _logger.LogInformation("Getting today's schedule for user {UserId}", userId);
-        
-        var today = DateTime.UtcNow.Date;
+
+        await _dayBootstrapService.EnsureDayBootstrapAsync(userId);
+
+        var today = await _dayClock.GetTodayAsync(userId);
         var filter = Builders<ScheduleBlockInstance>.Filter.And(
             Builders<ScheduleBlockInstance>.Filter.Eq(sb => sb.UserId, userId),
             Builders<ScheduleBlockInstance>.Filter.Eq(sb => sb.Date, today)

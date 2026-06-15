@@ -2,6 +2,7 @@ using AutoMapper;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using POS.Application.DTOs.Tasks;
+using POS.Application.Services.Day;
 using POS.Core.Constants;
 using POS.Core.Entities.Tasks;
 using POS.Core.Exceptions;
@@ -18,12 +19,14 @@ public class TaskService
 {
     private readonly MongoDbContext _context;
     private readonly IMapper _mapper;
+    private readonly UserDayClock _dayClock;
     private readonly ILogger<TaskService> _logger;
 
-    public TaskService(MongoDbContext context, IMapper mapper, ILogger<TaskService> logger)
+    public TaskService(MongoDbContext context, IMapper mapper, UserDayClock dayClock, ILogger<TaskService> logger)
     {
         _context = context;
         _mapper = mapper;
+        _dayClock = dayClock;
         _logger = logger;
     }
 
@@ -68,11 +71,16 @@ public class TaskService
 
     public async Task<List<TaskDto>> GetTodayFocusTasksAsync(string userId)
     {
-        var today = DateTime.UtcNow.Date;
+        var today = await _dayClock.GetTodayAsync(userId);
         var filter = Builders<TaskEntity>.Filter.And(
             Builders<TaskEntity>.Filter.Eq(t => t.UserId, userId),
             Builders<TaskEntity>.Filter.Eq(t => t.Status, TaskStatus.Today),
-            Builders<TaskEntity>.Filter.Eq(t => t.Completed, false));
+            Builders<TaskEntity>.Filter.Eq(t => t.Completed, false),
+            Builders<TaskEntity>.Filter.Or(
+                Builders<TaskEntity>.Filter.Eq(t => t.PlannedDate, today),
+                Builders<TaskEntity>.Filter.And(
+                    Builders<TaskEntity>.Filter.Eq(t => t.PlannedDate, null),
+                    Builders<TaskEntity>.Filter.Eq(t => t.Date, today))));
 
         var sort = Builders<TaskEntity>.Sort
             .Ascending(t => t.FocusRank)
@@ -82,6 +90,57 @@ public class TaskService
 
         var tasks = await _context.Tasks.Find(filter).Sort(sort).Limit(TaskLimits.MaxTodayFocus).ToListAsync();
         return _mapper.Map<List<TaskDto>>(tasks);
+    }
+
+    /// <summary>
+    /// Demote yesterday's focus tasks back to inbox at day boundary.
+    /// </summary>
+    public async System.Threading.Tasks.Task RolloverStaleTodayTasksAsync(
+        string userId,
+        DateTime today,
+        CancellationToken ct = default)
+    {
+        var filter = Builders<TaskEntity>.Filter.And(
+            Builders<TaskEntity>.Filter.Eq(t => t.UserId, userId),
+            Builders<TaskEntity>.Filter.Eq(t => t.Status, TaskStatus.Today),
+            Builders<TaskEntity>.Filter.Eq(t => t.Completed, false),
+            Builders<TaskEntity>.Filter.Or(
+                Builders<TaskEntity>.Filter.And(
+                    Builders<TaskEntity>.Filter.Ne(t => t.PlannedDate, null),
+                    Builders<TaskEntity>.Filter.Lt(t => t.PlannedDate, today)),
+                Builders<TaskEntity>.Filter.And(
+                    Builders<TaskEntity>.Filter.Eq(t => t.PlannedDate, null),
+                    Builders<TaskEntity>.Filter.Lt(t => t.Date, today))));
+
+        var update = Builders<TaskEntity>.Update
+            .Set(t => t.Status, TaskStatus.Inbox)
+            .Unset(t => t.FocusRank)
+            .Unset(t => t.PlannedDate)
+            .Set(t => t.UpdatedAt, DateTime.UtcNow);
+
+        var result = await _context.Tasks.UpdateManyAsync(filter, update, cancellationToken: ct);
+        if (result.ModifiedCount > 0)
+        {
+            _logger.LogInformation(
+                "Rolled over {Count} stale today tasks to inbox for user {UserId}",
+                result.ModifiedCount, userId);
+        }
+    }
+
+    /// <summary>
+    /// Remove AI day-start focus tasks before re-running the pipeline.
+    /// </summary>
+    public async System.Threading.Tasks.Task DeleteDayStartTasksAsync(
+        string userId,
+        DateTime today,
+        CancellationToken ct = default)
+    {
+        var filter = Builders<TaskEntity>.Filter.And(
+            Builders<TaskEntity>.Filter.Eq(t => t.UserId, userId),
+            Builders<TaskEntity>.Filter.Eq(t => t.Source, TaskSource.DayStart),
+            Builders<TaskEntity>.Filter.Eq(t => t.Date, today));
+
+        await _context.Tasks.DeleteManyAsync(filter, cancellationToken: ct);
     }
 
     public async Task<List<TaskDto>> GetInboxTasksAsync(string userId, int limit = TaskLimits.DefaultInboxPageSize)
@@ -348,11 +407,17 @@ public class TaskService
 
     private async System.Threading.Tasks.Task EnsureTodayCapacityAsync(string userId, int additional)
     {
+        var today = DateTime.UtcNow.Date;
         var count = await _context.Tasks.CountDocumentsAsync(
             Builders<TaskEntity>.Filter.And(
                 Builders<TaskEntity>.Filter.Eq(t => t.UserId, userId),
                 Builders<TaskEntity>.Filter.Eq(t => t.Status, TaskStatus.Today),
-                Builders<TaskEntity>.Filter.Eq(t => t.Completed, false)));
+                Builders<TaskEntity>.Filter.Eq(t => t.Completed, false),
+                Builders<TaskEntity>.Filter.Or(
+                    Builders<TaskEntity>.Filter.Eq(t => t.PlannedDate, today),
+                    Builders<TaskEntity>.Filter.And(
+                        Builders<TaskEntity>.Filter.Eq(t => t.PlannedDate, null),
+                        Builders<TaskEntity>.Filter.Eq(t => t.Date, today)))));
 
         if (count + additional > TaskLimits.MaxTodayFocus)
         {

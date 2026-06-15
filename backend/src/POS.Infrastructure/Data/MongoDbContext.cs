@@ -29,6 +29,8 @@ public class MongoDbContext
     // Core collections
     public IMongoCollection<User> Users => _database.GetCollection<User>("users");
     public IMongoCollection<Day> Days => _database.GetCollection<Day>("days");
+    public IMongoCollection<DayStartPlan> DayStartPlans =>
+        _database.GetCollection<DayStartPlan>("dayStartPlans");
     public IMongoCollection<AIJobRun> AIJobRuns => _database.GetCollection<AIJobRun>("aiJobRuns");
 
     // Schedule collections

@@ -306,9 +306,29 @@ export interface WeeklyReview {
   completed: boolean;
 }
 
+// Day bootstrap / yesterday assessment
+export type DayBootstrapStatus = 'pending' | 'processing' | 'ready' | 'failed';
+
+export interface YesterdayAssessment {
+  summary: string;
+  wins: string[];
+  misses: string[];
+  carryForward: string[];
+  moodNote?: string;
+  generatedAt?: string;
+}
+
+export interface DayBootstrap {
+  status: DayBootstrapStatus;
+  assessmentSeen: boolean;
+  error?: string;
+  yesterdayAssessment?: YesterdayAssessment;
+}
+
 // TodayResponse - matches GET /api/today
 export interface TodayResponse {
   day: Day;
+  dayBootstrap?: DayBootstrap;
   betterItems: BetterItem[];
   tasks: Task[];
   discipline: DisciplineEntry;

@@ -140,6 +140,14 @@ public static class MongoDbConfiguration
                 Builders<Day>.IndexKeys.Ascending(x => x.UserId).Ascending(x => x.Date),
                 new CreateIndexOptions { Unique = true }));
 
+        var dayStartPlansCollection = database.GetCollection<DayStartPlan>("dayStartPlans");
+        dayStartPlansCollection.Indexes.CreateOne(
+            new CreateIndexModel<DayStartPlan>(
+                Builders<DayStartPlan>.IndexKeys
+                    .Ascending(x => x.UserId)
+                    .Ascending(x => x.Date)
+                    .Descending(x => x.CreatedAt)));
+
         // AIJobRun indexes
         var aiJobRunsCollection = database.GetCollection<AIJobRun>("aiJobRuns");
         aiJobRunsCollection.Indexes.CreateOne(

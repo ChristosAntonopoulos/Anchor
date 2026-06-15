@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, gradients, spacing, typography } from '../../constants/designTokens';
 import { useTaskStore, canAddToTodayFocus } from '../../store/useTaskStore';
+import { useDayBootstrapStore } from '../../store/useDayBootstrapStore';
 import { TaskList } from '../../components/tasks/TaskList';
 import { InboxTaskItem } from '../../components/tasks/InboxTaskItem';
 import { AddTaskButton } from '../../components/tasks/AddTaskButton';
@@ -25,6 +26,8 @@ export default function TasksScreen() {
     promoteTask,
     demoteTask,
   } = useTaskStore();
+  const bootstrapStatus = useDayBootstrapStore((s) => s.bootstrap?.status);
+  const dayStartProcessing = bootstrapStatus === 'processing' || bootstrapStatus === 'pending';
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -99,15 +102,22 @@ export default function TasksScreen() {
           </View>
           <Text style={styles.sectionHint}>Pick up to {MAX_TODAY_FOCUS} tasks to execute today.</Text>
 
-          <TaskList
-            tasks={todayFocus}
-            onToggleTask={completeTask}
-            onTaskPress={(task) => {
-              setSelectedTask(task);
-              setShowTaskModal(true);
-            }}
-            emptyMessage="No focus tasks yet. Promote from inbox or add one below."
-          />
+          {dayStartProcessing && todayFocus.length === 0 ? (
+            <View style={styles.focusLoading}>
+              <ActivityIndicator size="small" color={colors.category.work} />
+              <Text style={styles.focusLoadingText}>Loading today's focus…</Text>
+            </View>
+          ) : (
+            <TaskList
+              tasks={todayFocus}
+              onToggleTask={completeTask}
+              onTaskPress={(task) => {
+                setSelectedTask(task);
+                setShowTaskModal(true);
+              }}
+              emptyMessage="No focus tasks yet. Promote from inbox or add one below."
+            />
+          )}
           <AddTaskButton
             label="+ Add to today"
             limitMessage={`Today's focus is full (${MAX_TODAY_FOCUS} tasks). Move one to inbox first.`}
@@ -209,6 +219,17 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     paddingHorizontal: spacing.l,
     marginBottom: spacing.m,
+  },
+  focusLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.s,
+    paddingVertical: spacing.l,
+  },
+  focusLoadingText: {
+    fontSize: typography.fontSize.caption,
+    color: colors.textSecondary,
   },
   inboxList: {
     paddingHorizontal: spacing.l,

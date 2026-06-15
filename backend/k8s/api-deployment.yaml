@@ -56,6 +56,11 @@ spec:
             configMapKeyRef:
               name: pos-api-config
               key: BotSystem__IntakeBotKey
+        - name: BotSystem__DayStartBotKey
+          valueFrom:
+            configMapKeyRef:
+              name: pos-api-config
+              key: BotSystem__DayStartBotKey
         resources:
           requests:
             memory: "256Mi"

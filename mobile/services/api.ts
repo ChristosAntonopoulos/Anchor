@@ -39,6 +39,7 @@ import type {
   CompleteBehavioralActivityRequest,
   Task,
   TaskInboxResponse,
+  DayBootstrap,
 } from '../types';
 import { API_CONFIG, getApiUrl } from '../constants/apiConfig';
 import {
@@ -55,6 +56,8 @@ import {
 export interface APIClient {
   // GET endpoints
   getToday(): Promise<TodayResponse>;
+  getDayBootstrapStatus(): Promise<DayBootstrap>;
+  markDayAssessmentSeen(): Promise<void>;
   getSchedule(): Promise<ScheduleBlock[]>;
   getDeadlines(): Promise<Deadline[]>;
   getMoneySummary(): Promise<MoneySummary>;
@@ -208,6 +211,7 @@ class HTTPAPIClient implements APIClient {
       // Transform response to match frontend types
       return {
         day: data.day,
+        dayBootstrap: data.dayBootstrap,
         betterItems: data.betterItems || [],
         tasks: (data.tasks || []).map(transformTask),
         discipline: transformDisciplineEntry(data.discipline || {}),
@@ -227,6 +231,24 @@ class HTTPAPIClient implements APIClient {
       };
     } catch (error) {
       throw this.handleError(error, 'Failed to fetch today\'s data');
+    }
+  }
+
+  async getDayBootstrapStatus(): Promise<DayBootstrap> {
+    try {
+      const response = await this.axiosInstance.get<ApiResponse<DayBootstrap>>('/day/bootstrap-status');
+      return unwrapResponse(response.data);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to fetch day bootstrap status');
+    }
+  }
+
+  async markDayAssessmentSeen(): Promise<void> {
+    try {
+      const response = await this.axiosInstance.post<ApiResponse<void>>('/day/assessment-seen');
+      unwrapResponse(response.data);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to mark assessment seen');
     }
   }
 

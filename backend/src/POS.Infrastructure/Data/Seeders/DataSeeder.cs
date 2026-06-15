@@ -14,6 +14,7 @@ using POS.Core.Entities.Schedule;
 using POS.Core.Entities.Tasks;
 using POS.Core.Entities.WeeklyReview;
 using POS.Infrastructure.Data;
+using POS.Infrastructure.Services;
 
 namespace POS.Infrastructure.Data.Seeders;
 
@@ -61,6 +62,7 @@ public class DataSeeder
             await _context.DeadlineStatusSnapshots.DeleteManyAsync(Builders<DeadlineStatusSnapshot>.Filter.Empty);
             await _context.DietRuleSets.DeleteManyAsync(Builders<DietRuleSet>.Filter.Empty);
             await _context.Days.DeleteManyAsync(Builders<Day>.Filter.Empty);
+            await _context.DayStartPlans.DeleteManyAsync(Builders<DayStartPlan>.Filter.Empty);
             await _context.Users.DeleteManyAsync(Builders<User>.Filter.Empty);
             await _context.Categories.DeleteManyAsync(Builders<Category>.Filter.Empty);
             await _context.AIInputs.DeleteManyAsync(Builders<AIInput>.Filter.Empty);
@@ -162,7 +164,10 @@ public class DataSeeder
             await new DaySeeder(_context, _loggerFactory.CreateLogger<DaySeeder>()).SeedAsync(userId);
             await new BetterItemSeeder(_context, _loggerFactory.CreateLogger<BetterItemSeeder>()).SeedAsync(userId);
             await new TaskSeeder(_context, _loggerFactory.CreateLogger<TaskSeeder>()).SeedAsync(userId);
-            await new ScheduleSeeder(_context, _loggerFactory.CreateLogger<ScheduleSeeder>()).SeedAsync(userId);
+            await new ScheduleSeeder(
+                _context,
+                new ScheduleMaterializationService(_context, _loggerFactory.CreateLogger<ScheduleMaterializationService>()),
+                _loggerFactory.CreateLogger<ScheduleSeeder>()).SeedAsync(userId);
             await new DisciplineSeeder(_context, _loggerFactory.CreateLogger<DisciplineSeeder>()).SeedAsync(userId);
             await new DietSeeder(_context, _loggerFactory.CreateLogger<DietSeeder>()).SeedAsync(userId);
             await new MoneySeeder(_context, _loggerFactory.CreateLogger<MoneySeeder>()).SeedAsync(userId);
