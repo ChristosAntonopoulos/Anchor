@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 import type { ScheduleBlock } from '../../types';
 
@@ -28,7 +28,7 @@ export function CurrentBlockIndicator({ block }: CurrentBlockIndicatorProps) {
               style={styles.card}
             >
               <View style={styles.content}>
-                <Ionicons name="leaf-outline" size={24} color={colors.category.health} style={styles.quoteIcon} />
+                <AppIcon name="leaf-outline" size={24} color={colors.category.health} style={styles.quoteIcon} />
                 <Text style={styles.quoteText}>Take a deep breath. This moment is enough.</Text>
               </View>
             </LinearGradient>
@@ -63,7 +63,7 @@ export function CurrentBlockIndicator({ block }: CurrentBlockIndicatorProps) {
                 <View style={styles.activitiesContainer}>
                   {block.routineActivities.map((activity, index) => (
                     <View key={index} style={styles.activityItem}>
-                      <Ionicons name="checkmark-circle-outline" size={14} color={colors.textSecondary} />
+                      <AppIcon name="checkmark-circle-outline" size={14} color={colors.textSecondary} />
                       <Text style={styles.activityText}>{activity}</Text>
                     </View>
                   ))}

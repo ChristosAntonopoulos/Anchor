@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, Modal, ScrollView, TouchableOpacity, TextInput,
 import { useState, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows, gradients } from '../../constants/designTokens';
 import { useCategoryStore } from '../../store/useCategoryStore';
 import type { Task, Subtask, Location, RecurrencePattern, CategoryName } from '../../types';
@@ -141,7 +141,7 @@ export function TaskDetailModal({ task, visible, onClose, onSave, onDemote }: Ta
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={colors.textPrimary} />
+              <AppIcon name="close" size={24} color={colors.textPrimary} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Edit Task</Text>
             <TouchableOpacity
@@ -236,7 +236,7 @@ export function TaskDetailModal({ task, visible, onClose, onSave, onDemote }: Ta
                   setDueDate(now.toISOString());
                 }}
               >
-                <Ionicons name="calendar-outline" size={20} color={colors.textSecondary} />
+                <AppIcon name="calendar-outline" size={20} color={colors.textSecondary} />
                 <Text style={styles.dateButtonText}>
                   {dueDate ? new Date(dueDate).toLocaleDateString() : 'Set due date'}
                 </Text>
@@ -245,7 +245,7 @@ export function TaskDetailModal({ task, visible, onClose, onSave, onDemote }: Ta
                     onPress={() => setDueDate(undefined)}
                     style={styles.removeButton}
                   >
-                    <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+                    <AppIcon name="close-circle" size={20} color={colors.textSecondary} />
                   </TouchableOpacity>
                 )}
               </TouchableOpacity>
@@ -258,7 +258,7 @@ export function TaskDetailModal({ task, visible, onClose, onSave, onDemote }: Ta
                 style={styles.locationButton}
                 onPress={() => setShowLocationPicker(true)}
               >
-                <Ionicons name="location-outline" size={20} color={colors.textSecondary} />
+                <AppIcon name="location-outline" size={20} color={colors.textSecondary} />
                 <Text style={styles.locationButtonText}>
                   {location?.placeName || location?.address || 'Add location'}
                 </Text>
@@ -267,7 +267,7 @@ export function TaskDetailModal({ task, visible, onClose, onSave, onDemote }: Ta
                     onPress={() => setLocation(undefined)}
                     style={styles.removeButton}
                   >
-                    <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+                    <AppIcon name="close-circle" size={20} color={colors.textSecondary} />
                   </TouchableOpacity>
                 )}
               </TouchableOpacity>
@@ -280,7 +280,7 @@ export function TaskDetailModal({ task, visible, onClose, onSave, onDemote }: Ta
                 style={styles.recurrenceButton}
                 onPress={() => setShowRecurrencePicker(true)}
               >
-                <Ionicons name="repeat-outline" size={20} color={colors.textSecondary} />
+                <AppIcon name="repeat-outline" size={20} color={colors.textSecondary} />
                 <Text style={styles.recurrenceButtonText}>
                   {recurrence ? `${recurrence.type} (every ${recurrence.interval || 1})` : 'No repeat'}
                 </Text>
@@ -289,7 +289,7 @@ export function TaskDetailModal({ task, visible, onClose, onSave, onDemote }: Ta
                     onPress={() => setRecurrence(undefined)}
                     style={styles.removeButton}
                   >
-                    <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+                    <AppIcon name="close-circle" size={20} color={colors.textSecondary} />
                   </TouchableOpacity>
                 )}
               </TouchableOpacity>
@@ -300,7 +300,7 @@ export function TaskDetailModal({ task, visible, onClose, onSave, onDemote }: Ta
               <View style={styles.subtaskHeader}>
                 <Text style={styles.sectionLabel}>Checklist</Text>
                 <TouchableOpacity onPress={handleAddSubtask} style={styles.addSubtaskButton}>
-                  <Ionicons name="add-circle-outline" size={20} color={colors.category.work} />
+                  <AppIcon name="add-circle-outline" size={20} color={colors.category.work} />
                   <Text style={styles.addSubtaskText}>Add</Text>
                 </TouchableOpacity>
               </View>
@@ -328,7 +328,7 @@ export function TaskDetailModal({ task, visible, onClose, onSave, onDemote }: Ta
             {/* Private Notes */}
             <View style={styles.section}>
               <View style={styles.privateNotesHeader}>
-                <Ionicons name="lock-closed-outline" size={16} color={colors.textSecondary} />
+                <AppIcon name="lock-closed-outline" size={16} color={colors.textSecondary} />
                 <Text style={styles.privateNotesLabel}>Private Notes (hidden from main view)</Text>
               </View>
               <TextInput
@@ -358,7 +358,7 @@ export function TaskDetailModal({ task, visible, onClose, onSave, onDemote }: Ta
             {onDemote ? (
               <View style={styles.section}>
                 <TouchableOpacity style={styles.demoteButton} onPress={onDemote}>
-                  <Ionicons name="arrow-down-circle-outline" size={20} color={colors.textSecondary} />
+                  <AppIcon name="arrow-down-circle-outline" size={20} color={colors.textSecondary} />
                   <Text style={styles.demoteButtonText}>Move to inbox</Text>
                 </TouchableOpacity>
               </View>

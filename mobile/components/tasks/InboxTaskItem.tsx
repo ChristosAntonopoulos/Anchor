@@ -1,5 +1,5 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 import { useCategoryStore } from '../../store/useCategoryStore';
@@ -44,7 +44,7 @@ export function InboxTaskItem({ task, onPromote, onPress, promoteDisabled }: Inb
         style={[styles.promoteButton, promoteDisabled && styles.promoteDisabled]}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Ionicons
+        <AppIcon
           name="arrow-up-circle-outline"
           size={28}
           color={promoteDisabled ? colors.textSecondary : colors.category.work}

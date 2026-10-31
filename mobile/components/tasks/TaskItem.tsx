@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { useRef, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 import { useCategoryStore } from '../../store/useCategoryStore';
 import type { Task } from '../../types';
@@ -113,7 +113,7 @@ export function TaskItem({ task, onToggle, onPress }: TaskItemProps) {
             </View>
             {task.location && (
               <View style={styles.locationBadge}>
-                <Ionicons name="location" size={12} color={colors.textSecondary} />
+                <AppIcon name="location" size={12} color={colors.textSecondary} />
                 <Text style={styles.locationText}>
                   {task.location.placeName || 'Location'}
                 </Text>
@@ -121,7 +121,7 @@ export function TaskItem({ task, onToggle, onPress }: TaskItemProps) {
             )}
             {task.subtasks && task.subtasks.length > 0 && (
               <View style={styles.subtaskBadge}>
-                <Ionicons name="list" size={12} color={colors.textSecondary} />
+                <AppIcon name="list" size={12} color={colors.textSecondary} />
                 <Text style={styles.subtaskText}>
                   {task.subtasks.filter(st => st.completed).length}/{task.subtasks.length}
                 </Text>
@@ -129,7 +129,7 @@ export function TaskItem({ task, onToggle, onPress }: TaskItemProps) {
             )}
             {task.dueDate && (
               <View style={styles.dueDateBadge}>
-                <Ionicons name="time-outline" size={12} color={colors.textSecondary} />
+                <AppIcon name="time-outline" size={12} color={colors.textSecondary} />
                 <Text style={styles.dueDateText}>
                   {new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                 </Text>

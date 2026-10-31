@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius } from '../../constants/designTokens';
 import type { DayBootstrap, YesterdayAssessment } from '../../types';
 
@@ -43,7 +43,7 @@ export function YesterdayAssessmentModal({ visible, bootstrap, onDismiss }: Yest
         <View style={styles.header}>
           <Text style={styles.title}>Yesterday</Text>
           <TouchableOpacity onPress={onDismiss} style={styles.closeBtn}>
-            <Ionicons name="close" size={24} color={colors.textPrimary} />
+            <AppIcon name="close" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
         </View>
 

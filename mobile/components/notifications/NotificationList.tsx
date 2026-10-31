@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography } from '../../constants/designTokens';
 import { NotificationItem } from './NotificationItem';
 import { NotificationGroupHeader } from './NotificationGroupHeader';
@@ -19,7 +19,7 @@ export function NotificationList({ notifications, refreshing, onRefresh, groupBy
   if (notifications.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name="notifications-outline" size={48} color={colors.textSecondary} style={styles.emptyIcon} />
+        <AppIcon name="notifications-outline" size={48} color={colors.textSecondary} style={styles.emptyIcon} />
         <Text style={styles.emptyText}>No notifications yet.</Text>
       </View>
     );

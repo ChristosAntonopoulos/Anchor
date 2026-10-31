@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 import type { Notification } from '../../types';
 
@@ -29,7 +29,7 @@ export function NotificationItem({ notification, onPress }: NotificationItemProp
             />
           ) : (
             <View style={styles.appIconPlaceholder}>
-              <Ionicons name="apps-outline" size={20} color={colors.textSecondary} />
+              <AppIcon name="apps-outline" size={20} color={colors.textSecondary} />
             </View>
           )}
 
@@ -40,11 +40,11 @@ export function NotificationItem({ notification, onPress }: NotificationItemProp
               </Text>
               {notification.isTaskRelevant && (
                 <View style={styles.taskRelevantBadge}>
-                  <Ionicons name="star" size={12} color={colors.category.work} />
+                  <AppIcon name="star" size={12} color={colors.category.work} />
                 </View>
               )}
               {notification.isRead && (
-                <Ionicons name="checkmark-circle" size={16} color={colors.textSecondary} />
+                <AppIcon name="checkmark-circle" size={16} color={colors.textSecondary} />
               )}
             </View>
 

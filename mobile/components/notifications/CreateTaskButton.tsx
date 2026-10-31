@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius } from '../../constants/designTokens';
 import type { Notification } from '../../types';
 
@@ -26,7 +26,7 @@ export function CreateTaskButton({ notification, onPress }: CreateTaskButtonProp
         end={{ x: 1, y: 1 }}
         style={styles.button}
       >
-        <Ionicons name="add-circle-outline" size={20} color={colors.background} />
+        <AppIcon name="add-circle-outline" size={20} color={colors.background} />
         <Text style={styles.buttonText}>Create Task</Text>
       </LinearGradient>
     </TouchableOpacity>

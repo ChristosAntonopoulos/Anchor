@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 import type { DisciplineEntry } from '../../types';
 
@@ -57,7 +57,7 @@ export function DisciplineQuickToggle({ discipline }: DisciplineQuickToggleProps
                 {completedToggles}/{totalToggles}
               </Text>
             )}
-            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} style={styles.chevron} />
+            <AppIcon name="chevron-forward" size={20} color={colors.textSecondary} style={styles.chevron} />
           </View>
         </View>
         

@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 import { BetterTodayItem } from './BetterTodayItem';
@@ -17,7 +17,7 @@ export function BetterTodayList({ items, onToggleItem, onAcceptItem, onEditItem,
   if (items.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name="sparkles-outline" size={48} color={colors.textSecondary} style={styles.emptyIcon} />
+        <AppIcon name="sparkles-outline" size={48} color={colors.textSecondary} style={styles.emptyIcon} />
         <Text style={styles.emptyText}>Choose one thing to move forward today.</Text>
       </View>
     );

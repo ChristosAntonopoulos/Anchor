@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet, Image, TextInput } from 'react-native';
 import { useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 import type { DietEntry } from '../../types';
@@ -48,7 +48,10 @@ export function DietCard({ diet, onToggle, onUpdate }: DietCardProps) {
         style={styles.gradient}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Diet</Text>
+          <View style={styles.titleRow}>
+            <AppIcon name="nutrition" size={22} />
+            <Text style={styles.title}>Diet</Text>
+          </View>
           <TouchableOpacity
             onPress={onToggle}
             activeOpacity={0.7}
@@ -78,7 +81,7 @@ export function DietCard({ diet, onToggle, onUpdate }: DietCardProps) {
               style={styles.removePhotoButton}
               onPress={() => onUpdate({ photoUri: undefined })}
             >
-              <Ionicons name="close-circle" size={24} color={colors.error} />
+              <AppIcon name="close-circle" size={24} color={colors.error} />
             </TouchableOpacity>
           </View>
         )}
@@ -125,7 +128,7 @@ export function DietCard({ diet, onToggle, onUpdate }: DietCardProps) {
               style={styles.actionButton}
               onPress={() => setShowNoteInput(true)}
             >
-              <Ionicons name="create-outline" size={18} color={colors.textSecondary} />
+              <AppIcon name="create-outline" size={18} color={colors.textSecondary} />
               <Text style={styles.actionText}>
                 {diet.note ? 'Edit Note' : 'Add Note'}
               </Text>
@@ -134,7 +137,7 @@ export function DietCard({ diet, onToggle, onUpdate }: DietCardProps) {
               style={styles.actionButton}
               onPress={pickImage}
             >
-              <Ionicons name="camera-outline" size={18} color={colors.textSecondary} />
+              <AppIcon name="camera-outline" size={18} color={colors.textSecondary} />
               <Text style={styles.actionText}>
                 {diet.photoUri ? 'Change Photo' : 'Add Photo'}
               </Text>
@@ -168,6 +171,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.s,
   },
   title: {
     fontSize: typography.fontSize.title,

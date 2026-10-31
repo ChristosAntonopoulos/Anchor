@@ -1,7 +1,7 @@
 import { TouchableOpacity, Text, StyleSheet, TextInput, View, ActivityIndicator, Platform } from 'react-native';
 import { useState, useRef } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 
 interface CBTInputProps {
@@ -74,7 +74,7 @@ export function CBTInput({ onSubmit, disabled }: CBTInputProps) {
               onPress={handleMicPress}
               disabled={loading}
             >
-              <Ionicons
+              <AppIcon
                 name={isRecording ? "mic" : "mic-outline"}
                 size={24}
                 color={isRecording ? colors.category.health : colors.textSecondary}
@@ -134,7 +134,7 @@ export function CBTInput({ onSubmit, disabled }: CBTInputProps) {
         style={styles.buttonGradient}
       >
         <View style={styles.buttonContent}>
-          <Ionicons name="bulb-outline" size={20} color={colors.background} style={styles.buttonIcon} />
+          <AppIcon name="bulb-outline" size={20} color={colors.background} style={styles.buttonIcon} />
           <Text style={[styles.buttonText, disabled && styles.buttonTextDisabled]}>
             Write anything...
           </Text>

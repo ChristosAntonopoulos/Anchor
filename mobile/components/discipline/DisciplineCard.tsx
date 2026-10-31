@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { colors, spacing, typography } from '../../constants/designTokens';
+import { AppIcon } from '../icons/AppIcon';
 import { DisciplineBlockCard } from './DisciplineBlockCard';
 import type { DisciplineEntry } from '../../types';
 
@@ -42,7 +43,10 @@ export function DisciplineCard({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Discipline</Text>
+        <View style={styles.titleRow}>
+          <AppIcon name="habits" size={22} />
+          <Text style={styles.title}>Discipline</Text>
+        </View>
         {totalToggles > 0 && (
           <Text style={styles.count}>
             {completedToggles}/{totalToggles}
@@ -52,7 +56,7 @@ export function DisciplineCard({
       {weeklyInsight && (
         <View style={styles.insightContainer}>
           <View style={styles.insightIcon}>
-            <Text style={styles.insightIconText}>💡</Text>
+            <AppIcon name="insights" size={18} />
           </View>
           <Text style={styles.insightText}>{weeklyInsight}</Text>
         </View>
@@ -82,6 +86,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.m,
     paddingHorizontal: spacing.l,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.s,
+  },
   title: {
     fontSize: typography.fontSize.title,
     fontWeight: typography.fontWeight.semibold,
@@ -104,9 +113,6 @@ const styles = StyleSheet.create({
   },
   insightIcon: {
     marginRight: spacing.s,
-  },
-  insightIconText: {
-    fontSize: 20,
   },
   insightText: {
     flex: 1,

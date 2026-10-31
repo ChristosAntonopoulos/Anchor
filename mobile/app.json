@@ -5,12 +5,16 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "scheme": "pos",
     "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#F7F7F7"
+      "image": "./assets/splash-light.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#F6F0E2",
+      "dark": {
+        "image": "./assets/splash-dark.png",
+        "backgroundColor": "#132E2A"
+      }
     },
     "ios": {
       "supportsTablet": true,
@@ -19,7 +23,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#F7F7F7"
+        "backgroundColor": "#F6F0E2"
       },
       "package": "com.pos.mobile"
     },

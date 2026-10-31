@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'rea
 import { useState, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows, gradients } from '../../constants/designTokens';
 import type { RecurrencePattern } from '../../types';
 
@@ -85,7 +85,7 @@ export function RecurrencePicker({ visible, recurrence, onClose, onSave }: Recur
         <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={colors.textPrimary} />
+              <AppIcon name="close" size={24} color={colors.textPrimary} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Repeat</Text>
             <TouchableOpacity onPress={handleSave} style={styles.saveButton}>

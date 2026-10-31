@@ -1,5 +1,5 @@
 import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 
@@ -29,7 +29,7 @@ export function NotificationFilters({
           end={{ x: 1, y: 1 }}
           style={styles.searchBox}
         >
-          <Ionicons name="search-outline" size={20} color={colors.textSecondary} style={styles.searchIcon} />
+          <AppIcon name="search-outline" size={20} color={colors.textSecondary} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search notifications..."
@@ -39,7 +39,7 @@ export function NotificationFilters({
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => onSearchChange('')} style={styles.clearButton}>
-              <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+              <AppIcon name="close-circle" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
         </LinearGradient>

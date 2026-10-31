@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 import { apiClient } from '../../services/api';
 import type { CreatePhoneUnlockEntryRequest } from '../../types';
@@ -71,7 +71,7 @@ export function PhoneUnlockOverlayModal({
       >
         <View style={styles.content}>
           <View style={styles.iconContainer}>
-            <Ionicons name="lock-open-outline" size={64} color={colors.category.stability} />
+            <AppIcon name="lock-open-outline" size={64} color={colors.category.stability} />
           </View>
 
           <Text style={styles.title}>Why did you unlock your phone?</Text>
@@ -82,7 +82,7 @@ export function PhoneUnlockOverlayModal({
 
           {error && (
             <View style={styles.errorContainer}>
-              <Ionicons name="alert-circle-outline" size={20} color={colors.error} />
+              <AppIcon name="alert-circle-outline" size={20} color={colors.error} />
               <Text style={styles.errorText}>{error}</Text>
             </View>
           )}

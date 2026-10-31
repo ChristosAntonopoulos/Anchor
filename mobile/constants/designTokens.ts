@@ -1,6 +1,14 @@
 // Design tokens - Calm New Age Gaming Aesthetic
 // Combines calm colors, new-age mystical feel, and subtle gaming aesthetics
 
+export const brand = {
+  cream: '#F6F0E2',
+  deepGreen: '#316F5F',
+  sage: '#C7E5CD',
+  deepTeal: '#132E2A',
+  goldenSun: '#E7C47B',
+} as const;
+
 export const colors = {
   // Base colors (Calm + Dark Gaming)
   background: '#0F1419', // Deep charcoal - reduces eye strain

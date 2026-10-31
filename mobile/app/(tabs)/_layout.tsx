@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import { Platform, TouchableOpacity, View, StyleSheet } from 'react-native';
 import { useState, useEffect } from 'react';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../../components/icons/AppIcon';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius, shadows } from '../../constants/designTokens';
@@ -37,11 +37,7 @@ export default function TabLayout() {
             end={{ x: 1, y: 1 }}
             style={styles.menuButtonGradient}
           >
-            <Ionicons
-              name="grid-outline"
-              size={28}
-              color={focused ? colors.background : colors.textPrimary}
-            />
+            <AppIcon name="growth" size={28} opacity={focused ? 1 : 0.7} />
           </LinearGradient>
         </View>
       </TouchableOpacity>
@@ -88,8 +84,8 @@ export default function TabLayout() {
           options={{
             title: 'Dashboard',
             tabBarLabel: 'Dashboard',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="speedometer-outline" size={size} color={color} />
+            tabBarIcon: ({ size, focused }) => (
+              <AppIcon name="dashboard" size={size} opacity={focused ? 1 : 0.45} />
             ),
           }}
         />
@@ -98,8 +94,8 @@ export default function TabLayout() {
           options={{
             title: 'Tasks',
             tabBarLabel: 'Tasks',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="checkmark-circle-outline" size={size} color={color} />
+            tabBarIcon: ({ size, focused }) => (
+              <AppIcon name="tasks" size={size} opacity={focused ? 1 : 0.45} />
             ),
           }}
         />
@@ -117,8 +113,8 @@ export default function TabLayout() {
           options={{
             title: 'Schedule',
             tabBarLabel: 'Schedule',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="calendar-outline" size={size} color={color} />
+            tabBarIcon: ({ size, focused }) => (
+              <AppIcon name="calendar" size={size} opacity={focused ? 1 : 0.45} />
             ),
           }}
         />
@@ -127,8 +123,8 @@ export default function TabLayout() {
           options={{
             title: 'CBT',
             tabBarLabel: 'CBT',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="bulb-outline" size={size} color={color} />
+            tabBarIcon: ({ size, focused }) => (
+              <AppIcon name="mood" size={size} opacity={focused ? 1 : 0.45} />
             ),
           }}
         />

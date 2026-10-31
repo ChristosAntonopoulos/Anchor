@@ -1,19 +1,19 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { useCBTStore } from '../../store/useCBTStore';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 
 const MOODS = [
-  { label: 'Happy', value: 'happy', icon: 'happy-outline', color: colors.category.leverage },
-  { label: 'Anxious', value: 'anxious', icon: 'alert-circle-outline', color: colors.category.work },
-  { label: 'Sad', value: 'sad', icon: 'sad-outline', color: colors.category.stability },
-  { label: 'Angry', value: 'angry', icon: 'flame-outline', color: '#EF4444' },
-  { label: 'Calm', value: 'calm', icon: 'leaf-outline', color: colors.category.health },
-  { label: 'Excited', value: 'excited', icon: 'flash-outline', color: colors.category.leverage },
-  { label: 'Tired', value: 'tired', icon: 'moon-outline', color: colors.textSecondary },
-  { label: 'Confused', value: 'confused', icon: 'help-circle-outline', color: colors.textSecondary },
+  { label: 'Happy', value: 'happy', icon: 'sun', color: colors.category.leverage },
+  { label: 'Anxious', value: 'anxious', icon: 'energy', color: colors.category.work },
+  { label: 'Sad', value: 'sad', icon: 'heart', color: colors.category.stability },
+  { label: 'Angry', value: 'angry', icon: 'focus', color: '#EF4444' },
+  { label: 'Calm', value: 'calm', icon: 'leaf', color: colors.category.health },
+  { label: 'Excited', value: 'excited', icon: 'streak', color: colors.category.leverage },
+  { label: 'Tired', value: 'tired', icon: 'sleep', color: colors.textSecondary },
+  { label: 'Confused', value: 'confused', icon: 'insights', color: colors.textSecondary },
 ];
 
 export function MoodTracker() {
@@ -69,10 +69,10 @@ export function MoodTracker() {
                 ]}
                 onPress={() => setSelectedMood(mood.value)}
               >
-                <Ionicons
-                  name={mood.icon as any}
+                <AppIcon
+                  name={mood.icon}
                   size={24}
-                  color={selectedMood === mood.value ? mood.color : colors.textSecondary}
+                  opacity={selectedMood === mood.value ? 1 : 0.55}
                 />
                 <Text
                   style={[
@@ -169,10 +169,9 @@ export function MoodTracker() {
             return (
               <View key={entry.id} style={styles.recentItem}>
                 <View style={styles.recentItemLeft}>
-                  <Ionicons
-                    name={mood?.icon as any || 'ellipse-outline'}
+                  <AppIcon
+                    name={mood?.icon || 'mood'}
                     size={20}
-                    color={mood?.color || colors.textSecondary}
                   />
                   <Text style={styles.recentDate}>
                     {new Date(entry.date).toLocaleDateString()}

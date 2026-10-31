@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { useRef } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius } from '../../constants/designTokens';
 
 interface HabitCounterProps {
@@ -45,7 +45,7 @@ export function HabitCounter({ label, count, onIncrement, onDecrement }: HabitCo
             style={[styles.button, styles.decrementButton, count === 0 && styles.buttonDisabled]}
             disabled={count === 0}
           >
-            <Ionicons name="remove" size={20} color={count === 0 ? colors.textSecondary : colors.textPrimary} />
+            <AppIcon name="remove" size={20} color={count === 0 ? colors.textSecondary : colors.textPrimary} />
           </TouchableOpacity>
         </Animated.View>
         
@@ -61,7 +61,7 @@ export function HabitCounter({ label, count, onIncrement, onDecrement }: HabitCo
             activeOpacity={1}
             style={[styles.button, styles.incrementButton]}
           >
-            <Ionicons name="add" size={20} color={colors.textPrimary} />
+            <AppIcon name="add" size={20} color={colors.textPrimary} />
           </TouchableOpacity>
         </Animated.View>
       </View>

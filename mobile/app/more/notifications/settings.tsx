@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Switch
 import { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../../../components/icons/AppIcon';
 import { colors, gradients, spacing, typography, borderRadius, shadows } from '../../../constants/designTokens';
 import { useNotificationStore } from '../../../store/useNotificationStore';
 import { apiClient } from '../../../services/api';
@@ -150,7 +150,7 @@ export default function NotificationSettingsScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>App Filtering</Text>
             <LinearGradient colors={['#1E2530', '#252B38']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.searchBox}>
-              <Ionicons name="search-outline" size={20} color={colors.textSecondary} style={styles.searchIcon} />
+              <AppIcon name="search-outline" size={20} color={colors.textSecondary} style={styles.searchIcon} />
               <TextInput
                 style={styles.searchInput}
                 placeholder="Search apps..."
@@ -213,7 +213,7 @@ export default function NotificationSettingsScreen() {
                 <ActivityIndicator color={colors.background} />
               ) : (
                 <>
-                  <Ionicons name="save-outline" size={20} color={colors.background} />
+                  <AppIcon name="save-outline" size={20} color={colors.background} />
                   <Text style={styles.saveButtonText}>Save Settings</Text>
                 </>
               )}

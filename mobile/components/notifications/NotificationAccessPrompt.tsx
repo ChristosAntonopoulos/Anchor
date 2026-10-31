@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, Platform, AppState, AppStateStatus } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 import { notificationListener } from '../../services/notificationListener';
 import { hasNotificationListenerModule, isExpoGo } from '../../utils/nativeModuleSupport';
@@ -183,7 +183,7 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
         style={styles.promptCard}
       >
         <View style={styles.header}>
-          <Ionicons name="notifications-outline" size={32} color={colors.category.work} />
+          <AppIcon name="notifications-outline" size={32} color={colors.category.work} />
           <Text style={styles.title}>Enable Notification Access</Text>
         </View>
         
@@ -193,29 +193,29 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
         
         <View style={styles.benefitsList}>
           <View style={styles.benefitItem}>
-            <Ionicons name="calendar-outline" size={20} color={colors.textSecondary} />
+            <AppIcon name="calendar-outline" size={20} color={colors.textSecondary} />
             <Text style={styles.benefitText}>Calendar events and meetings</Text>
           </View>
           <View style={styles.benefitItem}>
-            <Ionicons name="mail-outline" size={20} color={colors.textSecondary} />
+            <AppIcon name="mail-outline" size={20} color={colors.textSecondary} />
             <Text style={styles.benefitText}>Email reminders</Text>
           </View>
           <View style={styles.benefitItem}>
-            <Ionicons name="chatbubbles-outline" size={20} color={colors.textSecondary} />
+            <AppIcon name="chatbubbles-outline" size={20} color={colors.textSecondary} />
             <Text style={styles.benefitText}>Message notifications</Text>
           </View>
         </View>
 
         {error && (
           <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle-outline" size={20} color={colors.error || '#FF6B6B'} />
+            <AppIcon name="alert-circle-outline" size={20} color={colors.error || '#FF6B6B'} />
             <Text style={styles.errorText}>{error}</Text>
           </View>
         )}
 
         {moduleAvailable === false && (
           <View style={styles.errorContainer}>
-            <Ionicons name="warning-outline" size={20} color={colors.error || '#FF6B6B'} />
+            <AppIcon name="warning-outline" size={20} color={colors.error || '#FF6B6B'} />
             <Text style={styles.errorText}>
               Native notification module not found. This feature requires a development build with native code. The notification access feature will not be available in this build.
             </Text>
@@ -234,7 +234,7 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
               end={{ x: 1, y: 1 }}
               style={styles.enableButtonGradient}
             >
-              <Ionicons name="settings-outline" size={20} color={colors.background} />
+              <AppIcon name="settings-outline" size={20} color={colors.background} />
               <Text style={styles.enableButtonText}>Open Settings</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -246,7 +246,7 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
               activeOpacity={0.8}
             >
               <View style={styles.retryButtonContent}>
-                <Ionicons name="refresh-outline" size={20} color={colors.category.work} />
+                <AppIcon name="refresh-outline" size={20} color={colors.category.work} />
                 <Text style={styles.retryButtonText}>Check Again</Text>
               </View>
             </TouchableOpacity>
@@ -255,7 +255,7 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
 
         {isNothingPhone && settingsMethod !== 'standard' && (
           <View style={styles.nothingPhoneInstructions}>
-            <Ionicons name="information-circle-outline" size={20} color={colors.category.work} />
+            <AppIcon name="information-circle-outline" size={20} color={colors.category.work} />
             <View style={styles.instructionsContent}>
               <Text style={styles.instructionsTitle}>Nothing Phone Instructions:</Text>
               <Text style={styles.instructionsText}>

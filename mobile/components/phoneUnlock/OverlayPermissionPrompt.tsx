@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 import { overlayPermission } from '../../services/overlayPermission';
 
@@ -71,7 +71,7 @@ export function OverlayPermissionPrompt({ onPermissionGranted }: OverlayPermissi
     <View style={styles.container}>
       <View style={styles.content}>
         <View style={styles.iconContainer}>
-          <Ionicons name="layers-outline" size={48} color={colors.category.stability} />
+          <AppIcon name="layers-outline" size={48} color={colors.category.stability} />
         </View>
 
         <Text style={styles.title}>Enable Overlay Permission</Text>
@@ -94,7 +94,7 @@ export function OverlayPermissionPrompt({ onPermissionGranted }: OverlayPermissi
             end={{ x: 1, y: 1 }}
             style={styles.buttonGradient}
           >
-            <Ionicons name="settings-outline" size={20} color={colors.background} style={styles.buttonIcon} />
+            <AppIcon name="settings-outline" size={20} color={colors.background} style={styles.buttonIcon} />
             <Text style={styles.buttonText}>Open Settings</Text>
           </LinearGradient>
         </TouchableOpacity>

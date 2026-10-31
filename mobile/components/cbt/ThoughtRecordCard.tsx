@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 import type { CBTEntry } from '../../types';
 
@@ -47,7 +47,7 @@ export function ThoughtRecordCard({ entry, onPress }: ThoughtRecordCardProps) {
         {/* Mood */}
         {entry.mood && (
           <View style={styles.moodRow}>
-            <Ionicons name="heart-outline" size={16} color={colors.category.health} />
+            <AppIcon name="heart-outline" size={16} color={colors.category.health} />
             <Text style={styles.moodText}>
               {entry.mood} {entry.moodIntensity !== undefined && `(${entry.moodIntensity}/10)`}
             </Text>
@@ -93,7 +93,7 @@ export function ThoughtRecordCard({ entry, onPress }: ThoughtRecordCardProps) {
         {/* AI Insights Preview */}
         {entry.aiInsights && (
           <View style={styles.insightsContainer}>
-            <Ionicons name="bulb-outline" size={16} color={colors.category.leverage} />
+            <AppIcon name="bulb-outline" size={16} color={colors.category.leverage} />
             <Text style={styles.insightsText} numberOfLines={2}>
               {entry.aiInsights}
             </Text>

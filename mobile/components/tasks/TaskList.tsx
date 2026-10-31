@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography } from '../../constants/designTokens';
 import { TaskItem } from './TaskItem';
 import type { Task } from '../../types';
@@ -20,7 +20,7 @@ export function TaskList({
   if (tasks.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name="checkmark-circle-outline" size={48} color={colors.textSecondary} style={styles.emptyIcon} />
+        <AppIcon name="checkmark-circle-outline" size={48} color={colors.textSecondary} style={styles.emptyIcon} />
         <Text style={styles.emptyText}>{emptyMessage}</Text>
       </View>
     );

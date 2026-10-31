@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 import type { BehavioralActivity } from '../../types';
 
@@ -25,7 +25,7 @@ export function BehavioralActivityCard({ activity, onPress, onComplete }: Behavi
       >
         <View style={styles.header}>
           <View style={styles.titleRow}>
-            <Ionicons
+            <AppIcon
               name={activity.isCompleted ? 'checkmark-circle' : 'ellipse-outline'}
               size={24}
               color={activity.isCompleted ? colors.category.leverage : colors.textSecondary}
@@ -44,7 +44,7 @@ export function BehavioralActivityCard({ activity, onPress, onComplete }: Behavi
 
         {activity.scheduledDate && (
           <View style={styles.dateRow}>
-            <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
+            <AppIcon name="calendar-outline" size={16} color={colors.textSecondary} />
             <Text style={styles.dateText}>
               {new Date(activity.scheduledDate).toLocaleDateString()}
             </Text>
@@ -53,7 +53,7 @@ export function BehavioralActivityCard({ activity, onPress, onComplete }: Behavi
 
         {activity.isCompleted && activity.completedDate && (
           <View style={styles.completedRow}>
-            <Ionicons name="checkmark-circle" size={16} color={colors.category.leverage} />
+            <AppIcon name="checkmark-circle" size={16} color={colors.category.leverage} />
             <Text style={styles.completedText}>
               Completed {new Date(activity.completedDate).toLocaleDateString()}
             </Text>

@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius } from '../../constants/designTokens';
 import type { Subtask } from '../../types';
 
@@ -27,7 +27,7 @@ export function SubtaskList({ subtasks, onUpdate, onRemove }: SubtaskListProps) 
             onPress={() => onUpdate(subtask.id, { completed: !subtask.completed })}
           >
             {subtask.completed && (
-              <Ionicons name="checkmark" size={16} color={colors.background} />
+              <AppIcon name="checkmark" size={16} color={colors.background} />
             )}
           </TouchableOpacity>
           <TextInput
@@ -42,7 +42,7 @@ export function SubtaskList({ subtasks, onUpdate, onRemove }: SubtaskListProps) 
             onPress={() => onRemove(subtask.id)}
             style={styles.removeButton}
           >
-            <Ionicons name="close-circle-outline" size={20} color={colors.textSecondary} />
+            <AppIcon name="close-circle-outline" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
       ))}

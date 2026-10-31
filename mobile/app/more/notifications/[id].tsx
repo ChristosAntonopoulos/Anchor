@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../../../components/icons/AppIcon';
 import { colors, gradients, spacing, typography, borderRadius, shadows } from '../../../constants/designTokens';
 import { useNotificationStore } from '../../../store/useNotificationStore';
 import { apiClient } from '../../../services/api';
@@ -107,7 +107,7 @@ export default function NotificationDetailScreen() {
               />
             ) : (
               <View style={styles.appIconPlaceholder}>
-                <Ionicons name="apps-outline" size={24} color={colors.textSecondary} />
+                <AppIcon name="apps-outline" size={24} color={colors.textSecondary} />
               </View>
             )}
             <View style={styles.headerText}>
@@ -169,11 +169,11 @@ export default function NotificationDetailScreen() {
           <View style={styles.quickActions}>
             <CreateTaskButton notification={notification} />
             <TouchableOpacity style={styles.actionButtonSecondary} onPress={handleDismiss}>
-              <Ionicons name="checkmark-circle-outline" size={20} color={colors.textPrimary} />
+              <AppIcon name="checkmark-circle-outline" size={20} color={colors.textPrimary} />
               <Text style={styles.actionButtonTextSecondary}>Dismiss</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionButtonSecondary} onPress={handleDelete}>
-              <Ionicons name="trash-outline" size={20} color={colors.textPrimary} />
+              <AppIcon name="trash-outline" size={20} color={colors.textPrimary} />
               <Text style={styles.actionButtonTextSecondary}>Delete</Text>
             </TouchableOpacity>
           </View>

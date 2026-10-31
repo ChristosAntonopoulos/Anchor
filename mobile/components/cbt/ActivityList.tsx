@@ -1,6 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet } from 'react-native';
 import { BehavioralActivityCard } from './BehavioralActivityCard';
 import { colors, spacing, typography } from '../../constants/designTokens';
 import type { BehavioralActivity } from '../../types';

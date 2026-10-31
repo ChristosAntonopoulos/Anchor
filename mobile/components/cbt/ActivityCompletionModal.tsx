@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 import type { CompleteBehavioralActivityRequest } from '../../types';
 
@@ -114,7 +114,7 @@ export function ActivityCompletionModal({
           <View style={styles.header}>
             <Text style={styles.title}>Complete Activity</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={colors.textPrimary} />
+              <AppIcon name="close" size={24} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
 

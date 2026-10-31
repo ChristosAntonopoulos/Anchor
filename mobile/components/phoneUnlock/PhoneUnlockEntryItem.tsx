@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 import type { PhoneUnlockEntry } from '../../types';
 
@@ -31,7 +31,7 @@ export function PhoneUnlockEntryItem({ entry }: PhoneUnlockEntryItemProps) {
       >
         <View style={styles.header}>
           <View style={styles.iconContainer}>
-            <Ionicons name="lock-open-outline" size={20} color={colors.category.stability} />
+            <AppIcon name="lock-open-outline" size={20} color={colors.category.stability} />
           </View>
           <View style={styles.dateContainer}>
             <Text style={styles.date}>{formattedDate}</Text>

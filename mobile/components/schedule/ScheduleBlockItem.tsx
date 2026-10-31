@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useState, type ComponentType } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 import type { ScheduleBlock } from '../../types';
 import { ScheduleBlockEditModal } from './ScheduleBlockEditModal';
@@ -68,7 +68,7 @@ export function ScheduleBlockItem({ block, isCurrent, onUpdate, onItemComplete }
           <View style={styles.titleRow}>
             <Text style={[styles.title, isCurrent && styles.currentTitle]}>{block.title}</Text>
             {canEdit && (
-              <Ionicons name="create-outline" size={18} color={colors.textSecondary} style={styles.editIcon} />
+              <AppIcon name="create-outline" size={18} color={colors.textSecondary} style={styles.editIcon} />
             )}
           </View>
 
@@ -76,7 +76,7 @@ export function ScheduleBlockItem({ block, isCurrent, onUpdate, onItemComplete }
             <View style={styles.checklistContainer}>
               {items.slice(0, 3).map((item) => (
                 <View key={item.id} style={styles.checklistRow}>
-                  <Ionicons
+                  <AppIcon
                     name={item.completed ? 'checkmark-circle' : 'ellipse-outline'}
                     size={14}
                     color={item.completed ? colors.category.work : colors.textSecondary}
@@ -112,7 +112,7 @@ export function ScheduleBlockItem({ block, isCurrent, onUpdate, onItemComplete }
               }}
               activeOpacity={0.85}
             >
-              <Ionicons name="play-circle" size={20} color={colors.background} />
+              <AppIcon name="play-circle" size={20} color={colors.background} />
               <Text style={styles.startButtonText}>
                 {isCurrent ? 'Start block timer' : 'Start block'}
               </Text>
@@ -121,7 +121,7 @@ export function ScheduleBlockItem({ block, isCurrent, onUpdate, onItemComplete }
 
           {allDone && (
             <View style={styles.doneBadge}>
-              <Ionicons name="checkmark-done" size={16} color={colors.category.work} />
+              <AppIcon name="checkmark-done" size={16} color={colors.category.work} />
               <Text style={styles.doneBadgeText}>Completed today</Text>
             </View>
           )}

@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, Alert } fro
 import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import * as Location from 'expo-location';
 import { colors, spacing, typography, borderRadius, shadows, gradients } from '../../constants/designTokens';
 import type { Location as LocationType } from '../../types';
@@ -86,7 +86,7 @@ export function LocationPicker({ visible, location, onClose, onSave }: LocationP
         <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={colors.textPrimary} />
+              <AppIcon name="close" size={24} color={colors.textPrimary} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Location</Text>
             <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
@@ -130,7 +130,7 @@ export function LocationPicker({ visible, location, onClose, onSave }: LocationP
                 end={{ x: 1, y: 1 }}
                 style={styles.locationButtonGradient}
               >
-                <Ionicons name="location" size={20} color={colors.background} />
+                <AppIcon name="location" size={20} color={colors.background} />
                 <Text style={styles.locationButtonText}>
                   {loading ? 'Getting location...' : 'Use Current Location'}
                 </Text>

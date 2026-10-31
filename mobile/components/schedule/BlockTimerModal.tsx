@@ -9,7 +9,7 @@ import {
 import { useEffect, useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, gradients } from '../../constants/designTokens';
 import type { ScheduleBlock } from '../../types';
 import { useBlockTimer } from '../../hooks/useBlockTimer';
@@ -57,7 +57,7 @@ export function BlockTimerModal({ block, visible, onClose, onItemComplete }: Blo
         <SafeAreaView style={styles.container}>
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Ionicons name="close" size={28} color={colors.textPrimary} />
+              <AppIcon name="close" size={28} color={colors.textPrimary} />
             </TouchableOpacity>
             <View style={styles.headerCenter}>
               <Text style={styles.blockTitle}>{block.title}</Text>
@@ -72,7 +72,7 @@ export function BlockTimerModal({ block, visible, onClose, onItemComplete }: Blo
 
           {timer.finished ? (
             <View style={styles.finishedContainer}>
-              <Ionicons name="checkmark-circle" size={72} color={colors.category.work} />
+              <AppIcon name="checkmark-circle" size={72} color={colors.category.work} />
               <Text style={styles.finishedTitle}>Block complete</Text>
               <Text style={styles.finishedSubtitle}>Nice work — you finished every step.</Text>
               <TouchableOpacity style={styles.primaryBtnBlock} onPress={onClose}>
@@ -81,7 +81,7 @@ export function BlockTimerModal({ block, visible, onClose, onItemComplete }: Blo
             </View>
           ) : !timer.started ? (
             <View style={styles.finishedContainer}>
-              <Ionicons name="timer-outline" size={64} color={colors.category.work} />
+              <AppIcon name="timer-outline" size={64} color={colors.category.work} />
               <Text style={styles.finishedTitle}>Ready to start?</Text>
               <Text style={styles.finishedSubtitle}>
                 {timer.sorted.length} steps · tap Start when you're ready
@@ -114,17 +114,17 @@ export function BlockTimerModal({ block, visible, onClose, onItemComplete }: Blo
               <View style={styles.controls}>
                 {timer.running ? (
                   <TouchableOpacity style={styles.secondaryBtn} onPress={timer.pause}>
-                    <Ionicons name="pause" size={20} color={colors.textPrimary} />
+                    <AppIcon name="pause" size={20} color={colors.textPrimary} />
                     <Text style={styles.secondaryBtnText}>Pause</Text>
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity style={styles.secondaryBtn} onPress={timer.resume}>
-                    <Ionicons name="play" size={20} color={colors.textPrimary} />
+                    <AppIcon name="play" size={20} color={colors.textPrimary} />
                     <Text style={styles.secondaryBtnText}>Resume</Text>
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity style={styles.secondaryBtn} onPress={timer.skip}>
-                  <Ionicons name="play-skip-forward" size={20} color={colors.textPrimary} />
+                  <AppIcon name="play-skip-forward" size={20} color={colors.textPrimary} />
                   <Text style={styles.secondaryBtnText}>Skip</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.primaryBtnBlock, styles.primaryBtnInline]} onPress={timer.completeEarly}>
@@ -135,7 +135,7 @@ export function BlockTimerModal({ block, visible, onClose, onItemComplete }: Blo
               <View style={styles.checklistPreview}>
                 {timer.sorted.map((item, idx) => (
                   <View key={item.id} style={styles.checklistRow}>
-                    <Ionicons
+                    <AppIcon
                       name={
                         item.completed
                           ? 'checkmark-circle'
