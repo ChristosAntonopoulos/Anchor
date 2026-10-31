@@ -1,5 +1,6 @@
 package com.pos.mobile
 
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 
@@ -21,13 +22,13 @@ class MainActivity : ReactActivity() {
     super.onCreate(null)
   }
 
-  override fun onNewIntent(intent: android.content.Intent?) {
+  override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
     setIntent(intent)
     handleUnlockIntent(intent)
   }
 
-  private fun handleUnlockIntent(intent: android.content.Intent?) {
+  private fun handleUnlockIntent(intent: Intent?) {
     if (intent == null) {
       return
     }
@@ -37,6 +38,7 @@ class MainActivity : ReactActivity() {
         android.util.Log.d("MainActivity", "Unlock intent with unlockTime: $unlockTime")
         PhoneUnlockModule.setPendingUnlockTime(unlockTime)
         PhoneUnlockModule.emitUnlock(unlockTime)
+        PhoneUnlockPresenter.cancelNotification(this)
       }
     }
   }

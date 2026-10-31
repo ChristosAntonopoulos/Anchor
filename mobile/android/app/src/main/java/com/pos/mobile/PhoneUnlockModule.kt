@@ -2,14 +2,17 @@ package com.pos.mobile
 
 import android.content.Intent
 import android.os.Build
-import com.facebook.react.bridge.*
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.LifecycleEventListener
+import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.ReactContextBaseJavaModule
+import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.modules.core.DeviceEventManagerModule
 
 class PhoneUnlockModule(reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext), LifecycleEventListener {
 
-    private val reactApplicationContext: ReactApplicationContext = reactContext
     private val TAG = "PhoneUnlockModule"
     private var isListening = false
 
@@ -44,11 +47,11 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
             pendingUnlockTime = time
         }
 
-        fun getPendingUnlockTime(): Long? {
+        fun peekPendingUnlockTime(): Long? {
             return pendingUnlockTime
         }
 
-        fun clearPendingUnlockTime() {
+        fun resetPendingUnlockTime() {
             pendingUnlockTime = null
         }
 
@@ -60,7 +63,7 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
     @ReactMethod
     fun getPendingUnlockTime(promise: Promise) {
         try {
-            val time = getPendingUnlockTime()
+            val time = peekPendingUnlockTime()
             if (time != null) {
                 promise.resolve(time.toDouble())
             } else {
@@ -74,7 +77,7 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
 
     @ReactMethod
     fun clearPendingUnlockTime() {
-        clearPendingUnlockTime()
+        resetPendingUnlockTime()
         android.util.Log.d(TAG, "Cleared pending unlock time")
     }
 
@@ -134,7 +137,6 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
 
     override fun onHostDestroy() {
         android.util.Log.d(TAG, "onHostDestroy() called")
-        // Keep the foreground-service receiver running so unlocks still fire.
         if (instance === this) {
             instance = null
         }

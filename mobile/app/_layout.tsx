@@ -1,19 +1,22 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { Platform, AppState } from 'react-native';
+import { Platform, AppState, Modal, View, StyleSheet, NativeModules } from 'react-native';
 import { AppUpdatePrompt } from '../components/shared/AppUpdatePrompt';
 import { ErrorBoundary } from '../components/shared/ErrorBoundary';
 import { useCategoryStore } from '../store/useCategoryStore';
 import { phoneUnlockListener } from '../services/phoneUnlockListener';
+import { overlayPermission } from '../services/overlayPermission';
 import { apiClient } from '../services/api';
 import { PhoneUnlockReasonModal } from '../components/phoneUnlock/PhoneUnlockReasonModal';
+import { OverlayPermissionPrompt } from '../components/phoneUnlock/OverlayPermissionPrompt';
 import type { CreatePhoneUnlockEntryRequest } from '../types';
 import { hasPhoneUnlockModule, isExpoGo } from '../utils/nativeModuleSupport';
 
 export default function RootLayout() {
   const { fetchCategories } = useCategoryStore();
   const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const [showOverlayPrompt, setShowOverlayPrompt] = useState(false);
   const [unlockTime, setUnlockTime] = useState<number>(Date.now());
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const lastUnlockTimeRef = useRef<number>(0);
@@ -46,6 +49,17 @@ export default function RootLayout() {
 
     // Fetch categories on app initialization
     fetchCategories();
+
+    if (Platform.OS === 'android' && !isExpoGo && NativeModules.OverlayPermissionModule) {
+      overlayPermission
+        .isOverlayPermissionGranted()
+        .then((granted) => {
+          setShowOverlayPrompt(!granted);
+        })
+        .catch(() => {
+          setShowOverlayPrompt(true);
+        });
+    }
 
     // Don't check pending unlock on initial mount - wait for AppState listener
     // This prevents race conditions when app is already open
@@ -182,6 +196,16 @@ export default function RootLayout() {
         setTimeout(() => {
           void checkPendingUnlock();
         }, 400);
+        if (NativeModules.OverlayPermissionModule) {
+          overlayPermission
+            .isOverlayPermissionGranted()
+            .then((granted) => {
+              if (granted) {
+                setShowOverlayPrompt(false);
+              }
+            })
+            .catch(() => undefined);
+        }
       }
     });
 
@@ -271,6 +295,24 @@ export default function RootLayout() {
           onClose={handleUnlockModalClose}
         />
       </ErrorBoundary>
+      <Modal
+        visible={showOverlayPrompt}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowOverlayPrompt(false)}
+      >
+        <View style={styles.overlayPromptBackdrop}>
+          <OverlayPermissionPrompt onPermissionGranted={() => setShowOverlayPrompt(false)} />
+        </View>
+      </Modal>
     </ErrorBoundary>
   );
 }
+
+const styles = StyleSheet.create({
+  overlayPromptBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(15, 20, 25, 0.72)',
+  },
+});
