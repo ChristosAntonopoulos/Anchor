@@ -62,6 +62,9 @@ web-build/
 # Native
 ios/
 android/
+# Keep the phone-unlock Expo module sources. The rule above ignores every android directory.
+!mobile/modules/phone-unlock/android/
+!mobile/modules/phone-unlock/android/**
 .kotlin/
 *.orig.*
 *.jks

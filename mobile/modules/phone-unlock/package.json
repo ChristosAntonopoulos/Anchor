@@ -1,0 +1,11 @@
+{
+  "name": "phone-unlock",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "peerDependencies": {
+    "expo": "*",
+    "expo-modules-core": "*",
+    "react": "*",
+    "react-native": "*"
+  }
+}
