@@ -1,6 +1,5 @@
 package com.pos.mobile
 
-import android.accessibilityservice.AccessibilityService
 import android.content.Context
 import android.graphics.Color
 import android.graphics.PixelFormat
@@ -48,7 +47,7 @@ object UnlockReasonOverlay {
             return true
         }
         val windowType = windowTypeFor(host) ?: return false
-        val windowContext = if (host is AccessibilityService) host else host.applicationContext
+        val windowContext = host.applicationContext
         val layout = buildLayout(windowContext, unlockTime)
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
@@ -87,9 +86,6 @@ object UnlockReasonOverlay {
     }
 
     private fun windowTypeFor(host: Context): Int? {
-        if (host is AccessibilityService) {
-            return WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
-        }
         val canOverlay = Build.VERSION.SDK_INT < Build.VERSION_CODES.M ||
             Settings.canDrawOverlays(host)
         if (!canOverlay) {

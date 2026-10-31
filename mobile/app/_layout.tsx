@@ -11,6 +11,7 @@ import { PhoneUnlockReasonModal } from '../components/phoneUnlock/PhoneUnlockRea
 import { UnlockSetupPrompt } from '../components/phoneUnlock/UnlockSetupPrompt';
 import type { CreatePhoneUnlockEntryRequest } from '../types';
 import { hasPhoneUnlockModule, isExpoGo } from '../utils/nativeModuleSupport';
+import { overlayPermission } from '../services/overlayPermission';
 import { API_CONFIG } from '../constants/apiConfig';
 
 export default function RootLayout() {
@@ -52,10 +53,10 @@ export default function RootLayout() {
 
     if (Platform.OS === 'android' && !isExpoGo && hasPhoneUnlockModule) {
       phoneUnlockListener.setApiUrl(API_CONFIG.baseURL);
-      phoneUnlockListener
-        .isAccessibilityServiceEnabled()
-        .then((enabled) => {
-          setShowOverlayPrompt(!enabled);
+      overlayPermission
+        .isOverlayPermissionGranted()
+        .then((granted) => {
+          setShowOverlayPrompt(!granted);
         })
         .catch(() => {
           setShowOverlayPrompt(true);
@@ -197,16 +198,14 @@ export default function RootLayout() {
         setTimeout(() => {
           void checkPendingUnlock();
         }, 400);
-        if (hasPhoneUnlockModule) {
-          phoneUnlockListener
-            .isAccessibilityServiceEnabled()
-            .then((enabled) => {
-              if (enabled) {
-                setShowOverlayPrompt(false);
-              }
-            })
-            .catch(() => undefined);
-        }
+        overlayPermission
+          .isOverlayPermissionGranted()
+          .then((granted) => {
+            if (granted) {
+              setShowOverlayPrompt(false);
+            }
+          })
+          .catch(() => undefined);
       }
     });
 

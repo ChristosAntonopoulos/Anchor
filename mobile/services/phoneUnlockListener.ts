@@ -49,8 +49,6 @@ export interface PhoneUnlockListenerService {
   clearPendingUnlockTime(): void;
 
   setApiUrl(url: string): void;
-  isAccessibilityServiceEnabled(): Promise<boolean>;
-  openAccessibilitySettings(): void;
 }
 
 class PhoneUnlockListenerServiceImpl implements PhoneUnlockListenerService {
@@ -145,24 +143,6 @@ class PhoneUnlockListenerServiceImpl implements PhoneUnlockListenerService {
       return;
     }
     PhoneUnlockModule.setApiUrl(url);
-  }
-
-  async isAccessibilityServiceEnabled(): Promise<boolean> {
-    if (!isAndroid || !PhoneUnlockModule?.isAccessibilityServiceEnabled) {
-      return false;
-    }
-    try {
-      return Boolean(await PhoneUnlockModule.isAccessibilityServiceEnabled());
-    } catch {
-      return false;
-    }
-  }
-
-  openAccessibilitySettings(): void {
-    if (!isAndroid || !PhoneUnlockModule?.openAccessibilitySettings) {
-      return;
-    }
-    PhoneUnlockModule.openAccessibilitySettings();
   }
 
   clearPendingUnlockTime(): void {

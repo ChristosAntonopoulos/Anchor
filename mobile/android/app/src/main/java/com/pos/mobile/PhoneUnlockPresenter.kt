@@ -42,8 +42,7 @@ object PhoneUnlockPresenter {
         android.util.Log.d(TAG, "Phone unlock detected: $unlockTime")
         PhoneUnlockModule.setPendingUnlockTime(unlockTime)
 
-        val overlayHost = UnlockAccessibilityService.instance ?: context
-        val shown = UnlockReasonOverlay.show(overlayHost, unlockTime)
+        val shown = UnlockReasonOverlay.show(context.applicationContext, unlockTime)
         if (shown) {
             PhoneUnlockModule.resetPendingUnlockTime()
             return
