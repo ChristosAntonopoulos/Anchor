@@ -2,6 +2,7 @@ package com.pos.mobile
 
 import android.content.Intent
 import android.os.Build
+import android.provider.Settings
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.LifecycleEventListener
 import com.facebook.react.bridge.Promise
@@ -79,6 +80,28 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
     fun clearPendingUnlockTime() {
         resetPendingUnlockTime()
         android.util.Log.d(TAG, "Cleared pending unlock time")
+    }
+
+    @ReactMethod
+    fun setApiUrl(url: String) {
+        PhoneUnlockApi.setApiUrl(reactApplicationContext, url)
+    }
+
+    @ReactMethod
+    fun isAccessibilityServiceEnabled(promise: Promise) {
+        try {
+            promise.resolve(UnlockAccessibilityService.isEnabled(reactApplicationContext))
+        } catch (error: Exception) {
+            promise.reject("ERROR", error.message, error)
+        }
+    }
+
+    @ReactMethod
+    fun openAccessibilitySettings() {
+        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        reactApplicationContext.startActivity(intent)
     }
 
     @ReactMethod

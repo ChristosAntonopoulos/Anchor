@@ -36,9 +36,7 @@ class MainActivity : ReactActivity() {
       val unlockTime = intent.getLongExtra("unlockTime", 0L)
       if (unlockTime > 0) {
         android.util.Log.d("MainActivity", "Unlock intent with unlockTime: $unlockTime")
-        PhoneUnlockModule.setPendingUnlockTime(unlockTime)
-        PhoneUnlockModule.emitUnlock(unlockTime)
-        PhoneUnlockPresenter.cancelNotification(this)
+        PhoneUnlockPresenter.onPhoneUnlocked(this, unlockTime)
       }
     }
   }

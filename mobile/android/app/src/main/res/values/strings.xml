@@ -2,4 +2,6 @@
   <string name="app_name">Personal Operating System</string>
   <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
   <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
+  <string name="unlock_accessibility_label">POS Unlock prompt</string>
+  <string name="unlock_accessibility_description">Shows a popup when you unlock the phone so you can record why you opened it. This is how the app can appear over the home screen.</string>
 </resources>

@@ -6,12 +6,12 @@ import { AppUpdatePrompt } from '../components/shared/AppUpdatePrompt';
 import { ErrorBoundary } from '../components/shared/ErrorBoundary';
 import { useCategoryStore } from '../store/useCategoryStore';
 import { phoneUnlockListener } from '../services/phoneUnlockListener';
-import { overlayPermission } from '../services/overlayPermission';
 import { apiClient } from '../services/api';
 import { PhoneUnlockReasonModal } from '../components/phoneUnlock/PhoneUnlockReasonModal';
-import { OverlayPermissionPrompt } from '../components/phoneUnlock/OverlayPermissionPrompt';
+import { UnlockSetupPrompt } from '../components/phoneUnlock/UnlockSetupPrompt';
 import type { CreatePhoneUnlockEntryRequest } from '../types';
 import { hasPhoneUnlockModule, isExpoGo } from '../utils/nativeModuleSupport';
+import { API_CONFIG } from '../constants/apiConfig';
 
 export default function RootLayout() {
   const { fetchCategories } = useCategoryStore();
@@ -50,11 +50,12 @@ export default function RootLayout() {
     // Fetch categories on app initialization
     fetchCategories();
 
-    if (Platform.OS === 'android' && !isExpoGo && NativeModules.OverlayPermissionModule) {
-      overlayPermission
-        .isOverlayPermissionGranted()
-        .then((granted) => {
-          setShowOverlayPrompt(!granted);
+    if (Platform.OS === 'android' && !isExpoGo && hasPhoneUnlockModule) {
+      phoneUnlockListener.setApiUrl(API_CONFIG.baseURL);
+      phoneUnlockListener
+        .isAccessibilityServiceEnabled()
+        .then((enabled) => {
+          setShowOverlayPrompt(!enabled);
         })
         .catch(() => {
           setShowOverlayPrompt(true);
@@ -196,11 +197,11 @@ export default function RootLayout() {
         setTimeout(() => {
           void checkPendingUnlock();
         }, 400);
-        if (NativeModules.OverlayPermissionModule) {
-          overlayPermission
-            .isOverlayPermissionGranted()
-            .then((granted) => {
-              if (granted) {
+        if (hasPhoneUnlockModule) {
+          phoneUnlockListener
+            .isAccessibilityServiceEnabled()
+            .then((enabled) => {
+              if (enabled) {
                 setShowOverlayPrompt(false);
               }
             })
@@ -299,10 +300,10 @@ export default function RootLayout() {
         visible={showOverlayPrompt}
         transparent
         animationType="fade"
-        onRequestClose={() => setShowOverlayPrompt(false)}
+        onRequestClose={() => undefined}
       >
         <View style={styles.overlayPromptBackdrop}>
-          <OverlayPermissionPrompt onPermissionGranted={() => setShowOverlayPrompt(false)} />
+          <UnlockSetupPrompt onReady={() => setShowOverlayPrompt(false)} />
         </View>
       </Modal>
     </ErrorBoundary>

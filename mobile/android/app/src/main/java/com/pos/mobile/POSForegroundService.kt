@@ -5,9 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
@@ -75,16 +73,8 @@ class POSForegroundService : Service() {
         if (unlockReceiver != null) {
             return
         }
-        val receiver = PhoneUnlockReceiver()
-        val filter = IntentFilter(Intent.ACTION_USER_PRESENT)
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
-            } else {
-                @Suppress("DEPRECATION")
-                registerReceiver(receiver, filter)
-            }
-            unlockReceiver = receiver
+            unlockReceiver = PhoneUnlockReceiver.register(this)
             android.util.Log.d(TAG, "Unlock receiver registered")
         } catch (error: Exception) {
             android.util.Log.e(TAG, "Could not register unlock receiver", error)
@@ -92,12 +82,7 @@ class POSForegroundService : Service() {
     }
 
     private fun unregisterUnlockReceiver() {
-        val receiver = unlockReceiver ?: return
-        try {
-            unregisterReceiver(receiver)
-        } catch (error: Exception) {
-            android.util.Log.e(TAG, "Could not unregister unlock receiver", error)
-        }
+        PhoneUnlockReceiver.unregister(this, unlockReceiver)
         unlockReceiver = null
     }
 
