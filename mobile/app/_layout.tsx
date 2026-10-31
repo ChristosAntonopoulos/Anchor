@@ -1,15 +1,13 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { Platform, AppState, Modal, View, StyleSheet, NativeModules } from 'react-native';
+import { Platform, AppState, Modal, View, StyleSheet } from 'react-native';
 import { AppUpdatePrompt } from '../components/shared/AppUpdatePrompt';
 import { ErrorBoundary } from '../components/shared/ErrorBoundary';
 import { useCategoryStore } from '../store/useCategoryStore';
 import { phoneUnlockListener } from '../services/phoneUnlockListener';
-import { apiClient } from '../services/api';
 import { PhoneUnlockReasonModal } from '../components/phoneUnlock/PhoneUnlockReasonModal';
 import { UnlockSetupPrompt } from '../components/phoneUnlock/UnlockSetupPrompt';
-import type { CreatePhoneUnlockEntryRequest } from '../types';
 import { hasPhoneUnlockModule, isExpoGo } from '../utils/nativeModuleSupport';
 import { overlayPermission } from '../services/overlayPermission';
 import { API_CONFIG } from '../constants/apiConfig';
@@ -220,25 +218,6 @@ export default function RootLayout() {
     };
   }, [checkPendingUnlock]);
 
-  const handleUnlockReasonSubmit = async (request: CreatePhoneUnlockEntryRequest) => {
-    try {
-      console.log('[RootLayout] Submitting unlock entry:', request);
-      await apiClient.createPhoneUnlockEntry(request);
-      console.log('[RootLayout] Phone unlock entry saved successfully');
-      // Modal will call onClose on success
-      // Don't do anything else here - let the modal handle closing
-    } catch (error: any) {
-      console.error('[RootLayout] Error saving unlock entry:', error);
-      console.error('[RootLayout] Error details:', {
-        message: error?.message,
-        stack: error?.stack,
-        response: error?.response,
-      });
-      // Re-throw error so modal can handle it and show error message
-      throw error;
-    }
-  };
-
   const handleUnlockModalClose = useCallback(() => {
     try {
       console.log('[RootLayout] Closing unlock modal');
@@ -290,7 +269,6 @@ export default function RootLayout() {
       <ErrorBoundary>
         <PhoneUnlockReasonModal
           visible={showUnlockModal}
-          onSubmit={handleUnlockReasonSubmit}
           unlockTime={unlockTime}
           onClose={handleUnlockModalClose}
         />

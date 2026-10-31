@@ -46,7 +46,7 @@ export function UnlockSetupPrompt({ onReady }: UnlockSetupPromptProps) {
         <Text style={styles.title}>Allow the unlock popup</Text>
         <Text style={styles.description}>
           Android will not let this app jump in front after you unlock. Allow display over other
-          apps so Why did you unlock your phone? can appear on the home screen.
+          apps so “What brings you to your phone?” can appear on the home screen.
         </Text>
         <TouchableOpacity
           style={styles.button}

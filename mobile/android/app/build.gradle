@@ -130,6 +130,9 @@ android {
     androidResources {
         ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
     }
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
 }
 
 // Apply static values from `gradle.properties` to the `android.packagingOptions`
@@ -155,6 +158,8 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20231013")
 
     def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true";
     def isWebpEnabled = (findProperty('expo.webp.enabled') ?: "") == "true";

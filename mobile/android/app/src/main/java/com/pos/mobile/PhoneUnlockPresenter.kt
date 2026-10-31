@@ -17,6 +17,7 @@ object PhoneUnlockPresenter {
 
     fun onScreenOff() {
         screenWasOff = true
+        UnlockReasonOverlay.hideForInterruption()
     }
 
     fun onScreenOnWhileUnlocked(context: Context) {

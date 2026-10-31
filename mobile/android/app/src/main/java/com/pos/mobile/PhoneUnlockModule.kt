@@ -8,6 +8,7 @@ import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.modules.core.DeviceEventManagerModule
 
 class PhoneUnlockModule(reactContext: ReactApplicationContext) :
@@ -87,6 +88,58 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
+    fun beginUnlockPrompt(unlockTimeMs: Double, promise: Promise) {
+        try {
+            val prompt = PhoneUnlockStore.createPending(
+                reactApplicationContext,
+                unlockTimeMs.toLong(),
+            )
+            promise.resolve(prompt.id)
+        } catch (error: Exception) {
+            android.util.Log.e(TAG, "Could not begin unlock prompt", error)
+            promise.reject("UNLOCK_PROMPT", "Failed to begin unlock prompt", error)
+        }
+    }
+
+    @ReactMethod
+    fun resolveUnlockPrompt(payload: ReadableMap, promise: Promise) {
+        try {
+            val id = payload.getString("id")
+            if (id.isNullOrBlank()) {
+                promise.reject("UNLOCK_PROMPT", "Prompt id is required")
+                return
+            }
+            val prompt = PhoneUnlockStore.getById(reactApplicationContext, id)
+            if (prompt == null) {
+                promise.reject("UNLOCK_PROMPT", "Prompt was not found")
+                return
+            }
+            PhoneUnlockStore.resolve(
+                context = reactApplicationContext,
+                prompt = prompt,
+                status = payload.optionalString("status") ?: PhoneUnlockPrompt.STATUS_ANSWERED,
+                action = payload.optionalString("action"),
+                intentionCode = payload.optionalString("intentionCode"),
+                triggerCode = payload.optionalString("triggerCode"),
+                feelingCode = payload.optionalString("feelingCode"),
+                note = payload.optionalString("note"),
+                contextExpanded = payload.hasKey("contextExpanded") && payload.getBoolean("contextExpanded"),
+                submissionPath = payload.optionalString("submissionPath"),
+                putDownExecution = payload.optionalString("putDownExecution"),
+            )
+            promise.resolve(true)
+        } catch (error: Exception) {
+            android.util.Log.e(TAG, "Could not resolve unlock prompt", error)
+            promise.reject("UNLOCK_PROMPT", "Failed to resolve unlock prompt", error)
+        }
+    }
+
+    @ReactMethod
+    fun syncUnlockPrompts() {
+        PhoneUnlockApi.enqueueSync(reactApplicationContext)
+    }
+
+    @ReactMethod
     fun startListening() {
         android.util.Log.d(TAG, "startListening() called")
         isListening = true
@@ -145,5 +198,16 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
         if (instance === this) {
             instance = null
         }
+        if (!UnlockReasonOverlay.isShowing) {
+            PhoneUnlockStore.interruptStalePending(reactApplicationContext)
+        }
     }
+}
+
+private fun ReadableMap.optionalString(key: String): String? {
+    if (!hasKey(key) || isNull(key)) {
+        return null
+    }
+    val value = getString(key)
+    return value?.ifBlank { null }
 }

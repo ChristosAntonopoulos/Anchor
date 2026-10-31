@@ -23,17 +23,21 @@ public class PhoneUnlockController : BaseController
     }
 
     /// <summary>
-    /// Create a new phone unlock entry with the user's reason for unlocking their phone
+    /// Create or upsert a phone unlock prompt record.
+    /// Schema version 1 requires reason. Schema version 2 stores structured codes and allows a missing intention.
     /// </summary>
-    /// <param name="request">Phone unlock entry request. Reason is required.</param>
-    /// <returns>Created phone unlock entry with ID and timestamps</returns>
+    /// <param name="request">Phone unlock entry request.</param>
+    /// <returns>Created or updated phone unlock entry with ID and timestamps</returns>
     /// <remarks>
     /// Example request:
     /// <code>
     /// {
-    ///   "reason": "Check messages",
-    ///   "unlockedAt": "2024-02-26T15:30:00Z",
-    ///   "unlockMethod": "fingerprint"
+    ///   "promptId": "8f1c2a12-3c44-4b1e-9d77-2c0c1b6a1111",
+    ///   "schemaVersion": 2,
+    ///   "status": "answered",
+    ///   "action": "continue",
+    ///   "intentionCode": "specific_task",
+    ///   "shownAtUtc": "2024-02-26T15:30:00Z"
     /// }
     /// </code>
     /// </remarks>
@@ -64,7 +68,8 @@ public class PhoneUnlockController : BaseController
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreatePhoneUnlockEntry([FromBody] CreatePhoneUnlockEntryRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Reason))
+        var schemaVersion = request.SchemaVersion > 0 ? request.SchemaVersion : 1;
+        if (schemaVersion < 2 && string.IsNullOrWhiteSpace(request.Reason))
         {
             return ValidationError(new List<ErrorDetail>
             {

@@ -441,10 +441,40 @@ export interface PhoneUnlockEntry {
   unlockMethod?: string;
   createdAt: string; // ISO datetime string
   updatedAt?: string; // ISO datetime string
+  promptId?: string;
+  schemaVersion?: number;
+  unlockEventId?: string;
+  shownAtUtc?: string;
+  utcOffsetMinutesAtShown?: number;
+  resolvedAtUtc?: string;
+  status?: string;
+  action?: string;
+  intentionCode?: string | null;
+  triggerCode?: string | null;
+  feelingCode?: string | null;
+  note?: string | null;
+  contextExpanded?: boolean;
+  submissionPath?: string | null;
+  putDownExecution?: string | null;
 }
 
 export interface CreatePhoneUnlockEntryRequest {
-  reason: string;
-  unlockedAt?: string; // ISO datetime string (optional - defaults to now)
+  reason?: string;
+  unlockedAt?: string;
   unlockMethod?: string;
+  promptId?: string;
+  schemaVersion?: number;
+  unlockEventId?: string;
+  shownAtUtc?: string;
+  utcOffsetMinutesAtShown?: number;
+  resolvedAtUtc?: string;
+  status?: string;
+  action?: string | null;
+  intentionCode?: string | null;
+  triggerCode?: string | null;
+  feelingCode?: string | null;
+  note?: string | null;
+  contextExpanded?: boolean;
+  submissionPath?: string | null;
+  putDownExecution?: string | null;
 }

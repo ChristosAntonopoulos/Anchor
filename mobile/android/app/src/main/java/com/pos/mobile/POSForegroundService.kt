@@ -20,6 +20,10 @@ class POSForegroundService : Service() {
         super.onCreate()
         createNotificationChannel()
         registerUnlockReceiver()
+        if (!UnlockReasonOverlay.isShowing) {
+            PhoneUnlockStore.interruptStalePending(applicationContext)
+        }
+        PhoneUnlockApi.enqueueSync(applicationContext)
         android.util.Log.d(TAG, "Foreground service created")
     }
 

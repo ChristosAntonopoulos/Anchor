@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 import type { PhoneUnlockEntry } from '../../types';
+import { displayUnlockHeadline } from '../../utils/phoneUnlockMapping';
 
 interface PhoneUnlockEntryItemProps {
   entry: PhoneUnlockEntry;
@@ -39,7 +40,7 @@ export function PhoneUnlockEntryItem({ entry }: PhoneUnlockEntryItemProps) {
           </View>
         </View>
         <View style={styles.reasonContainer}>
-          <Text style={styles.reason}>{entry.reason}</Text>
+          <Text style={styles.reason}>{displayUnlockHeadline(entry)}</Text>
         </View>
         {entry.unlockMethod && (
           <View style={styles.methodContainer}>
