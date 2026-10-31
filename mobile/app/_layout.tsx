@@ -288,7 +288,9 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="more" />
       </Stack>
-      <AppUpdatePrompt />
+      <ErrorBoundary>
+        <AppUpdatePrompt />
+      </ErrorBoundary>
       {/* FEATURE DISABLED: Phone unlock modal is currently disabled */}
       {/* Uncomment to re-enable:
       <ErrorBoundary>

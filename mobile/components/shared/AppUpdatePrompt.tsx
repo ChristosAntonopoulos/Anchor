@@ -60,7 +60,7 @@ export function AppUpdatePrompt() {
   const [phase, setPhase] = useState<InstallPhase>('ready');
 
   useEffect(() => {
-    if (Platform.OS !== 'android' || isExpoGo()) {
+    if (Platform.OS !== 'android' || isExpoGo) {
       return;
     }
     const installer = NativeModules.AppUpdateModule as AppUpdateNativeModule | undefined;
@@ -71,14 +71,18 @@ export function AppUpdatePrompt() {
     let cancelled = false;
 
     void (async () => {
-      const available = await fetchRelease();
-      if (cancelled || !available) {
-        return;
+      try {
+        const available = await fetchRelease();
+        if (cancelled || !available) {
+          return;
+        }
+        if (!shouldOfferUpdate(installedVersionCode(), available.versionCode)) {
+          return;
+        }
+        setRelease(available);
+      } catch (error) {
+        console.error('[AppUpdatePrompt] Update check failed:', error);
       }
-      if (!shouldOfferUpdate(installedVersionCode(), available.versionCode)) {
-        return;
-      }
-      setRelease(available);
     })();
 
     return () => {
