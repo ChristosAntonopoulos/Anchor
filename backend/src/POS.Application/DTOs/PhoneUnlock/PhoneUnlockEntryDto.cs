@@ -12,7 +12,7 @@ public class PhoneUnlockEntryDto
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public string? PromptId { get; set; }
-    public int SchemaVersion { get; set; } = 1;
+    public int SchemaVersion { get; set; } = 2;
     public string? UnlockEventId { get; set; }
     public DateTime? ShownAtUtc { get; set; }
     public int? UtcOffsetMinutesAtShown { get; set; }

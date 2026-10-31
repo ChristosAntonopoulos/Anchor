@@ -12,6 +12,7 @@ namespace POS.Application.Services.PhoneUnlock;
 /// </summary>
 public class PhoneUnlockService
 {
+    private const int CurrentSchemaVersion = 2;
     private readonly MongoDbContext _context;
     private readonly IMapper _mapper;
     private readonly ILogger<PhoneUnlockService> _logger;
@@ -25,22 +26,16 @@ public class PhoneUnlockService
 
     /// <summary>
     /// Create or upsert a phone unlock entry. PromptId is used for idempotent updates.
-    /// Historical documents are never rewritten or reclassified.
     /// </summary>
     public async Task<PhoneUnlockEntryDto> CreatePhoneUnlockEntryAsync(CreatePhoneUnlockEntryRequest request, string userId)
     {
-        var schemaVersion = request.SchemaVersion > 0 ? request.SchemaVersion : 1;
+        var schemaVersion = request.SchemaVersion > 0 ? request.SchemaVersion : CurrentSchemaVersion;
         _logger.LogInformation(
             "Saving phone unlock entry for user {UserId} prompt {PromptId} status {Status} schema {SchemaVersion}",
             userId,
             request.PromptId,
             request.Status,
             schemaVersion);
-
-        if (schemaVersion < 2 && string.IsNullOrWhiteSpace(request.Reason))
-        {
-            throw new ArgumentException("Reason cannot be empty", nameof(request));
-        }
 
         if (!string.IsNullOrWhiteSpace(request.PromptId))
         {
@@ -129,11 +124,6 @@ public class PhoneUnlockService
 
     private static bool IsFinalized(PhoneUnlockEntry entry)
     {
-        if (entry.SchemaVersion < 2)
-        {
-            return true;
-        }
-
         return !string.Equals(entry.Status, "pending", StringComparison.Ordinal) &&
                !string.IsNullOrWhiteSpace(entry.Status);
     }
@@ -141,11 +131,7 @@ public class PhoneUnlockService
     private static void ApplyRequest(PhoneUnlockEntry entry, CreatePhoneUnlockEntryRequest request, int schemaVersion)
     {
         var intention = EmptyToNull(request.IntentionCode);
-        var note = TrimNote(request.Note);
         var unlockedAt = request.UnlockedAt ?? request.ShownAtUtc ?? DateTime.UtcNow;
-        var compatibilityReason = schemaVersion >= 2
-            ? intention ?? string.Empty
-            : (request.Reason ?? string.Empty).Trim();
 
         entry.PromptId = EmptyToNull(request.PromptId) ?? entry.PromptId;
         entry.SchemaVersion = schemaVersion;
@@ -158,11 +144,11 @@ public class PhoneUnlockService
         entry.IntentionCode = intention;
         entry.TriggerCode = EmptyToNull(request.TriggerCode);
         entry.FeelingCode = EmptyToNull(request.FeelingCode);
-        entry.Note = note;
+        entry.Note = TrimNote(request.Note);
         entry.ContextExpanded = request.ContextExpanded;
         entry.SubmissionPath = EmptyToNull(request.SubmissionPath);
         entry.PutDownExecution = EmptyToNull(request.PutDownExecution);
-        entry.Reason = compatibilityReason;
+        entry.Reason = intention ?? string.Empty;
         entry.UnlockedAt = unlockedAt;
         entry.UnlockMethod = EmptyToNull(request.UnlockMethod);
     }

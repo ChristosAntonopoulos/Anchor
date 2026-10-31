@@ -23,8 +23,7 @@ public class PhoneUnlockController : BaseController
     }
 
     /// <summary>
-    /// Create or upsert a phone unlock prompt record.
-    /// Schema version 1 requires reason. Schema version 2 stores structured codes and allows a missing intention.
+    /// Create or upsert a phone unlock prompt record with structured intention codes.
     /// </summary>
     /// <param name="request">Phone unlock entry request.</param>
     /// <returns>Created or updated phone unlock entry with ID and timestamps</returns>
@@ -42,7 +41,7 @@ public class PhoneUnlockController : BaseController
     /// </code>
     /// </remarks>
     /// <response code="200">Phone unlock entry created successfully</response>
-    /// <response code="400">Validation error - reason is required or invalid data</response>
+    /// <response code="400">Validation error - invalid data</response>
     /// <response code="500">Internal server error occurred</response>
     /// <example>
     /// Success response:
@@ -51,9 +50,10 @@ public class PhoneUnlockController : BaseController
     ///   "success": true,
     ///   "data": {
     ///     "id": "507f1f77bcf86cd799439011",
-    ///     "reason": "Checking notifications",
-    ///     "unlockedAt": "2024-02-26T15:30:00Z",
-    ///     "unlockMethod": "fingerprint"
+    ///     "intentionCode": "specific_task",
+    ///     "status": "answered",
+    ///     "action": "continue",
+    ///     "unlockedAt": "2024-02-26T15:30:00Z"
     ///   },
     ///   "message": "Phone unlock entry created successfully",
     ///   "errors": null,
@@ -68,15 +68,6 @@ public class PhoneUnlockController : BaseController
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreatePhoneUnlockEntry([FromBody] CreatePhoneUnlockEntryRequest request)
     {
-        var schemaVersion = request.SchemaVersion > 0 ? request.SchemaVersion : 1;
-        if (schemaVersion < 2 && string.IsNullOrWhiteSpace(request.Reason))
-        {
-            return ValidationError(new List<ErrorDetail>
-            {
-                new ErrorDetail { Field = "reason", Message = "Reason is required" }
-            });
-        }
-
         var userId = GetUserId();
         var entry = await _phoneUnlockService.CreatePhoneUnlockEntryAsync(request, userId);
         return Success(entry, "Phone unlock entry created successfully");

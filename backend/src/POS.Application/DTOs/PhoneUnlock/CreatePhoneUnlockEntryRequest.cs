@@ -3,18 +3,10 @@ using System.ComponentModel.DataAnnotations;
 namespace POS.Application.DTOs.PhoneUnlock;
 
 /// <summary>
-/// Create or upsert a phone unlock prompt record.
-/// Schema version 1 requires <see cref="Reason"/>. Schema version 2 stores structured codes.
+/// Create or upsert a phone unlock prompt record using structured intention codes.
 /// </summary>
 public class CreatePhoneUnlockEntryRequest
 {
-    /// <summary>
-    /// Compatibility reason string. Required for schema version 1. For schema version 2 this is
-    /// the intention code when one was reported, otherwise empty. Never invent "No reason".
-    /// </summary>
-    [StringLength(500, ErrorMessage = "Reason cannot exceed 500 characters")]
-    public string? Reason { get; set; }
-
     public DateTime? UnlockedAt { get; set; }
 
     [StringLength(50, ErrorMessage = "Unlock method cannot exceed 50 characters")]

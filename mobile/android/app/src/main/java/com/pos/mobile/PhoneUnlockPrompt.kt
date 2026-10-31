@@ -42,12 +42,7 @@ data class PhoneUnlockPrompt(
             putNullable("putDownExecution", putDownExecution)
             put("unlockedAtMs", unlockedAtMs)
             put("synced", synced)
-            put("reason", compatibilityReason())
         }
-    }
-
-    fun compatibilityReason(): String {
-        return intentionCode.orEmpty()
     }
 
     companion object {

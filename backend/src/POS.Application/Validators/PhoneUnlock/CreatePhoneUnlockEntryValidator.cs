@@ -28,15 +28,6 @@ public class CreatePhoneUnlockEntryValidator : BaseValidator<CreatePhoneUnlockEn
 
     public CreatePhoneUnlockEntryValidator()
     {
-        RuleFor(x => x.Reason)
-            .NotEmpty()
-            .WithMessage("Reason is required")
-            .When(x => x.SchemaVersion < 2);
-
-        RuleFor(x => x.Reason)
-            .MaximumLength(500)
-            .WithMessage("Reason cannot exceed 500 characters");
-
         RuleFor(x => x.Note)
             .MaximumLength(200)
             .WithMessage("Note cannot exceed 200 characters");

@@ -61,7 +61,6 @@ export async function resolveUnlockPrompt(input: ResolveUnlockPromptInput): Prom
     utcOffsetMinutesAtShown: utcOffsetMinutes(),
     resolvedAtUtc: new Date().toISOString(),
     unlockedAt: shownAtUtc,
-    reason: fields.intentionCode ?? undefined,
     ...fields,
   };
 

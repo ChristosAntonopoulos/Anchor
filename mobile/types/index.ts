@@ -459,7 +459,6 @@ export interface PhoneUnlockEntry {
 }
 
 export interface CreatePhoneUnlockEntryRequest {
-  reason?: string;
   unlockedAt?: string;
   unlockMethod?: string;
   promptId?: string;

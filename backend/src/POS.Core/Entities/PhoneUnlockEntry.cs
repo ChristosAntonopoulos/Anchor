@@ -21,7 +21,7 @@ public class PhoneUnlockEntry : EntityBase
     public string? PromptId { get; set; }
 
     [BsonElement("schemaVersion")]
-    public int SchemaVersion { get; set; } = 1;
+    public int SchemaVersion { get; set; } = 2;
 
     [BsonElement("unlockEventId")]
     public string? UnlockEventId { get; set; }

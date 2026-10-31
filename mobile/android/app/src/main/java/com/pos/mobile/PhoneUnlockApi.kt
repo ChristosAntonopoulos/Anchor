@@ -77,7 +77,6 @@ object PhoneUnlockApi {
             put("contextExpanded", prompt.contextExpanded)
             putNullable("submissionPath", prompt.submissionPath)
             putNullable("putDownExecution", prompt.putDownExecution)
-            putNullable("reason", prompt.compatibilityReason().ifBlank { null })
             put("unlockedAt", prompt.shownAtUtc)
         }
         val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {

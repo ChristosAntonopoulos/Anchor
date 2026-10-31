@@ -48,10 +48,6 @@ export type UnlockPromptAction = 'continue' | 'put_down' | 'skip';
 export type UnlockSubmissionPath = 'quick_choice' | 'context_form' | 'direct_action';
 export type UnlockPutDownExecution = 'lock_requested' | 'overlay_dismissed' | 'failed';
 
-export const LEGACY_TASK = 'A task';
-export const LEGACY_MESSAGE = 'A message';
-export const LEGACY_NO_REASON = 'No reason';
-
 export const UNLOCK_COPY = {
   title: 'What brings you to your phone?',
   subtitle: 'Take a moment. Choose what fits.',
@@ -185,26 +181,6 @@ export function fieldsForUnlockChoice(input: {
   };
 }
 
-export function analysisIntentionCode(
-  storedReason: string | null | undefined,
-  intentionCode: string | null | undefined,
-  schemaVersion = 1,
-): string | null {
-  if (intentionCode) {
-    return intentionCode;
-  }
-  if (schemaVersion >= PHONE_UNLOCK_SCHEMA_VERSION) {
-    return null;
-  }
-  if (storedReason === LEGACY_TASK) {
-    return 'specific_task';
-  }
-  if (storedReason === LEGACY_MESSAGE) {
-    return 'connection';
-  }
-  return null;
-}
-
 export function noteCopyForIntention(intention: string | null | undefined) {
   if (intention && intention in UNLOCK_COPY.notes) {
     return UNLOCK_COPY.notes[intention as IntentionCode];
@@ -213,9 +189,7 @@ export function noteCopyForIntention(intention: string | null | undefined) {
 }
 
 export function displayUnlockHeadline(entry: {
-  reason?: string | null;
   intentionCode?: string | null;
-  schemaVersion?: number | null;
   status?: string | null;
   action?: string | null;
 }): string {
@@ -225,21 +199,17 @@ export function displayUnlockHeadline(entry: {
   if (entry.intentionCode) {
     return entry.intentionCode;
   }
-  const schemaVersion = entry.schemaVersion ?? 1;
-  if (schemaVersion >= PHONE_UNLOCK_SCHEMA_VERSION) {
-    if (entry.status === 'skipped') {
-      return UNLOCK_COPY.skipped;
-    }
-    if (entry.action === 'put_down') {
-      return UNLOCK_COPY.putPhoneDown;
-    }
-    if (entry.status === 'dismissed') {
-      return UNLOCK_COPY.dismissed;
-    }
-    if (entry.status === 'interrupted') {
-      return UNLOCK_COPY.interrupted;
-    }
-    return UNLOCK_COPY.noIntention;
+  if (entry.status === 'skipped') {
+    return UNLOCK_COPY.skipped;
   }
-  return entry.reason || LEGACY_NO_REASON;
+  if (entry.action === 'put_down') {
+    return UNLOCK_COPY.putPhoneDown;
+  }
+  if (entry.status === 'dismissed') {
+    return UNLOCK_COPY.dismissed;
+  }
+  if (entry.status === 'interrupted') {
+    return UNLOCK_COPY.interrupted;
+  }
+  return UNLOCK_COPY.noIntention;
 }

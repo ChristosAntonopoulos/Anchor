@@ -1,11 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  LEGACY_MESSAGE,
-  LEGACY_NO_REASON,
-  LEGACY_TASK,
   PHONE_UNLOCK_NOTE_MAX_LENGTH,
-  analysisIntentionCode,
   displayUnlockHeadline,
   fieldsForUnlockChoice,
   noteCopyForIntention,
@@ -178,18 +174,6 @@ test('changing intention copy leaves existing note text untouched', () => {
   assert.equal(entered, 'Pay the electricity bill');
 });
 
-test('legacy No reason is not an automatic check', () => {
-  assert.equal(analysisIntentionCode(LEGACY_TASK, null, 1), 'specific_task');
-  assert.equal(analysisIntentionCode(LEGACY_MESSAGE, null, 1), 'connection');
-  assert.equal(analysisIntentionCode(LEGACY_NO_REASON, null, 1), null);
-  assert.equal(analysisIntentionCode(LEGACY_NO_REASON, null, 2), null);
-  assert.equal(displayUnlockHeadline({ reason: LEGACY_NO_REASON, schemaVersion: 1 }), LEGACY_NO_REASON);
-  assert.notEqual(
-    displayUnlockHeadline({ reason: LEGACY_NO_REASON, schemaVersion: 1 }),
-    'Automatic check',
-  );
-});
-
 test('system dismissal discards unsubmitted context and is not skip', () => {
   const result = fieldsForUnlockChoice({
     skip: false,
@@ -212,16 +196,16 @@ test('system dismissal discards unsubmitted context and is not skip', () => {
 
 test('skipped and interrupted outcomes stay distinct from automatic check', () => {
   assert.equal(
-    displayUnlockHeadline({ schemaVersion: 2, status: 'skipped', action: 'skip' }),
+    displayUnlockHeadline({ status: 'skipped', action: 'skip' }),
     'Skipped for now',
   );
   assert.equal(
-    displayUnlockHeadline({ schemaVersion: 2, status: 'interrupted' }),
+    displayUnlockHeadline({ status: 'interrupted' }),
     'Interrupted',
   );
   assert.equal(
-    displayUnlockHeadline({ schemaVersion: 2, status: 'dismissed' }),
+    displayUnlockHeadline({ status: 'dismissed' }),
     'Dismissed',
   );
-  assert.equal(analysisIntentionCode(null, null, 2), null);
+  assert.equal(displayUnlockHeadline({}), 'No intention reported');
 });
