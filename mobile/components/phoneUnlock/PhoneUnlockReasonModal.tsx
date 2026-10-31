@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
@@ -8,9 +8,15 @@ import type { CreatePhoneUnlockEntryRequest } from '../../types';
 interface PhoneUnlockReasonModalProps {
   visible: boolean;
   onSubmit: (request: CreatePhoneUnlockEntryRequest) => Promise<void>;
-  unlockTime: number; // Timestamp when phone was unlocked
-  onClose?: () => void; // Optional close handler (for successful submission)
+  unlockTime: number;
+  onClose?: () => void;
 }
+
+const REASONS = [
+  { label: 'No reason', icon: 'close' },
+  { label: 'A task', icon: 'tasks' },
+  { label: 'A message', icon: 'notification' },
+] as const;
 
 export function PhoneUnlockReasonModal({
   visible,
@@ -18,71 +24,36 @@ export function PhoneUnlockReasonModal({
   unlockTime,
   onClose,
 }: PhoneUnlockReasonModalProps) {
-  const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async () => {
-    const trimmedReason = reason.trim();
-    
-    if (!trimmedReason) {
-      setError('Please enter a reason for unlocking your phone');
+  const handleSubmit = async (reason: string) => {
+    if (loading) {
       return;
     }
 
     setError(null);
     setLoading(true);
-    
+
     try {
-      console.log('[PhoneUnlockReasonModal] Submitting unlock entry, unlockTime:', unlockTime);
-      
-      // Validate unlockTime is a valid number
-      if (!unlockTime || isNaN(unlockTime)) {
+      if (!unlockTime || Number.isNaN(unlockTime)) {
         throw new Error('Invalid unlock time');
       }
-      
-      const request = {
-        reason: trimmedReason,
+
+      await onSubmit({
+        reason,
         unlockedAt: new Date(unlockTime).toISOString(),
-      };
-      
-      console.log('[PhoneUnlockReasonModal] Request payload:', request);
-      
-      await onSubmit(request);
-      
-      console.log('[PhoneUnlockReasonModal] Submit successful');
-      
-      // Reset form
-      setReason('');
-      setError(null);
-      
-      // Close modal on success - add small delay to ensure state updates complete
-      // Wrap in try-catch to prevent crashes
-      if (onClose) {
-        setTimeout(() => {
-          try {
-            console.log('[PhoneUnlockReasonModal] Calling onClose');
-            onClose();
-          } catch (closeError) {
-            console.error('[PhoneUnlockReasonModal] Error calling onClose:', closeError);
-          }
-        }, 100);
-      }
-    } catch (err: any) {
-      console.error('[PhoneUnlockReasonModal] Failed to save unlock reason:', err);
-      console.error('[PhoneUnlockReasonModal] Error details:', {
-        message: err?.message,
-        stack: err?.stack,
-        response: err?.response,
       });
-      
-      // Show user-friendly error message
-      const errorMessage = err?.response?.data?.message 
-        || err?.message 
-        || 'Failed to save. Please check your connection and try again.';
-      
-      setError(errorMessage);
-      // Don't close modal on error - user needs to retry
+
+      setError(null);
+      onClose?.();
+    } catch (err: unknown) {
+      const fallback = 'Failed to save. Please check your connection and try again.';
+      const message =
+        err && typeof err === 'object' && 'message' in err && typeof err.message === 'string'
+          ? err.message
+          : fallback;
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -94,86 +65,53 @@ export function PhoneUnlockReasonModal({
       transparent={false}
       animationType="fade"
       onRequestClose={() => {
-        // Allow closing only if not loading (prevents accidental closes during submit)
         if (!loading) {
-          onClose?.();
+          void handleSubmit('No reason');
         }
       }}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
+      <LinearGradient
+        colors={['#0F1419', '#1A1F2E', '#0F1419']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradient}
       >
-        <LinearGradient
-          colors={['#0F1419', '#1A1F2E', '#0F1419']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradient}
-        >
-          <View style={styles.content}>
-            <View style={styles.iconContainer}>
-              <AppIcon name="lock-open-outline" size={64} color={colors.category.stability} />
-            </View>
-
-            <Text style={styles.title}>Why did you unlock your phone?</Text>
-            
-            <Text style={styles.description}>
-              Take a moment to reflect on your intention. This helps build awareness of your phone usage.
-            </Text>
-
-            {error && (
-              <View style={styles.errorContainer}>
-                <AppIcon name="alert-circle-outline" size={20} color={colors.error} />
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            )}
-
-            <TextInput
-              style={styles.input}
-              placeholder="e.g., Check messages, Look up something, Mindless scrolling..."
-              placeholderTextColor={colors.textSecondary}
-              value={reason}
-              onChangeText={(text) => {
-                setReason(text);
-                setError(null); // Clear error when user types
-              }}
-              multiline
-              maxLength={200}
-              autoFocus
-              editable={!loading}
-            />
-
-            <TouchableOpacity
-              style={[styles.submitButton, (loading || !reason.trim()) && styles.submitButtonDisabled]}
-              onPress={handleSubmit}
-              disabled={loading || !reason.trim()}
-            >
-              <LinearGradient
-                colors={
-                  loading || !reason.trim()
-                    ? [colors.border, colors.border]
-                    : [colors.category.stability, colors.category.stability + 'CC']
-                }
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.submitGradient}
-              >
-                <Text style={styles.submitText}>
-                  {loading ? 'Saving...' : 'Continue'}
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
+        <View style={styles.content}>
+          <View style={styles.iconContainer}>
+            <AppIcon name="focus" size={64} />
           </View>
-        </LinearGradient>
-      </KeyboardAvoidingView>
+
+          <Text style={styles.title}>Why did you unlock your phone?</Text>
+          <Text style={styles.description}>
+            Pick one. This is how the app tracks what pulled you back to the screen.
+          </Text>
+
+          {error ? (
+            <View style={styles.errorContainer}>
+              <AppIcon name="close" size={20} />
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : null}
+
+          {REASONS.map((item) => (
+            <TouchableOpacity
+              key={item.label}
+              style={[styles.reasonButton, loading && styles.reasonButtonDisabled]}
+              onPress={() => void handleSubmit(item.label)}
+              disabled={loading}
+              activeOpacity={0.7}
+            >
+              <AppIcon name={item.icon} size={22} />
+              <Text style={styles.reasonText}>{item.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </LinearGradient>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   gradient: {
     flex: 1,
     justifyContent: 'center',
@@ -216,34 +154,25 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.caption,
     color: colors.error,
   },
-  input: {
+  reasonButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.m,
     backgroundColor: colors.surface,
     borderRadius: borderRadius.medium,
-    padding: spacing.m,
-    color: colors.textPrimary,
-    fontSize: typography.fontSize.body,
-    minHeight: 120,
-    textAlignVertical: 'top',
     borderWidth: 1,
     borderColor: colors.border,
-    marginBottom: spacing.l,
+    paddingVertical: spacing.m,
+    paddingHorizontal: spacing.l,
+    marginBottom: spacing.s,
     ...shadows.small,
   },
-  submitButton: {
-    borderRadius: borderRadius.medium,
-    ...shadows.medium,
+  reasonButtonDisabled: {
+    opacity: 0.6,
   },
-  submitButtonDisabled: {
-    opacity: 0.5,
-  },
-  submitGradient: {
-    borderRadius: borderRadius.medium,
-    padding: spacing.m,
-    alignItems: 'center',
-  },
-  submitText: {
+  reasonText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.textPrimary,
   },
 });

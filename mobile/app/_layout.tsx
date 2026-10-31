@@ -114,36 +114,19 @@ export default function RootLayout() {
     // Mark as set up before starting listener
     listenerSetupRef.current = true;
 
-    // Start listening for unlock events
-    // FEATURE DISABLED: Phone unlock modal is currently disabled
     const unsubscribe = phoneUnlockListener.startListening((unlockTimeMs: number) => {
-      console.log('[RootLayout] ✅ Unlock callback triggered! Time:', unlockTimeMs);
-      // Feature disabled - just log the event but don't show modal
-      console.log('[RootLayout] Phone unlock detected but feature is disabled');
-      return;
-      
-      // DISABLED CODE - Uncomment to re-enable:
-      // const now = Date.now();
-      // const timeSinceLastUnlock = now - lastUnlockTimeRef.current;
-      // 
-      // // Debounce: ignore if unlock happened very recently (within 2 seconds)
-      // if (timeSinceLastUnlock < DEBOUNCE_MS) {
-      //   console.log('[RootLayout] Ignoring duplicate unlock event (debounced)');
-      //   return;
-      // }
-      // 
-      // // Prevent showing modal if already showing
-      // if (isShowingModalRef.current) {
-      //   console.log('[RootLayout] Modal already showing, ignoring unlock event');
-      //   return;
-      // }
-      // 
-      // console.log('[RootLayout] Phone unlock detected:', unlockTimeMs);
-      // lastUnlockTimeRef.current = now;
-      // isShowingModalRef.current = true;
-      // setUnlockTime(unlockTimeMs);
-      // setShowUnlockModal(true);
-      // console.log('[RootLayout] Modal state set to visible');
+      const now = Date.now();
+      const timeSinceLastUnlock = now - lastUnlockTimeRef.current;
+      if (timeSinceLastUnlock < DEBOUNCE_MS) {
+        return;
+      }
+      if (isShowingModalRef.current) {
+        return;
+      }
+      lastUnlockTimeRef.current = now;
+      isShowingModalRef.current = true;
+      setUnlockTime(unlockTimeMs);
+      setShowUnlockModal(true);
     });
 
     unsubscribeRef.current = unsubscribe;
@@ -171,38 +154,47 @@ export default function RootLayout() {
     };
   }, []); // Empty dependency array - only run on mount/unmount
 
+  const checkPendingUnlock = useCallback(async () => {
+    try {
+      if (isShowingModalRef.current || showUnlockModal) {
+        return;
+      }
+
+      const pendingUnlockTime = await phoneUnlockListener.getPendingUnlockTime();
+      if (pendingUnlockTime) {
+        isShowingModalRef.current = true;
+        setUnlockTime(pendingUnlockTime);
+        setShowUnlockModal(true);
+      }
+    } catch (error) {
+      console.error('[RootLayout] Error checking pending unlock:', error);
+    }
+  }, [showUnlockModal]);
+
   // Listen for app state changes to check pending unlock when app comes to foreground
   useEffect(() => {
     if (Platform.OS !== 'android') {
       return;
     }
 
-    // FEATURE DISABLED: Phone unlock modal is currently disabled
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active') {
-        console.log('[RootLayout] App came to foreground, but phone unlock feature is disabled');
-        // Feature disabled - don't check for pending unlock
-        return;
-        
-        // DISABLED CODE - Uncomment to re-enable:
-        // setTimeout(() => {
-        //   checkPendingUnlock();
-        // }, 500);
+        setTimeout(() => {
+          void checkPendingUnlock();
+        }, 400);
       }
     });
 
-    // Feature disabled - don't check on initial mount
-    // DISABLED CODE - Uncomment to re-enable:
-    // if (AppState.currentState === 'active') {
-    //   setTimeout(() => {
-    //     checkPendingUnlock();
-    //   }, 1000);
-    // }
+    if (AppState.currentState === 'active') {
+      setTimeout(() => {
+        void checkPendingUnlock();
+      }, 800);
+    }
 
     return () => {
       subscription.remove();
     };
-  }, []);
+  }, [checkPendingUnlock]);
 
   const handleUnlockReasonSubmit = async (request: CreatePhoneUnlockEntryRequest) => {
     try {
@@ -257,26 +249,6 @@ export default function RootLayout() {
     }
   }, []);
 
-  const checkPendingUnlock = useCallback(async () => {
-    try {
-      // Don't check if modal is already showing
-      if (isShowingModalRef.current || showUnlockModal) {
-        console.log('[RootLayout] Modal already showing, skipping checkPendingUnlock');
-        return;
-      }
-
-      const pendingUnlockTime = await phoneUnlockListener.getPendingUnlockTime();
-      if (pendingUnlockTime) {
-        console.log('[RootLayout] App opened from notification with unlockTime:', pendingUnlockTime);
-        isShowingModalRef.current = true;
-        setUnlockTime(pendingUnlockTime);
-        setShowUnlockModal(true);
-      }
-    } catch (error) {
-      console.error('[RootLayout] Error checking pending unlock:', error);
-    }
-  }, [showUnlockModal]);
-
   return (
     <ErrorBoundary>
       <StatusBar style="light" />
@@ -291,8 +263,6 @@ export default function RootLayout() {
       <ErrorBoundary>
         <AppUpdatePrompt />
       </ErrorBoundary>
-      {/* FEATURE DISABLED: Phone unlock modal is currently disabled */}
-      {/* Uncomment to re-enable:
       <ErrorBoundary>
         <PhoneUnlockReasonModal
           visible={showUnlockModal}
@@ -301,7 +271,6 @@ export default function RootLayout() {
           onClose={handleUnlockModalClose}
         />
       </ErrorBoundary>
-      */}
     </ErrorBoundary>
   );
 }

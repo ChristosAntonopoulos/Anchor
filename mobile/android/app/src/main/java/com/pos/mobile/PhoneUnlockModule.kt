@@ -1,14 +1,7 @@
 package com.pos.mobile
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.os.Build
-import androidx.core.app.NotificationCompat
 import com.facebook.react.bridge.*
 import com.facebook.react.bridge.LifecycleEventListener
 import com.facebook.react.modules.core.DeviceEventManagerModule
@@ -18,12 +11,22 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
 
     private val reactApplicationContext: ReactApplicationContext = reactContext
     private val TAG = "PhoneUnlockModule"
-    private var unlockReceiver: BroadcastReceiver? = null
     private var isListening = false
 
     init {
         android.util.Log.d(TAG, "PhoneUnlockModule initialized")
+        instance = this
         reactContext.addLifecycleEventListener(this)
+    }
+
+    @ReactMethod
+    fun addListener(eventName: String) {
+        // Required for NativeEventEmitter on the new React Native event API.
+    }
+
+    @ReactMethod
+    fun removeListeners(count: Int) {
+        // Required for NativeEventEmitter on the new React Native event API.
     }
 
     override fun getName(): String {
@@ -33,6 +36,9 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
     companion object {
         @Volatile
         private var pendingUnlockTime: Long? = null
+
+        @Volatile
+        private var instance: PhoneUnlockModule? = null
 
         fun setPendingUnlockTime(time: Long) {
             pendingUnlockTime = time
@@ -44,6 +50,10 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
 
         fun clearPendingUnlockTime() {
             pendingUnlockTime = null
+        }
+
+        fun emitUnlock(unlockTime: Long) {
+            instance?.sendUnlockEvent(unlockTime)
         }
     }
 
@@ -71,145 +81,48 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
     @ReactMethod
     fun startListening() {
         android.util.Log.d(TAG, "startListening() called")
-        
-        if (isListening) {
-            android.util.Log.d(TAG, "Already listening, skipping")
-            return
-        }
-
+        isListening = true
+        instance = this
         try {
-            unlockReceiver = object : BroadcastReceiver() {
-                override fun onReceive(context: Context?, intent: Intent?) {
-                    if (intent?.action == Intent.ACTION_USER_PRESENT) {
-                        android.util.Log.d(TAG, "Phone unlock detected - ACTION_USER_PRESENT")
-                        val unlockTime = System.currentTimeMillis()
-                        
-                        // Send event to React Native
-                        sendUnlockEvent(unlockTime)
-                    }
-                }
+            val serviceIntent = Intent(reactApplicationContext, POSForegroundService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                reactApplicationContext.startForegroundService(serviceIntent)
+            } else {
+                reactApplicationContext.startService(serviceIntent)
             }
-
-            val filter = IntentFilter().apply {
-                addAction(Intent.ACTION_USER_PRESENT)
-            }
-
-            reactApplicationContext.registerReceiver(unlockReceiver, filter)
-            isListening = true
-            android.util.Log.d(TAG, "Successfully registered unlock receiver")
         } catch (e: Exception) {
-            android.util.Log.e(TAG, "Error registering unlock receiver", e)
-            isListening = false
+            android.util.Log.e(TAG, "Error starting foreground service for unlock listening", e)
         }
     }
 
     @ReactMethod
     fun stopListening() {
         android.util.Log.d(TAG, "stopListening() called")
-        
-        if (!isListening) {
-            android.util.Log.d(TAG, "Not listening, skipping")
-            return
-        }
-
-        try {
-            unlockReceiver?.let {
-                reactApplicationContext.unregisterReceiver(it)
-                android.util.Log.d(TAG, "Successfully unregistered unlock receiver")
-            }
-            unlockReceiver = null
-            isListening = false
-        } catch (e: Exception) {
-            android.util.Log.e(TAG, "Error unregistering unlock receiver", e)
-        }
+        isListening = false
     }
 
     private fun sendUnlockEvent(unlockTime: Long) {
         try {
-            // Store unlock time for when app opens
             setPendingUnlockTime(unlockTime)
-            
-            // Show notification
-            showUnlockNotification(unlockTime)
-            
-            // Also send event to React Native (for when app is already in foreground)
+            if (!reactApplicationContext.hasActiveReactInstance()) {
+                android.util.Log.d(TAG, "React instance not active; pending unlock stored")
+                return
+            }
             val params = Arguments.createMap().apply {
                 putDouble("unlockTime", unlockTime.toDouble())
             }
-
             reactApplicationContext
                 .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
                 .emit("onPhoneUnlock", params)
-            
-            android.util.Log.d(TAG, "Unlock event processed: $unlockTime")
+            android.util.Log.d(TAG, "Unlock event sent to JS: $unlockTime")
         } catch (e: Exception) {
             android.util.Log.e(TAG, "Error processing unlock event", e)
         }
     }
 
-    private fun showUnlockNotification(unlockTime: Long) {
-        try {
-            val context = reactApplicationContext.applicationContext
-            val channelId = "phone_unlock_channel"
-            val notificationId = 1001
-            
-            // Create notification channel (required for Android 8.0+)
-            createNotificationChannel(channelId, "Phone Unlock", "Notifications for phone unlock events")
-            
-            // Create intent to open app
-            val intent = Intent(context, MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                putExtra("unlockTime", unlockTime)
-                putExtra("showUnlockModal", true)
-            }
-            
-            val pendingIntent = PendingIntent.getActivity(
-                context,
-                notificationId,
-                intent,
-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-            )
-            
-            // Build notification
-            val notification = NotificationCompat.Builder(context, channelId)
-                .setContentTitle("Why did you unlock your phone?")
-                .setContentText("Tap to record your reason")
-                .setSmallIcon(android.R.drawable.ic_menu_info_details)
-                .setContentIntent(pendingIntent)
-                .setAutoCancel(true)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setCategory(NotificationCompat.CATEGORY_REMINDER)
-                .build()
-            
-            // Show notification
-            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.notify(notificationId, notification)
-            
-            android.util.Log.d(TAG, "Unlock notification shown: $unlockTime")
-        } catch (e: Exception) {
-            android.util.Log.e(TAG, "Error showing unlock notification", e)
-        }
-    }
-
-    private fun createNotificationChannel(channelId: String, channelName: String, description: String) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                channelName,
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                this.description = description
-                setShowBadge(true)
-            }
-            
-            val notificationManager = reactApplicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
-        }
-    }
-
     override fun onHostResume() {
         android.util.Log.d(TAG, "onHostResume() called")
-        // Auto-start listening when app resumes
+        instance = this
         if (!isListening) {
             startListening()
         }
@@ -217,11 +130,13 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
 
     override fun onHostPause() {
         android.util.Log.d(TAG, "onHostPause() called")
-        // Keep listening even when paused (we want to detect unlocks)
     }
 
     override fun onHostDestroy() {
         android.util.Log.d(TAG, "onHostDestroy() called")
-        stopListening()
+        // Keep the foreground-service receiver running so unlocks still fire.
+        if (instance === this) {
+            instance = null
+        }
     }
 }
