@@ -148,6 +148,39 @@ stages:
     - script: |
         set -euo pipefail
         cd mobile
+        VERSION_CODE="${BUILD_BUILDID}"
+        VERSION_NAME="1.0.${BUILD_BUILDID}"
+        if ! [[ "$VERSION_CODE" =~ ^[0-9]+$ ]]; then
+          echo "ERROR: BUILD_BUILDID is not a numeric version code."
+          exit 1
+        fi
+        export VERSION_CODE VERSION_NAME
+        node <<'NODE'
+        const fs = require('fs');
+        const code = process.env.VERSION_CODE;
+        const name = process.env.VERSION_NAME;
+        const gradlePath = 'android/app/build.gradle';
+        const gradle = fs.readFileSync(gradlePath, 'utf8');
+        const nextGradle = gradle
+          .replace(/versionCode\s+\d+/, `versionCode ${code}`)
+          .replace(/versionName\s+"[^"]+"/, `versionName "${name}"`);
+        if (!nextGradle.includes(`versionCode ${code}`) || !nextGradle.includes(`versionName "${name}"`)) {
+          console.error('ERROR: Could not set the Android version in build.gradle');
+          process.exit(1);
+        }
+        fs.writeFileSync(gradlePath, nextGradle);
+        const app = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+        app.expo.version = name;
+        app.expo.android = app.expo.android || {};
+        app.expo.android.versionCode = Number(code);
+        fs.writeFileSync('app.json', JSON.stringify(app, null, 2) + '\n');
+        console.log(`Android versionCode ${code}, versionName ${name}`);
+        NODE
+      displayName: 'Set Android version from the pipeline build id'
+
+    - script: |
+        set -euo pipefail
+        cd mobile
         echo "Starting EAS build for Android APK..."
         echo "Build profile: production"
         echo "API URL: http://185.193.66.50:31247/api"
@@ -235,6 +268,8 @@ stages:
         echo ""
         echo "The app will automatically connect to:"
         echo "  http://185.193.66.50:31247/api"
+        echo ""
+        echo "Install this APK once. After that, opening the app offers newer builds."
       displayName: 'Display build summary'
 
 - stage: Deploy
@@ -297,10 +332,17 @@ stages:
                   echo "WARNING: MONGO_CONNECTION_STRING may be malformed (should start with 'mongodb://' or 'mongodb+srv://')"
                 fi
                 
+                APP_RELEASE_TOKEN=`openssl rand -hex 32 2>/dev/null || od -An -N32 -tx1 /dev/urandom | tr -d ' \n'`
+                if [ -z "${APP_RELEASE_TOKEN}" ]; then
+                  echo "ERROR: Could not generate the app release upload token."
+                  exit 1
+                fi
+
                 echo "Creating Kubernetes secrets..."
                 # Create or update secrets from pipeline variables
                 kubectl create secret generic pos-api-secrets \
                   --from-literal=ConnectionStrings__MongoDb="${MONGO_CONNECTION_STRING}" \
+                  --from-literal=AppRelease__UploadToken="${APP_RELEASE_TOKEN}" \
                   --namespace=$(kubernetesNamespace) \
                   --dry-run=client -o yaml | kubectl apply -f -
                 
@@ -403,6 +445,86 @@ stages:
 
           - script: 'kubectl get service pos-api-service -n $(kubernetesNamespace)'
             displayName: 'Check API service status'
+
+- stage: PublishRelease
+  displayName: 'Publish phone update'
+  dependsOn:
+  - MobileBuild
+  - Deploy
+  condition: and(succeeded('MobileBuild'), succeeded('Deploy'))
+  jobs:
+  - job: UploadApk
+    displayName: 'Upload APK for in-app update'
+    pool:
+      name: 'Default'
+    steps:
+    - task: DownloadBuildArtifacts@0
+      displayName: 'Download mobile APK'
+      inputs:
+        artifactName: 'mobile-apk'
+        downloadPath: '$(Pipeline.Workspace)/apk'
+
+    - script: |
+        set -euo pipefail
+        API_BASE="http://185.193.66.50:31247/api"
+        VERSION_CODE="${BUILD_BUILDID}"
+        VERSION_NAME="1.0.${BUILD_BUILDID}"
+        APK_PATH=`find "$PIPELINE_WORKSPACE/apk" -name pos-mobile.apk -type f -print -quit`
+        if [ -z "$APK_PATH" ] || [ ! -f "$APK_PATH" ]; then
+          echo "ERROR: pos-mobile.apk was not in the mobile-apk artifact."
+          exit 1
+        fi
+
+        APP_RELEASE_TOKEN=`kubectl get secret pos-api-secrets -n "$KUBERNETES_NAMESPACE" -o jsonpath='{.data.AppRelease__UploadToken}' | base64 -d || true`
+        if [ -z "$APP_RELEASE_TOKEN" ]; then
+          echo "ERROR: App release token is missing from the cluster secret."
+          exit 1
+        fi
+
+        ready=0
+        for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
+          if curl -fsS --max-time 10 "$API_BASE/health" >/dev/null; then
+            ready=1
+            break
+          fi
+          echo "API not ready (attempt ${attempt})."
+          sleep 10
+        done
+        if [ "$ready" -ne 1 ]; then
+          echo "ERROR: API health check failed. The APK is still in the mobile-apk artifact."
+          exit 1
+        fi
+
+        uploaded=0
+        for attempt in 1 2 3 4 5 6; do
+          HTTP_CODE=`curl -sS -o /tmp/app-release-response.json -w '%{http_code}' --max-time 600 \
+            -H "X-Release-Token: ${APP_RELEASE_TOKEN}" \
+            -F "version=${VERSION_NAME}" \
+            -F "versionCode=${VERSION_CODE}" \
+            -F "apk=@${APK_PATH};type=application/vnd.android.package-archive" \
+            "${API_BASE}/app/release" || true`
+          echo "Upload attempt ${attempt} returned HTTP ${HTTP_CODE}."
+          if [ "$HTTP_CODE" = "201" ]; then
+            uploaded=1
+            break
+          fi
+          sleep 15
+        done
+        if [ "$uploaded" -ne 1 ]; then
+          echo "ERROR: The phone update was not published. Install the mobile-apk artifact by hand."
+          if [ -f /tmp/app-release-response.json ]; then
+            cat /tmp/app-release-response.json
+            echo ""
+          fi
+          exit 1
+        fi
+        cat /tmp/app-release-response.json
+        echo ""
+        echo "Published ${VERSION_NAME} for in-app update."
+      displayName: 'Upload APK to the API'
+      env:
+        PIPELINE_WORKSPACE: $(Pipeline.Workspace)
+        KUBERNETES_NAMESPACE: $(kubernetesNamespace)
 
 - stage: HealthCheck
   displayName: 'Health Check'

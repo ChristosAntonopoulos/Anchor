@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Platform, AppState } from 'react-native';
+import { AppUpdatePrompt } from '../components/shared/AppUpdatePrompt';
 import { ErrorBoundary } from '../components/shared/ErrorBoundary';
 import { useCategoryStore } from '../store/useCategoryStore';
 import { phoneUnlockListener } from '../services/phoneUnlockListener';
@@ -287,6 +288,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="more" />
       </Stack>
+      <AppUpdatePrompt />
       {/* FEATURE DISABLED: Phone unlock modal is currently disabled */}
       {/* Uncomment to re-enable:
       <ErrorBoundary>

@@ -46,6 +46,12 @@ spec:
             secretKeyRef:
               name: pos-api-secrets
               key: ConnectionStrings__MongoDb
+        - name: AppRelease__UploadToken
+          valueFrom:
+            secretKeyRef:
+              name: pos-api-secrets
+              key: AppRelease__UploadToken
+              optional: true
         - name: BotSystem__BaseUrl
           valueFrom:
             configMapKeyRef:

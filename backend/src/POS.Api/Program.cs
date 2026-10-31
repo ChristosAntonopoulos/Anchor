@@ -34,6 +34,16 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
+const long maxApkBytes = 262_144_000;
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = maxApkBytes;
+});
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = maxApkBytes;
+});
+
 // Configure Serilog
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
@@ -81,6 +91,7 @@ builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<CBTService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<POS.Application.Services.PhoneUnlock.PhoneUnlockService>();
+builder.Services.AddSingleton<POS.Api.Services.AppReleaseService>();
 
 // Register database seeder
 builder.Services.AddScoped<DataSeeder>();
