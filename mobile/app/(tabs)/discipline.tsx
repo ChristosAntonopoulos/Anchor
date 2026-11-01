@@ -6,6 +6,7 @@ import { colors, gradients } from '../../constants/designTokens';
 import { useTodayStore } from '../../store/useTodayStore';
 import { DisciplineCard } from '../../components/discipline/DisciplineCard';
 import { DietCard } from '../../components/discipline/DietCard';
+import { apiClient } from '../../services/api';
 
 export default function DisciplineScreen() {
   const { data, loading, error, fetchToday, updateDiscipline, updateDiet } = useTodayStore();
@@ -40,6 +41,27 @@ export default function DisciplineScreen() {
     );
   }
 
+  if (error && !data) {
+    return (
+      <LinearGradient
+        colors={gradients.background.colors}
+        start={gradients.background.start}
+        end={gradients.background.end}
+        style={styles.container}
+      >
+        <SafeAreaView style={styles.container}>
+          <View style={styles.emptyContainer}>
+            <Text style={styles.errorText}>Error loading data</Text>
+            <Text style={styles.errorDetail}>{error}</Text>
+            <Text style={styles.emptyText} onPress={fetchToday}>
+              Tap to retry
+            </Text>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+    );
+  }
+
   if (!data) {
     return (
       <LinearGradient
@@ -51,6 +73,9 @@ export default function DisciplineScreen() {
         <SafeAreaView style={styles.container}>
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No discipline data available.</Text>
+            <Text style={styles.emptyText} onPress={fetchToday}>
+              Tap to refresh
+            </Text>
           </View>
         </SafeAreaView>
       </LinearGradient>
@@ -74,10 +99,35 @@ export default function DisciplineScreen() {
         >
           <DisciplineCard
             discipline={data.discipline}
-            onToggle={(key) => {
-              updateDiscipline({
-                [key]: !data.discipline[key],
-              });
+            onToggleItem={async (blockId, itemId, value) => {
+              try {
+                const today = new Date().toISOString().split('T')[0];
+                const updated = await apiClient.updateDisciplineToggle(today, blockId, itemId, value);
+                // Update local state
+                await fetchToday();
+              } catch (error) {
+                console.error('Failed to update toggle:', error);
+              }
+            }}
+            onIncrementItem={async (blockId, itemId) => {
+              try {
+                const today = new Date().toISOString().split('T')[0];
+                await apiClient.incrementDisciplineCounter(today, blockId, itemId);
+                // Update local state
+                await fetchToday();
+              } catch (error) {
+                console.error('Failed to increment counter:', error);
+              }
+            }}
+            onDecrementItem={async (blockId, itemId) => {
+              try {
+                const today = new Date().toISOString().split('T')[0];
+                await apiClient.decrementDisciplineCounter(today, blockId, itemId);
+                // Update local state
+                await fetchToday();
+              } catch (error) {
+                console.error('Failed to decrement counter:', error);
+              }
             }}
             weeklyInsight="Weakest habit this week: Meditation. Try setting a daily reminder."
           />

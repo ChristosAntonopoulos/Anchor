@@ -1,9 +1,15 @@
+using AutoMapper;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
+using POS.Application.DTOs.Day;
+using POS.Application.DTOs.Discipline;
 using POS.Application.DTOs.Today;
+using POS.Application.Services.Day;
+using POS.Application.Services.Tasks;
 using POS.Core.Entities;
 using POS.Core.Entities.BetterToday;
 using POS.Core.Entities.Deadlines;
+using DayEntity = POS.Core.Entities.Day;
 using POS.Core.Entities.Diet;
 using POS.Core.Entities.Discipline;
 using POS.Core.Entities.Schedule;
@@ -19,11 +25,25 @@ namespace POS.Application.Services.Today;
 public class TodayService
 {
     private readonly MongoDbContext _context;
+    private readonly TaskService _taskService;
+    private readonly DayBootstrapService _dayBootstrapService;
+    private readonly UserDayClock _dayClock;
+    private readonly IMapper _mapper;
     private readonly ILogger<TodayService> _logger;
 
-    public TodayService(MongoDbContext context, ILogger<TodayService> logger)
+    public TodayService(
+        MongoDbContext context,
+        TaskService taskService,
+        DayBootstrapService dayBootstrapService,
+        UserDayClock dayClock,
+        IMapper mapper,
+        ILogger<TodayService> logger)
     {
         _context = context;
+        _taskService = taskService;
+        _dayBootstrapService = dayBootstrapService;
+        _dayClock = dayClock;
+        _mapper = mapper;
         _logger = logger;
     }
 
@@ -31,25 +51,27 @@ public class TodayService
     {
         _logger.LogInformation("Getting today's data for user {UserId}", userId);
 
-        var today = DateTime.UtcNow.Date;
+        var dayBootstrap = await _dayBootstrapService.EnsureDayBootstrapAsync(userId);
+        var today = await _dayClock.GetTodayAsync(userId);
         var todayResponse = new TodayResponseDto
         {
             Day = new DayDto
             {
                 Date = today.ToString("yyyy-MM-dd")
-            }
+            },
+            DayBootstrap = dayBootstrap
         };
 
         // Get or create Day entity
-        var dayFilter = Builders<Day>.Filter.And(
-            Builders<Day>.Filter.Eq(d => d.UserId, userId),
-            Builders<Day>.Filter.Eq(d => d.Date, today)
+        var dayFilter = Builders<DayEntity>.Filter.And(
+            Builders<DayEntity>.Filter.Eq(d => d.UserId, userId),
+            Builders<DayEntity>.Filter.Eq(d => d.Date, today)
         );
         var day = await _context.Days.Find(dayFilter).FirstOrDefaultAsync();
         
         if (day == null)
         {
-            day = new Day
+            day = new DayEntity
             {
                 UserId = userId,
                 Date = today
@@ -72,49 +94,101 @@ public class TodayService
             Completed = bi.Completed
         }).ToList();
 
-        // Get Tasks for today
-        var tasksFilter = Builders<POS.Core.Entities.Tasks.Task>.Filter.And(
-            Builders<POS.Core.Entities.Tasks.Task>.Filter.Eq(t => t.UserId, userId),
-            Builders<POS.Core.Entities.Tasks.Task>.Filter.Eq(t => t.Date, today)
-        );
-        var tasks = await _context.Tasks.Find(tasksFilter).ToListAsync();
-        todayResponse.Tasks = tasks.Select(t => new TaskDto
-        {
-            Id = t.Id,
-            Title = t.Title,
-            Category = t.Category,
-            Completed = t.Completed
-        }).ToList();
+        // Get today's focus tasks (full DTO)
+        todayResponse.Tasks = await _taskService.GetTodayFocusTasksAsync(userId);
 
         // Get Discipline Entry for today
+        DisciplineEntry? discipline = null;
         var disciplineFilter = Builders<DisciplineEntry>.Filter.And(
             Builders<DisciplineEntry>.Filter.Eq(d => d.UserId, userId),
             Builders<DisciplineEntry>.Filter.Eq(d => d.Date, today)
         );
-        var discipline = await _context.DisciplineEntries.Find(disciplineFilter).FirstOrDefaultAsync();
+        
+        try
+        {
+            discipline = await _context.DisciplineEntries.Find(disciplineFilter).FirstOrDefaultAsync();
+        }
+        catch (Exception ex)
+        {
+            // If deserialization fails (old structure data), delete the old entry
+            _logger.LogWarning(ex, "Failed to deserialize discipline entry (likely old structure). Deleting and recreating.");
+            try
+            {
+                await _context.DisciplineEntries.DeleteManyAsync(disciplineFilter);
+            }
+            catch
+            {
+                // Ignore delete errors
+            }
+            discipline = null;
+        }
         
         if (discipline != null)
         {
-            todayResponse.Discipline = new DisciplineEntryDto
+            // Ensure blocks are initialized
+            if (discipline.Blocks == null || discipline.Blocks.Count == 0)
             {
-                Gym = discipline.Gym,
-                Walk = discipline.Walk,
-                Cooked = discipline.Cooked,
-                Diet = discipline.Diet,
-                Meditation = discipline.Meditation,
-                Water = discipline.Water
-            };
+                // Initialize default blocks (same as in DisciplineService)
+                discipline.Blocks = CreateDefaultBlocks();
+                discipline.UpdatedAt = DateTime.UtcNow;
+                try
+                {
+                    await _context.DisciplineEntries.ReplaceOneAsync(disciplineFilter, discipline);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to update discipline entry. Will create new one.");
+                    discipline = null;
+                }
+            }
+            
+            if (discipline != null)
+            {
+                try
+                {
+                    todayResponse.Discipline = _mapper.Map<DisciplineEntryDto>(discipline);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to map discipline entry. Creating new one.");
+                    // Delete the problematic entry and create a new one
+                    try
+                    {
+                        await _context.DisciplineEntries.DeleteManyAsync(disciplineFilter);
+                    }
+                    catch
+                    {
+                        // Ignore
+                    }
+                    discipline = null;
+                }
+            }
         }
-        else
+        
+        if (discipline == null)
         {
-            // Create default discipline entry
+            // Create default discipline entry with blocks
             var newDiscipline = new DisciplineEntry
             {
                 UserId = userId,
-                Date = today
+                Date = today,
+                Blocks = CreateDefaultBlocks(),
+                CreatedAt = DateTime.UtcNow
             };
-            await _context.DisciplineEntries.InsertOneAsync(newDiscipline);
-            todayResponse.Discipline = new DisciplineEntryDto();
+            try
+            {
+                await _context.DisciplineEntries.InsertOneAsync(newDiscipline);
+                todayResponse.Discipline = _mapper.Map<DisciplineEntryDto>(newDiscipline);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create new discipline entry. Creating empty DTO.");
+                todayResponse.Discipline = new DisciplineEntryDto
+                {
+                    Blocks = new List<DisciplineBlockDto>(),
+                    Date = today
+                };
+            }
         }
 
         // Get Diet Entry for today
@@ -202,5 +276,45 @@ public class TodayService
         }
 
         return todayResponse;
+    }
+
+    /// <summary>
+    /// Create default blocks (75 Hard and Habit Tracking)
+    /// Same as in DisciplineService
+    /// </summary>
+    private List<DisciplineBlock> CreateDefaultBlocks()
+    {
+        return new List<DisciplineBlock>
+        {
+            // 75 Hard Block
+            new DisciplineBlock
+            {
+                BlockId = "75Hard",
+                BlockName = "75 Hard",
+                Order = 0,
+                Items = new List<DisciplineItem>
+                {
+                    new DisciplineItem { ItemId = "DietFollowed", ItemName = "Diet followed (no cheat meals, no alcohol)", Type = DisciplineItemType.Toggle, ToggleValue = false },
+                    new DisciplineItem { ItemId = "Workout1", ItemName = "Workout #1 (45 min)", Type = DisciplineItemType.Toggle, ToggleValue = false },
+                    new DisciplineItem { ItemId = "Workout2", ItemName = "Workout #2 (45 min – outdoor)", Type = DisciplineItemType.Toggle, ToggleValue = false },
+                    new DisciplineItem { ItemId = "GallonWater", ItemName = "1 gallon water", Type = DisciplineItemType.Toggle, ToggleValue = false },
+                    new DisciplineItem { ItemId = "Read10Pages", ItemName = "Read 10 pages nonfiction", Type = DisciplineItemType.Toggle, ToggleValue = false },
+                    new DisciplineItem { ItemId = "ProgressPhoto", ItemName = "Progress photo", Type = DisciplineItemType.Toggle, ToggleValue = false }
+                }
+            },
+            // Habit Tracking Block
+            new DisciplineBlock
+            {
+                BlockId = "HabitTracking",
+                BlockName = "Habit Tracking",
+                Order = 1,
+                Items = new List<DisciplineItem>
+                {
+                    new DisciplineItem { ItemId = "PrivateActivity", ItemName = "Private Activity", Type = DisciplineItemType.Counter, CounterValue = 0 },
+                    new DisciplineItem { ItemId = "Cigarettes", ItemName = "Cigarettes", Type = DisciplineItemType.Counter, CounterValue = 0 },
+                    new DisciplineItem { ItemId = "Coffee", ItemName = "Coffee", Type = DisciplineItemType.Counter, CounterValue = 0 }
+                }
+            }
+        };
     }
 }

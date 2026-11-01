@@ -1,62 +1,75 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
-import { HabitToggle } from './HabitToggle';
+import { colors, spacing, typography } from '../../constants/designTokens';
+import { AppIcon } from '../icons/AppIcon';
+import { DisciplineBlockCard } from './DisciplineBlockCard';
 import type { DisciplineEntry } from '../../types';
 
 interface DisciplineCardProps {
   discipline: DisciplineEntry;
-  onToggle: (key: keyof DisciplineEntry) => void;
+  onToggleItem: (blockId: string, itemId: string, value: boolean) => void;
+  onIncrementItem: (blockId: string, itemId: string) => void;
+  onDecrementItem: (blockId: string, itemId: string) => void;
   weeklyInsight?: string;
 }
 
-const habitLabels: Record<keyof DisciplineEntry, string> = {
-  gym: 'Gym',
-  walk: 'Walk',
-  cooked: 'Cooked',
-  diet: 'Diet',
-  meditation: 'Meditation',
-  water: 'Water',
-};
+export function DisciplineCard({ 
+  discipline, 
+  onToggleItem, 
+  onIncrementItem, 
+  onDecrementItem,
+  weeklyInsight 
+}: DisciplineCardProps) {
+  // Calculate overall progress
+  let totalToggles = 0;
+  let completedToggles = 0;
+  let totalCount = 0;
 
-export function DisciplineCard({ discipline, onToggle, weeklyInsight }: DisciplineCardProps) {
-  const habits = Object.entries(discipline) as [keyof DisciplineEntry, boolean][];
-  const completedCount = habits.filter(([, completed]) => completed).length;
-  const totalCount = habits.length;
+  discipline.blocks.forEach(block => {
+    block.items.forEach(item => {
+      if (item.type === 'toggle') {
+        totalToggles++;
+        if (item.toggleValue === true) {
+          completedToggles++;
+        }
+      } else if (item.type === 'counter') {
+        totalCount += item.counterValue ?? 0;
+      }
+    });
+  });
+
+  // Sort blocks by order
+  const sortedBlocks = [...discipline.blocks].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={['#1E2530', '#252B38']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradient}
-      >
-        <View style={styles.header}>
+      <View style={styles.header}>
+        <View style={styles.titleRow}>
+          <AppIcon name="habits" size={22} />
           <Text style={styles.title}>Discipline</Text>
+        </View>
+        {totalToggles > 0 && (
           <Text style={styles.count}>
-            {completedCount}/{totalCount}
+            {completedToggles}/{totalToggles}
           </Text>
-        </View>
-        {weeklyInsight && (
-          <View style={styles.insightContainer}>
-            <View style={styles.insightIcon}>
-              <Text style={styles.insightIconText}>💡</Text>
-            </View>
-            <Text style={styles.insightText}>{weeklyInsight}</Text>
-          </View>
         )}
-        <View style={styles.habitsContainer}>
-          {habits.map(([key, completed]) => (
-            <HabitToggle
-              key={key}
-              label={habitLabels[key]}
-              completed={completed}
-              onToggle={() => onToggle(key)}
-            />
-          ))}
+      </View>
+      {weeklyInsight && (
+        <View style={styles.insightContainer}>
+          <View style={styles.insightIcon}>
+            <AppIcon name="insights" size={18} />
+          </View>
+          <Text style={styles.insightText}>{weeklyInsight}</Text>
         </View>
-      </LinearGradient>
+      )}
+      {sortedBlocks.map((block) => (
+        <DisciplineBlockCard
+          key={block.blockId}
+          block={block}
+          onToggleItem={(itemId, value) => onToggleItem(block.blockId, itemId, value)}
+          onIncrementItem={(itemId) => onIncrementItem(block.blockId, itemId)}
+          onDecrementItem={(itemId) => onDecrementItem(block.blockId, itemId)}
+        />
+      ))}
     </View>
   );
 }
@@ -65,20 +78,18 @@ const styles = StyleSheet.create({
   container: {
     marginHorizontal: spacing.l,
     marginBottom: spacing.l,
-    borderRadius: borderRadius.medium,
-    ...shadows.medium,
-  },
-  gradient: {
-    borderRadius: borderRadius.medium,
-    padding: spacing.m,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.m,
+    paddingHorizontal: spacing.l,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.s,
   },
   title: {
     fontSize: typography.fontSize.title,
@@ -93,27 +104,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.m,
+    marginHorizontal: spacing.l,
     padding: spacing.m,
     backgroundColor: colors.surface,
-    borderRadius: borderRadius.small,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.category.health + '40',
   },
   insightIcon: {
     marginRight: spacing.s,
   },
-  insightIconText: {
-    fontSize: 20,
-  },
   insightText: {
     flex: 1,
     fontSize: typography.fontSize.caption,
     color: colors.textPrimary,
     fontStyle: 'italic',
-  },
-  habitsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.s,
   },
 });

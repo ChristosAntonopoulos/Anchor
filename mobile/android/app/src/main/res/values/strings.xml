@@ -1,0 +1,76 @@
+<resources>
+  <string name="app_name">Personal Operating System</string>
+  <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
+  <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
+
+  <string name="unlock_title">What brings you to your phone?</string>
+  <string name="unlock_subtitle">Take a moment. Choose what fits.</string>
+
+  <string name="unlock_intention_specific_task">Get something done</string>
+  <string name="unlock_intention_specific_task_support">A task, information, or something practical</string>
+  <string name="unlock_intention_connection">Connect with someone</string>
+  <string name="unlock_intention_connection_support">A message, call, or time with people</string>
+  <string name="unlock_intention_intentional_break">Enjoy a break</string>
+  <string name="unlock_intention_intentional_break_support">Entertainment, browsing, or relaxing</string>
+  <string name="unlock_intention_social_check">Social check</string>
+  <string name="unlock_intention_social_check_support">Feeds, stories, or seeing what others posted</string>
+  <string name="unlock_intention_pay">Pay</string>
+  <string name="unlock_intention_pay_support">A purchase, transfer, or bill</string>
+  <string name="unlock_intention_automatic_check">Automatic check</string>
+  <string name="unlock_intention_automatic_check_support">I reached for it without deciding to</string>
+  <string name="unlock_intention_unsure">Not sure yet</string>
+  <string name="unlock_intention_unsure_support">I haven’t decided what I need</string>
+  <string name="unlock_intention_other">Something else</string>
+  <string name="unlock_intention_other_support">A different reason</string>
+
+  <string name="unlock_put_phone_down">Put phone down</string>
+  <string name="unlock_skip">Skip for now</string>
+  <string name="unlock_check_in_offer">Want help finding a smaller first step?</string>
+  <string name="unlock_add_context">Add context</string>
+  <string name="unlock_add_context_helper">Optional</string>
+  <string name="unlock_continue">Continue</string>
+  <string name="unlock_context_helper">Add anything useful. You can leave this blank.</string>
+
+  <string name="unlock_trigger_question">What prompted you to pick it up?</string>
+  <string name="unlock_trigger_notification">A notification</string>
+  <string name="unlock_trigger_task_cue">Something I needed to do</string>
+  <string name="unlock_trigger_boredom_waiting">Boredom / waiting</string>
+  <string name="unlock_trigger_difficult_moment">Something felt difficult</string>
+  <string name="unlock_trigger_connection_need">Wanted connection</string>
+  <string name="unlock_trigger_curiosity_updates">Curiosity / checking updates</string>
+  <string name="unlock_trigger_habit_no_clear_cue">Habit / nothing noticeable</string>
+  <string name="unlock_trigger_other">Something else</string>
+  <string name="unlock_trigger_unsure">Not sure</string>
+
+  <string name="unlock_feeling_question">How are you feeling right now?</string>
+  <string name="unlock_feeling_calm">Calm</string>
+  <string name="unlock_feeling_bored">Bored</string>
+  <string name="unlock_feeling_stressed">Stressed</string>
+  <string name="unlock_feeling_low">Low</string>
+  <string name="unlock_feeling_lonely">Lonely</string>
+  <string name="unlock_feeling_restless">Restless</string>
+  <string name="unlock_feeling_tired">Tired</string>
+  <string name="unlock_feeling_okay">Okay</string>
+  <string name="unlock_feeling_other">Something else</string>
+  <string name="unlock_feeling_unsure">Not sure</string>
+
+  <string name="unlock_note_label_specific_task">What’s the one thing?</string>
+  <string name="unlock_note_placeholder_specific_task">e.g. Pay the electricity bill</string>
+  <string name="unlock_note_label_connection">Anything you want to remember?</string>
+  <string name="unlock_note_placeholder_connection">e.g. Reply to a friend</string>
+  <string name="unlock_note_label_intentional_break">What would you like to do?</string>
+  <string name="unlock_note_placeholder_intentional_break">e.g. Listen to music for a while</string>
+  <string name="unlock_note_label_social_check">Anything you noticed?</string>
+  <string name="unlock_note_placeholder_social_check">e.g. I opened Instagram after a notification</string>
+  <string name="unlock_note_label_pay">What’s the payment?</string>
+  <string name="unlock_note_placeholder_pay">e.g. Pay the electricity bill</string>
+  <string name="unlock_note_label_automatic_check">Anything you noticed?</string>
+  <string name="unlock_note_placeholder_automatic_check">e.g. I picked it up while my code was building</string>
+  <string name="unlock_note_label_unsure">Anything on your mind?</string>
+  <string name="unlock_note_placeholder_optional">Optional</string>
+  <string name="unlock_note_label_other">What brought you here?</string>
+  <string name="unlock_note_label_none">Anything you want to remember?</string>
+
+  <string name="unlock_selected">Selected</string>
+  <string name="unlock_lock_yourself">You can lock the phone now if you want to put it down.</string>
+</resources>

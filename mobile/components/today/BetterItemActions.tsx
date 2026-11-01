@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 
 interface BetterItemActionsProps {
@@ -64,7 +64,7 @@ export function BetterItemActions({
                   end={{ x: 1, y: 1 }}
                   style={styles.actionButtonGradient}
                 >
-                  <Ionicons name="checkmark-circle" size={24} color={colors.background} />
+                  <AppIcon name="checkmark-circle" size={24} color={colors.background} />
                   <Text style={styles.actionButtonText}>Accept</Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -80,7 +80,7 @@ export function BetterItemActions({
                   end={{ x: 1, y: 1 }}
                   style={styles.actionButtonGradient}
                 >
-                  <Ionicons name="create-outline" size={24} color={colors.background} />
+                  <AppIcon name="create-outline" size={24} color={colors.background} />
                   <Text style={styles.actionButtonText}>Edit</Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -91,7 +91,7 @@ export function BetterItemActions({
                 activeOpacity={0.7}
               >
                 <View style={styles.rejectButton}>
-                  <Ionicons name="close-circle-outline" size={24} color={colors.error} />
+                  <AppIcon name="close-circle-outline" size={24} color={colors.error} />
                   <Text style={styles.rejectButtonText}>Reject</Text>
                 </View>
               </TouchableOpacity>

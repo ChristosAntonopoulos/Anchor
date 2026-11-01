@@ -1,22 +1,39 @@
 import { TouchableOpacity, Text, StyleSheet, Alert, TextInput, View } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
-import type { Category } from '../../types';
+import { useCategoryStore } from '../../store/useCategoryStore';
+import type { CategoryName } from '../../types';
 
 interface AddTaskButtonProps {
-  onAddTask: (title: string, category: Category) => void;
-  disabled: boolean;
+  onAddTask: (title: string, category: CategoryName) => void;
+  disabled?: boolean;
+  /** Shown on the button when collapsed */
+  label?: string;
+  /** Alert when disabled and user taps */
+  limitMessage?: string;
 }
 
-export function AddTaskButton({ onAddTask, disabled }: AddTaskButtonProps) {
+export function AddTaskButton({
+  onAddTask,
+  disabled = false,
+  label = '+ Add Task',
+  limitMessage = 'Limit reached.',
+}: AddTaskButtonProps) {
+  const { categories, fetchCategories, getCategoryColor } = useCategoryStore();
   const [showInput, setShowInput] = useState(false);
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState<Category>('work');
+  const [category, setCategory] = useState<CategoryName>('work');
+
+  useEffect(() => {
+    if (categories.length === 0) {
+      fetchCategories();
+    }
+  }, [categories.length, fetchCategories]);
 
   const handlePress = () => {
     if (disabled) {
-      Alert.alert('Limit Reached', 'Maximum 5 tasks allowed per day.');
+      Alert.alert('Limit Reached', limitMessage);
       return;
     }
     setShowInput(true);
@@ -35,12 +52,19 @@ export function AddTaskButton({ onAddTask, disabled }: AddTaskButtonProps) {
     setShowInput(false);
   };
 
-  const categories: { value: Category; label: string; color: string }[] = [
-    { value: 'work', label: 'Work', color: colors.category.work },
-    { value: 'leverage', label: 'Leverage', color: colors.category.leverage },
-    { value: 'health', label: 'Health', color: colors.category.health },
-    { value: 'stability', label: 'Stability', color: colors.category.stability },
-  ];
+  // Use categories from store, fallback to empty array if not loaded
+  const categoryList = categories.length > 0 
+    ? categories.map(cat => ({
+        value: cat.name,
+        label: cat.displayName,
+        color: cat.color,
+      }))
+    : [
+        { value: 'work', label: 'Work', color: colors.category.work },
+        { value: 'leverage', label: 'Leverage', color: colors.category.leverage },
+        { value: 'health', label: 'Health', color: colors.category.health },
+        { value: 'stability', label: 'Stability', color: colors.category.stability },
+      ];
 
   if (showInput) {
     return (
@@ -62,7 +86,7 @@ export function AddTaskButton({ onAddTask, disabled }: AddTaskButtonProps) {
           <View style={styles.categoryContainer}>
             <Text style={styles.categoryLabel}>Category:</Text>
             <View style={styles.categoryChips}>
-              {categories.map((cat) => (
+              {categoryList.map((cat) => (
                 <TouchableOpacity
                   key={cat.value}
                   onPress={() => setCategory(cat.value)}
@@ -99,7 +123,7 @@ export function AddTaskButton({ onAddTask, disabled }: AddTaskButtonProps) {
             disabled={!title.trim()}
           >
             <LinearGradient
-              colors={!title.trim() ? [colors.border, colors.border] : [colors.category.work, colors.category.work + 'CC']}
+              colors={!title.trim() ? [colors.border, colors.border] : [getCategoryColor('work'), getCategoryColor('work') + 'CC']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.submitGradient}
@@ -119,13 +143,13 @@ export function AddTaskButton({ onAddTask, disabled }: AddTaskButtonProps) {
       disabled={disabled}
     >
       <LinearGradient
-        colors={disabled ? [colors.border, colors.border] : [colors.category.work, colors.category.work + 'CC']}
+        colors={disabled ? [colors.border, colors.border] : [getCategoryColor('work'), getCategoryColor('work') + 'CC']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.buttonGradient}
       >
         <Text style={[styles.buttonText, disabled && styles.buttonTextDisabled]}>
-          + Add Task
+          {label}
         </Text>
       </LinearGradient>
     </TouchableOpacity>

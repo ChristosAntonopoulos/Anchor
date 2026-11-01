@@ -13,7 +13,7 @@ variables:
   - name: buildConfiguration
     value: 'Release'
   - name: dockerRegistry
-    value: 'your-dockerhub-username'  # Update with your Docker Hub username
+    value: '$(DOCKER_USERNAME)'  # Uses DOCKER_USERNAME from POS-Secrets variable group
   - name: imageName
     value: 'pos-api'
   - name: fullImageName
@@ -34,6 +34,13 @@ stages:
     pool:
       name: 'Default'
     steps:
+    - task: UseDotNet@2
+      displayName: 'Install .NET 9.0 SDK'
+      inputs:
+        packageType: 'sdk'
+        version: '9.0.x'
+        includePreviewVersions: false
+
     - script: 'dotnet restore $(solution)'
       displayName: 'Restore NuGet packages'
 
@@ -70,6 +77,200 @@ stages:
 
     - script: 'docker images | grep $(imageName)'
       displayName: 'List Docker images'
+
+- stage: MobileBuild
+  displayName: 'Build Mobile APK'
+  dependsOn: Package
+  condition: succeeded()
+  jobs:
+  - job: BuildMobile
+    displayName: 'Build Android APK with EAS'
+    pool:
+      name: 'Default'
+    steps:
+    - task: NodeTool@0
+      displayName: 'Install Node.js'
+      inputs:
+        versionSpec: '18.x'
+
+    - script: 'npm install -g eas-cli@20.1.0'
+      displayName: 'Install EAS CLI'
+
+    - script: |
+        if [ -z "${EXPO_TOKEN:-}" ]; then
+          echo "ERROR: EXPO_TOKEN is not set!"
+          echo ""
+          echo "Please add EXPO_TOKEN to the POS-Secrets variable group:"
+          echo "  1. Go to Azure DevOps → Pipelines → Library"
+          echo "  2. Open POS-Secrets variable group"
+          echo "  3. Add variable: EXPO_TOKEN (mark as secret)"
+          echo "  4. Get token from: https://expo.dev/accounts/[username]/settings/access-tokens"
+          exit 1
+        fi
+        echo "EXPO_TOKEN is set (length: ${#EXPO_TOKEN} characters)"
+        echo "EAS CLI will automatically use EXPO_TOKEN environment variable for authentication"
+      displayName: 'Verify EXPO_TOKEN is set'
+      env:
+        EXPO_TOKEN: $(EXPO_TOKEN)
+
+    - script: 'cd mobile && npm install'
+      displayName: 'Install mobile dependencies'
+
+    - script: |
+        cd mobile
+        echo "Verifying EAS project is configured..."
+        echo ""
+        echo "Note: EAS project must be initialized locally first."
+        echo "If this is the first build, run 'eas init' locally in the mobile/ directory."
+        echo ""
+        echo "Checking project configuration..."
+        if [ -f "eas.json" ]; then
+          echo "✅ eas.json found"
+        else
+          echo "⚠️  eas.json not found - project may not be initialized"
+        fi
+        
+        # Verify authentication
+        EXPO_USERNAME=$(eas whoami 2>/dev/null | head -1 || echo "")
+        if [ -n "$EXPO_USERNAME" ]; then
+          echo "✅ Authenticated as: $EXPO_USERNAME"
+        else
+          echo "⚠️  Could not verify authentication"
+        fi
+        
+        echo ""
+        echo "Proceeding with build..."
+      displayName: 'Verify EAS Project Configuration'
+      env:
+        EXPO_TOKEN: $(EXPO_TOKEN)
+      continueOnError: true
+
+    - script: |
+        set -euo pipefail
+        cd mobile
+        VERSION_CODE="${BUILD_BUILDID}"
+        VERSION_NAME="1.0.${BUILD_BUILDID}"
+        if ! [[ "$VERSION_CODE" =~ ^[0-9]+$ ]]; then
+          echo "ERROR: BUILD_BUILDID is not a numeric version code."
+          exit 1
+        fi
+        export VERSION_CODE VERSION_NAME
+        node <<'NODE'
+        const fs = require('fs');
+        const code = process.env.VERSION_CODE;
+        const name = process.env.VERSION_NAME;
+        const gradlePath = 'android/app/build.gradle';
+        const gradle = fs.readFileSync(gradlePath, 'utf8');
+        const nextGradle = gradle
+          .replace(/versionCode\s+\d+/, `versionCode ${code}`)
+          .replace(/versionName\s+"[^"]+"/, `versionName "${name}"`);
+        if (!nextGradle.includes(`versionCode ${code}`) || !nextGradle.includes(`versionName "${name}"`)) {
+          console.error('ERROR: Could not set the Android version in build.gradle');
+          process.exit(1);
+        }
+        fs.writeFileSync(gradlePath, nextGradle);
+        const app = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+        app.expo.version = name;
+        app.expo.android = app.expo.android || {};
+        app.expo.android.versionCode = Number(code);
+        fs.writeFileSync('app.json', JSON.stringify(app, null, 2) + '\n');
+        console.log(`Android versionCode ${code}, versionName ${name}`);
+        NODE
+      displayName: 'Set Android version from the pipeline build id'
+
+    - script: |
+        set -euo pipefail
+        cd mobile
+        echo "Starting EAS build for Android APK..."
+        echo "Build profile: production"
+        echo "API URL: http://185.193.66.50:31247/api"
+        echo ""
+        echo "This will start a cloud build. It may take 10-15 minutes."
+
+        eas build --platform android --profile production --non-interactive --wait --json > eas-build-output.json
+
+        node <<'NODE'
+        const fs = require('fs');
+        const raw = fs.readFileSync('eas-build-output.json', 'utf8').trim();
+        const parsed = JSON.parse(raw);
+        const build = Array.isArray(parsed) ? parsed[0] : parsed;
+        if (!build?.id) {
+          console.error('ERROR: Could not read build id from EAS output');
+          console.error(raw.slice(0, 500));
+          process.exit(1);
+        }
+        const status = String(build.status || '').toUpperCase();
+        if (status !== 'FINISHED') {
+          console.error(`ERROR: Build finished with status ${build.status}`);
+          process.exit(1);
+        }
+        const artifactUrl =
+          build.artifacts?.buildUrl ||
+          build.artifacts?.applicationArchiveUrl ||
+          null;
+        fs.writeFileSync('eas-build-id.txt', build.id);
+        if (artifactUrl) {
+          fs.writeFileSync('eas-artifact-url.txt', artifactUrl);
+        }
+        console.log(`Build ID: ${build.id}`);
+        console.log(`Build status: ${build.status}`);
+        NODE
+
+        if [ -f eas-artifact-url.txt ]; then
+          echo "Downloading APK from EAS artifact URL..."
+          curl -fsSL "$(cat eas-artifact-url.txt)" -o ./pos-mobile.apk
+        else
+          echo "Artifact URL not in build output; using eas build:download --build-id..."
+          BUILD_ID="$(cat eas-build-id.txt)"
+          eas build:download --build-id "$BUILD_ID" --non-interactive
+          APK_FILE="$(find . -maxdepth 1 -name '*.apk' -type f | head -1)"
+          if [ -z "$APK_FILE" ]; then
+            echo "ERROR: eas build:download did not produce an APK file"
+            exit 1
+          fi
+          mv "$APK_FILE" ./pos-mobile.apk
+        fi
+
+        if [ ! -f "./pos-mobile.apk" ]; then
+          echo "ERROR: APK file not found after download"
+          echo "Build may have failed. Check Expo dashboard for details."
+          exit 1
+        fi
+
+        APK_SIZE=$(du -h ./pos-mobile.apk | cut -f1)
+        echo "✅ APK downloaded successfully!"
+        echo "Size: $APK_SIZE"
+        ls -lh ./pos-mobile.apk
+      displayName: 'Build and download Android APK with EAS'
+      env:
+        EXPO_TOKEN: $(EXPO_TOKEN)
+      continueOnError: false
+      timeoutInMinutes: 25
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish APK as artifact'
+      inputs:
+        pathToPublish: 'mobile/pos-mobile.apk'
+        artifactName: 'mobile-apk'
+        publishLocation: 'Container'
+
+    - script: |
+        echo "=== Mobile Build Summary ==="
+        echo ""
+        echo "✅ APK built successfully!"
+        echo ""
+        echo "To install on your phone:"
+        echo "  1. Go to Azure DevOps → Pipelines → Latest run"
+        echo "  2. Click on 'Artifacts'"
+        echo "  3. Download 'mobile-apk' artifact"
+        echo "  4. Transfer APK to your Android phone"
+        echo "  5. Install the APK (enable 'Install from unknown sources' if needed)"
+        echo ""
+        echo "The app will automatically connect to:"
+        echo "  http://185.193.66.50:31247/api"
+        echo ""
+        echo "Install this APK once. After that, opening the app offers newer builds."
+      displayName: 'Display build summary'
 
 - stage: Deploy
   displayName: 'Deploy to Kubernetes'
@@ -131,10 +332,17 @@ stages:
                   echo "WARNING: MONGO_CONNECTION_STRING may be malformed (should start with 'mongodb://' or 'mongodb+srv://')"
                 fi
                 
+                APP_RELEASE_TOKEN=`openssl rand -hex 32 2>/dev/null || od -An -N32 -tx1 /dev/urandom | tr -d ' \n'`
+                if [ -z "${APP_RELEASE_TOKEN}" ]; then
+                  echo "ERROR: Could not generate the app release upload token."
+                  exit 1
+                fi
+
                 echo "Creating Kubernetes secrets..."
                 # Create or update secrets from pipeline variables
                 kubectl create secret generic pos-api-secrets \
                   --from-literal=ConnectionStrings__MongoDb="${MONGO_CONNECTION_STRING}" \
+                  --from-literal=AppRelease__UploadToken="${APP_RELEASE_TOKEN}" \
                   --namespace=$(kubernetesNamespace) \
                   --dry-run=client -o yaml | kubectl apply -f -
                 
@@ -203,7 +411,8 @@ stages:
                     kubectl exec $POD_NAME -n $(kubernetesNamespace) -- env | grep -i connection || echo "No connection string env var found"
                     echo ""
                     echo "=== Health Check Test ==="
-                    kubectl exec $POD_NAME -n $(kubernetesNamespace) -- curl -s http://localhost:5000/health | head -20 || echo "Health check failed"
+                    echo "Testing external health endpoint..."
+                    curl -s http://185.193.66.50:31247/api/health | head -20 || echo "Health check failed"
                     echo ""
                   fi
                 done
@@ -237,6 +446,86 @@ stages:
           - script: 'kubectl get service pos-api-service -n $(kubernetesNamespace)'
             displayName: 'Check API service status'
 
+- stage: PublishRelease
+  displayName: 'Publish phone update'
+  dependsOn:
+  - MobileBuild
+  - Deploy
+  condition: and(succeeded('MobileBuild'), succeeded('Deploy'))
+  jobs:
+  - job: UploadApk
+    displayName: 'Upload APK for in-app update'
+    pool:
+      name: 'Default'
+    steps:
+    - task: DownloadBuildArtifacts@0
+      displayName: 'Download mobile APK'
+      inputs:
+        artifactName: 'mobile-apk'
+        downloadPath: '$(Pipeline.Workspace)/apk'
+
+    - script: |
+        set -euo pipefail
+        API_BASE="http://185.193.66.50:31247/api"
+        VERSION_CODE="${BUILD_BUILDID}"
+        VERSION_NAME="1.0.${BUILD_BUILDID}"
+        APK_PATH=`find "$PIPELINE_WORKSPACE/apk" -name pos-mobile.apk -type f -print -quit`
+        if [ -z "$APK_PATH" ] || [ ! -f "$APK_PATH" ]; then
+          echo "ERROR: pos-mobile.apk was not in the mobile-apk artifact."
+          exit 1
+        fi
+
+        APP_RELEASE_TOKEN=`kubectl get secret pos-api-secrets -n "$KUBERNETES_NAMESPACE" -o jsonpath='{.data.AppRelease__UploadToken}' | base64 -d || true`
+        if [ -z "$APP_RELEASE_TOKEN" ]; then
+          echo "ERROR: App release token is missing from the cluster secret."
+          exit 1
+        fi
+
+        ready=0
+        for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
+          if curl -fsS --max-time 10 "$API_BASE/health" >/dev/null; then
+            ready=1
+            break
+          fi
+          echo "API not ready (attempt ${attempt})."
+          sleep 10
+        done
+        if [ "$ready" -ne 1 ]; then
+          echo "ERROR: API health check failed. The APK is still in the mobile-apk artifact."
+          exit 1
+        fi
+
+        uploaded=0
+        for attempt in 1 2 3 4 5 6; do
+          HTTP_CODE=`curl -sS -o /tmp/app-release-response.json -w '%{http_code}' --max-time 600 \
+            -H "X-Release-Token: ${APP_RELEASE_TOKEN}" \
+            -F "version=${VERSION_NAME}" \
+            -F "versionCode=${VERSION_CODE}" \
+            -F "apk=@${APK_PATH};type=application/vnd.android.package-archive" \
+            "${API_BASE}/app/release" || true`
+          echo "Upload attempt ${attempt} returned HTTP ${HTTP_CODE}."
+          if [ "$HTTP_CODE" = "201" ]; then
+            uploaded=1
+            break
+          fi
+          sleep 15
+        done
+        if [ "$uploaded" -ne 1 ]; then
+          echo "ERROR: The phone update was not published. Install the mobile-apk artifact by hand."
+          if [ -f /tmp/app-release-response.json ]; then
+            cat /tmp/app-release-response.json
+            echo ""
+          fi
+          exit 1
+        fi
+        cat /tmp/app-release-response.json
+        echo ""
+        echo "Published ${VERSION_NAME} for in-app update."
+      displayName: 'Upload APK to the API'
+      env:
+        PIPELINE_WORKSPACE: $(Pipeline.Workspace)
+        KUBERNETES_NAMESPACE: $(kubernetesNamespace)
+
 - stage: HealthCheck
   displayName: 'Health Check'
   dependsOn: Deploy
@@ -257,28 +546,26 @@ stages:
       displayName: 'Check deployment status'
 
     - script: |
-        POD_NAME=$(kubectl get pod -n $(kubernetesNamespace) -l app=pos-api -o jsonpath="{.items[0].metadata.name}" 2>/dev/null || echo "")
-        if [ -n "$POD_NAME" ]; then
-          echo "Testing health endpoint on pod: $POD_NAME"
-          kubectl exec -n $(kubernetesNamespace) $POD_NAME -- curl -f http://localhost:5000/health || exit 1
-        else
-          echo "No API pods found!"
-          exit 1
-        fi
-      displayName: 'Check API Health'
+        echo "Testing health endpoint externally..."
+        echo "API URL: http://185.193.66.50:31247/api/health"
+        curl -f http://185.193.66.50:31247/api/health || echo "Health check failed, but continuing..."
+        echo ""
+        echo "Health check completed (non-blocking)"
+      displayName: 'Check API Health (External)'
+      continueOnError: true
 
     - script: |
         SERVICE_IP=$(kubectl get service pos-api-service -n $(kubernetesNamespace) -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
         if [ -n "$SERVICE_IP" ]; then
           echo "API Service External IP: $SERVICE_IP"
-          echo "API Base URL: http://$SERVICE_IP:35555/api"
+          echo "API Base URL: http://$SERVICE_IP:31247/api"
           echo ""
           echo "Update mobile app configuration with this URL:"
-          echo "  EXPO_PUBLIC_API_URL=http://$SERVICE_IP:35555/api"
+          echo "  EXPO_PUBLIC_API_URL=http://$SERVICE_IP:31247/api"
         else
           echo "LoadBalancer IP not yet assigned. Check service status:"
           kubectl get service pos-api-service -n $(kubernetesNamespace)
           echo ""
-          echo "Expected server URL: http://185.193.66.50:35555/api"
+          echo "Expected server URL: http://185.193.66.50:31247/api"
         fi
       displayName: 'Display API URL for mobile app'

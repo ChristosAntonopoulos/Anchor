@@ -1,6 +1,14 @@
 // Design tokens - Calm New Age Gaming Aesthetic
 // Combines calm colors, new-age mystical feel, and subtle gaming aesthetics
 
+export const brand = {
+  cream: '#F6F0E2',
+  deepGreen: '#316F5F',
+  sage: '#C7E5CD',
+  deepTeal: '#132E2A',
+  goldenSun: '#E7C47B',
+} as const;
+
 export const colors = {
   // Base colors (Calm + Dark Gaming)
   background: '#0F1419', // Deep charcoal - reduces eye strain
@@ -184,13 +192,15 @@ export const animations = {
   verySlow: 500,
 } as const;
 
-// Helper function to get category color
+// Helper function to get category color (fallback for backward compatibility)
+// Components should use useCategoryStore.getCategoryColor() instead
 export const getCategoryColor = (category: string): string => {
   const categoryKey = category.toLowerCase() as keyof typeof colors.category;
   return colors.category[categoryKey] || colors.textPrimary;
 };
 
-// Helper function to get category glow
+// Helper function to get category glow (fallback for backward compatibility)
+// Components should use useCategoryStore.getCategoryGlow() instead
 export const getCategoryGlow = (category: string): string => {
   const categoryKey = category.toLowerCase() as keyof typeof colors.glow;
   return colors.glow[categoryKey] || colors.glow.default;

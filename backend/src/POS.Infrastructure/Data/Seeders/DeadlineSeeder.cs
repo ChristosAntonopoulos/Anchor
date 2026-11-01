@@ -37,8 +37,17 @@ public class DeadlineSeeder
             new Deadline
             {
                 UserId = userId,
-                Title = "Q4 Product Launch",
-                DueDate = DateTime.UtcNow.Date.AddDays(7),
+                Title = "Car inspect",
+                DueDate = DateTime.UtcNow.Date.AddDays(5),
+                Status = DeadlineStatus.OnTrack,
+                Importance = 3,
+                CreatedAt = DateTime.UtcNow
+            },
+            new Deadline
+            {
+                UserId = userId,
+                Title = "EOO finalized",
+                DueDate = DateTime.UtcNow.Date.AddDays(10),
                 Status = DeadlineStatus.OnTrack,
                 Importance = 5,
                 CreatedAt = DateTime.UtcNow
@@ -46,19 +55,10 @@ public class DeadlineSeeder
             new Deadline
             {
                 UserId = userId,
-                Title = "Client Proposal Submission",
-                DueDate = DateTime.UtcNow.Date.AddDays(3),
+                Title = "ICOM optimized",
+                DueDate = DateTime.UtcNow.Date.AddDays(7),
                 Status = DeadlineStatus.OnTrack,
                 Importance = 4,
-                CreatedAt = DateTime.UtcNow
-            },
-            new Deadline
-            {
-                UserId = userId,
-                Title = "Monthly Report",
-                DueDate = DateTime.UtcNow.Date.AddDays(1),
-                Status = DeadlineStatus.Behind,
-                Importance = 3,
                 CreatedAt = DateTime.UtcNow
             }
         };

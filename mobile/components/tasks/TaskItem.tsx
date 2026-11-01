@@ -1,15 +1,34 @@
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { useRef, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, spacing, typography, getCategoryColor, getCategoryGlow, borderRadius, shadows } from '../../constants/designTokens';
+import { AppIcon } from '../icons/AppIcon';
+import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
+import { useCategoryStore } from '../../store/useCategoryStore';
 import type { Task } from '../../types';
+
+function getPriorityColor(priority: string): string {
+  switch (priority) {
+    case 'urgent':
+      return '#EF4444';
+    case 'high':
+      return colors.category.health;
+    case 'medium':
+      return colors.category.work;
+    case 'low':
+      return colors.textSecondary;
+    default:
+      return colors.textSecondary;
+  }
+}
 
 interface TaskItemProps {
   task: Task;
   onToggle: () => void;
+  onPress?: () => void;
 }
 
-export function TaskItem({ task, onToggle }: TaskItemProps) {
+export function TaskItem({ task, onToggle, onPress }: TaskItemProps) {
+  const { getCategoryColor, getCategoryGlow } = useCategoryStore();
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const categoryColor = getCategoryColor(task.category);
@@ -53,7 +72,7 @@ export function TaskItem({ task, onToggle }: TaskItemProps) {
       ]}
     >
       <TouchableOpacity
-        onPress={onToggle}
+        onPress={onPress || onToggle}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         activeOpacity={1}
@@ -64,17 +83,58 @@ export function TaskItem({ task, onToggle }: TaskItemProps) {
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
-        <View style={[styles.checkbox, task.completed && styles.checkboxChecked, task.completed && { backgroundColor: categoryColor }]}>
-          {task.completed && <Text style={styles.checkmark}>✓</Text>}
-        </View>
+        <TouchableOpacity
+          onPress={onToggle}
+          style={styles.checkboxContainer}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <View style={[styles.checkbox, task.completed && styles.checkboxChecked, task.completed && { backgroundColor: categoryColor }]}>
+            {task.completed && <Text style={styles.checkmark}>✓</Text>}
+          </View>
+        </TouchableOpacity>
         <View style={styles.content}>
-          <Text style={[styles.title, task.completed && styles.completedText]}>
-            {task.title}
-          </Text>
-          <View style={[styles.categoryTag, { backgroundColor: glowColor }]}>
-            <Text style={[styles.categoryText, { color: categoryColor }]}>
-              {task.category}
+          <View style={styles.titleRow}>
+            <Text style={[styles.title, task.completed && styles.completedText]}>
+              {task.title}
             </Text>
+            {task.priority && (
+              <View style={[styles.priorityBadge, { borderColor: getPriorityColor(task.priority) }]}>
+                <Text style={[styles.priorityText, { color: getPriorityColor(task.priority) }]}>
+                  {task.priority.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.metaRow}>
+            <View style={[styles.categoryTag, { backgroundColor: glowColor }]}>
+              <Text style={[styles.categoryText, { color: categoryColor }]}>
+                {task.category}
+              </Text>
+            </View>
+            {task.location && (
+              <View style={styles.locationBadge}>
+                <AppIcon name="location" size={12} color={colors.textSecondary} />
+                <Text style={styles.locationText}>
+                  {task.location.placeName || 'Location'}
+                </Text>
+              </View>
+            )}
+            {task.subtasks && task.subtasks.length > 0 && (
+              <View style={styles.subtaskBadge}>
+                <AppIcon name="list" size={12} color={colors.textSecondary} />
+                <Text style={styles.subtaskText}>
+                  {task.subtasks.filter(st => st.completed).length}/{task.subtasks.length}
+                </Text>
+              </View>
+            )}
+            {task.dueDate && (
+              <View style={styles.dueDateBadge}>
+                <AppIcon name="time-outline" size={12} color={colors.textSecondary} />
+                <Text style={styles.dueDateText}>
+                  {new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       </LinearGradient>
@@ -100,6 +160,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  checkboxContainer: {
+    marginRight: spacing.m,
+  },
   checkbox: {
     width: 24,
     height: 24,
@@ -108,7 +171,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.m,
   },
   checkboxChecked: {
     borderColor: 'transparent',
@@ -141,5 +203,68 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.caption,
     fontWeight: typography.fontWeight.semibold,
     textTransform: 'capitalize',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.s,
+    marginBottom: spacing.xs,
+  },
+  priorityBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  priorityText: {
+    fontSize: 10,
+    fontWeight: typography.fontWeight.bold,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.s,
+  },
+  locationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 2,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.small,
+  },
+  locationText: {
+    fontSize: typography.fontSize.small,
+    color: colors.textSecondary,
+  },
+  subtaskBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 2,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.small,
+  },
+  subtaskText: {
+    fontSize: typography.fontSize.small,
+    color: colors.textSecondary,
+  },
+  dueDateBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 2,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.small,
+  },
+  dueDateText: {
+    fontSize: typography.fontSize.small,
+    color: colors.textSecondary,
   },
 });

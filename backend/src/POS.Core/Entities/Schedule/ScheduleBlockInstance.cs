@@ -24,6 +24,17 @@ public class ScheduleBlockInstance : DayAnchoredEntity
 
     [BsonElement("source")]
     public string Source { get; set; } = "user"; // ai|user
+
+    [BsonElement("routineActivities")]
+    public List<string>? RoutineActivities { get; set; } // Activities for this routine instance
+
+    /// <summary>Per-day timed checklist (generated from template or routine activities).</summary>
+    [BsonElement("checklistItems")]
+    public List<ScheduleChecklistItem>? ChecklistItems { get; set; }
+
+    /// <summary>Bump when checklist generation logic changes (triggers rebuild).</summary>
+    [BsonElement("checklistVersion")]
+    public int ChecklistVersion { get; set; }
 }
 
 public enum InstanceSource

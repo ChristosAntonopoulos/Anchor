@@ -1,3 +1,4 @@
+using System.Reflection;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Mvc;
@@ -5,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using POS.Api.Middleware;
 using POS.Application.Mappings;
 using POS.Application.Services.BetterToday;
+using POS.Application.Services.Day;
 using POS.Application.Services.Deadlines;
 using POS.Application.Services.Diet;
 using POS.Application.Services.Discipline;
@@ -13,17 +15,34 @@ using POS.Application.Services.Schedule;
 using POS.Application.Services.Tasks;
 using POS.Application.Services.Today;
 using POS.Application.Services.WeeklyReview;
+using POS.Application.Configuration;
+using POS.Application.Services.AIInput;
+using POS.Application.Services.Category;
+using POS.Application.Services.CBT;
+using POS.Application.Services.Notifications;
 using POS.Application.Validators.BetterToday;
 using POS.Application.Validators.Deadlines;
 using POS.Application.Validators.Money;
 using POS.Application.Validators.Schedule;
 using POS.Application.Validators.Tasks;
 using POS.Application.Validators.WeeklyReview;
+using POS.Core.Configuration;
 using POS.Infrastructure.Data;
+using POS.Infrastructure.Services;
 using POS.Infrastructure.Data.Seeders;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+const long maxApkBytes = 262_144_000;
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = maxApkBytes;
+});
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = maxApkBytes;
+});
 
 // Configure Serilog
 Log.Logger = new LoggerConfiguration()
@@ -52,6 +71,10 @@ builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssembly(typeof(CreateScheduleBlockDefinitionValidator).Assembly);
 
 // Register services
+builder.Services.AddScoped<DayBootstrapService>();
+builder.Services.AddScoped<UserDayClock>();
+builder.Services.AddScoped<ScheduleMaterializationService>();
+builder.Services.AddHttpClient<BotSystemDayStartClient>();
 builder.Services.AddScoped<TodayService>();
 builder.Services.AddScoped<ScheduleService>();
 builder.Services.AddScoped<BetterItemService>();
@@ -61,9 +84,23 @@ builder.Services.AddScoped<DietService>();
 builder.Services.AddScoped<MoneyService>();
 builder.Services.AddScoped<DeadlineService>();
 builder.Services.AddScoped<WeeklyReviewService>();
+builder.Services.Configure<BotSystemOptions>(builder.Configuration.GetSection(BotSystemOptions.SectionName));
+builder.Services.AddHttpClient<BotSystemIntakeClient>();
+builder.Services.AddScoped<AIInputService>();
+builder.Services.AddScoped<CategoryService>();
+builder.Services.AddScoped<CBTService>();
+builder.Services.AddSingleton<ActivityCatalogService>();
+builder.Services.AddScoped<CheckInService>();
+builder.Services.AddScoped<NotificationService>();
+builder.Services.AddScoped<POS.Application.Services.PhoneUnlock.PhoneUnlockService>();
+builder.Services.AddSingleton<POS.Api.Services.AppReleaseService>();
 
 // Register database seeder
 builder.Services.AddScoped<DataSeeder>();
+
+// Configure database settings
+builder.Services.Configure<DatabaseSettings>(
+    builder.Configuration.GetSection("Database"));
 
 // Configure API behavior
 builder.Services.Configure<ApiBehaviorOptions>(options =>
@@ -99,7 +136,7 @@ builder.Services.AddCors(options =>
         else
         {
             // In production, allow all origins for mobile app access
-            // Production server: http://185.193.66.50:35555
+            // Production server: http://185.193.66.50:31247
             // Expo Go uses dynamic IPs and various origins depending on device and network
             // This is acceptable for mobile API access (no browser-based attacks)
             // Consider adding rate limiting and authentication for additional security
@@ -133,20 +170,98 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title = "Personal Operating System API",
         Version = "v1",
-        Description = "API for Personal Operating System mobile app"
+        Description = @"
+RESTful API for Personal Operating System (POS) mobile app.
+
+This API provides full CRUD operations for all data entities including:
+- Better Items (daily focus items)
+- Tasks (execution items)
+- Schedule Blocks (time management)
+- Discipline Entries (habit tracking)
+- Diet Entries (diet compliance)
+- Income Entries (money tracking)
+- Deadlines (commitment tracking)
+- Weekly Reviews (reflection)
+- CBT Entries (cognitive behavioral therapy)
+- Notifications (app notifications)
+- Phone Unlock Entries (unlock tracking)
+
+All endpoints return standardized ApiResponse<T> format.
+Date parameters should be in YYYY-MM-DD format.
+        ",
+        Contact = new OpenApiContact
+        {
+            Name = "POS API Support",
+            Email = "support@pos-api.com"
+        },
+        License = new OpenApiLicense
+        {
+            Name = "Proprietary",
+            Url = new Uri("https://example.com/license")
+        }
     });
+    
+    // Add server definitions for different environments
+    c.AddServer(new OpenApiServer
+    {
+        Url = "http://185.193.66.50:31247",
+        Description = "Production server"
+    });
+    c.AddServer(new OpenApiServer
+    {
+        Url = "http://localhost:5000",
+        Description = "Development server (local)"
+    });
+    
+    // Include XML comments from API project
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath);
+    }
+    
+    // Include XML comments from Application layer (for DTOs)
+    var applicationXmlFile = "POS.Application.xml";
+    var applicationXmlPath = Path.Combine(AppContext.BaseDirectory, applicationXmlFile);
+    if (File.Exists(applicationXmlPath))
+    {
+        c.IncludeXmlComments(applicationXmlPath);
+    }
+    
+    // Enable annotations for better Swagger generation (allows [SwaggerOperation], [SwaggerResponse], etc.)
+    c.EnableAnnotations();
+    
+    // Show required properties first in Swagger UI
+    c.SupportNonNullableReferenceTypes();
+    
+    // Use fully qualified type names for schema IDs to avoid conflicts between types with same name in different namespaces
+    c.CustomSchemaIds(type => type.FullName?.Replace("+", ".") ?? type.Name);
+    
+    // Group endpoints by controller name (tags)
+    c.TagActionsBy(api => new[] { api.GroupName ?? api.ActionDescriptor.RouteValues["controller"] ?? "Default" });
+    c.DocInclusionPredicate((name, api) => true);
 });
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
-if (app.Environment.IsDevelopment())
+// Enable Swagger based on configuration (default: enabled in Development, can be enabled in Production via config)
+var enableSwagger = builder.Configuration.GetValue<bool>("EnableSwagger", true);
+if (enableSwagger)
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "POS API v1");
         c.RoutePrefix = "swagger"; // Swagger UI at /swagger
+        c.DocumentTitle = "POS API Documentation";
+        c.DefaultModelsExpandDepth(-1); // Hide schemas by default
+        c.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.List); // Expand endpoints list
+        c.EnableDeepLinking();
+        c.EnableFilter();
+        c.ShowExtensions();
+        c.EnableValidator();
         // Enable network access - use relative paths so it works with IP addresses
         c.ConfigObject.Urls = new[] { new Swashbuckle.AspNetCore.SwaggerUI.UrlDescriptor { Name = "POS API v1", Url = "/swagger/v1/swagger.json" } };
     });
@@ -158,11 +273,12 @@ app.UseSerilogRequestLogging();
 // Use exception handling middleware (must be early in pipeline)
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-// Only redirect to HTTPS in production
-if (!app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
+// HTTPS redirection disabled - service is HTTP-only (NodePort 31247)
+// If HTTPS is needed in the future, configure it at the Kubernetes Ingress/LoadBalancer level
+// if (!app.Environment.IsDevelopment())
+// {
+//     app.UseHttpsRedirection();
+// }
 
 // Use CORS
 app.UseCors();
@@ -170,33 +286,104 @@ app.UseCors();
 // Map controllers
 app.MapControllers();
 
-// Auto-seed database on startup if empty (Development only)
-if (app.Environment.IsDevelopment())
+// Migrate legacy task documents (idempotent)
+try
 {
-    try
+    using var migrationScope = app.Services.CreateScope();
+    var taskService = migrationScope.ServiceProvider.GetRequiredService<TaskService>();
+    var migrationLogger = migrationScope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    await taskService.MigrateLegacyStatusesAsync();
+    migrationLogger.LogInformation("Task status migration completed.");
+}
+catch (Exception ex)
+{
+    var migrationLogger = app.Services.GetRequiredService<ILogger<Program>>();
+    migrationLogger.LogWarning(ex, "Task status migration failed. Application will continue.");
+}
+
+// Auto-seed database on startup if enabled and database doesn't exist
+try
+{
+    using var scope = app.Services.CreateScope();
+    var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+    
+    // Read auto-seed configuration
+    var databaseSettings = configuration.GetSection("Database").Get<DatabaseSettings>();
+    var autoSeedEnabled = databaseSettings?.AutoSeedOnStartup ?? false;
+    
+    if (!autoSeedEnabled)
     {
-        using var scope = app.Services.CreateScope();
-        var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        
-        var isSeeded = await seeder.IsSeededAsync();
-        if (!isSeeded)
-        {
-            logger.LogInformation("Database is empty. Auto-seeding initial data...");
-            await seeder.SeedAsync();
-            logger.LogInformation("Database auto-seeding completed successfully.");
-        }
+        logger.LogInformation("Auto-seeding is disabled in configuration. Skipping auto-seed.");
+    }
         else
         {
-            logger.LogInformation("Database already contains data. Skipping auto-seed.");
+            // Check if database is already seeded
+            var isSeeded = await seeder.IsSeededAsync();
+            
+            if (isSeeded)
+            {
+                logger.LogInformation("Database is already seeded with valid data. Skipping auto-seed.");
+            }
+            else
+            {
+                // Check if collections exist but are empty, or have old data
+                var hasEmptyCollections = await seeder.HasEmptyCollectionsAsync();
+                var hasOldData = await seeder.HasOldDataAsync();
+                
+                if (hasEmptyCollections)
+                {
+                    logger.LogInformation("Database exists but collections are empty. Seeding with initial data...");
+                    // Seed without deleting (collections are already empty)
+                    await seeder.SeedAsync(deleteExisting: false);
+                }
+                else if (hasOldData)
+                {
+                    logger.LogInformation("Database has old/invalid data. Cleaning and reseeding...");
+                    // Delete old data and seed fresh
+                    if (app.Environment.IsDevelopment())
+                    {
+                        // In development, clean all collections
+                        await seeder.DeleteAllCollectionsAsync();
+                        await seeder.SeedAsync();
+                    }
+                    else
+                    {
+                        // In production, delete user data and reseed
+                        await seeder.SeedAsync(deleteExisting: true);
+                    }
+                }
+                else
+                {
+                    logger.LogInformation("Database is not seeded. Starting auto-seeding...");
+                    
+                    // In development, clean all collections first to remove old structure data
+                    // In production, just seed without deleting (safer)
+                    if (app.Environment.IsDevelopment())
+                    {
+                        logger.LogInformation("Development mode: Cleaning all collections before seeding...");
+                        await seeder.DeleteAllCollectionsAsync();
+                        // Seed with deleteExisting=true (default) since we already deleted
+                        await seeder.SeedAsync();
+                    }
+                    else
+                    {
+                        logger.LogInformation("Production mode: Seeding without deleting existing data...");
+                        // Seed without deleting existing data in production
+                        await seeder.SeedAsync(deleteExisting: false);
+                    }
+                }
+                
+                logger.LogInformation("Database auto-seeding completed successfully. Set 'Database:AutoSeedOnStartup' to false to disable.");
+            }
         }
-    }
-    catch (Exception ex)
-    {
-        var logger = app.Services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "Error during auto-seeding on startup. Application will continue without seeded data.");
-        // Don't throw - allow app to start even if seeding fails
-    }
+}
+catch (Exception ex)
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogError(ex, "Error during auto-seeding on startup. Application will continue without seeded data.");
+    // Don't throw - allow app to start even if seeding fails
 }
 
 app.Run();

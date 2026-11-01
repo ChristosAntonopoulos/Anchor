@@ -1,13 +1,43 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 import type { ScheduleBlock } from '../../types';
 
 interface CurrentBlockIndicatorProps {
-  block: ScheduleBlock;
+  block: ScheduleBlock | null | undefined;
 }
 
 export function CurrentBlockIndicator({ block }: CurrentBlockIndicatorProps) {
+  // Show breathing quote when no current block
+  if (!block || !block.title) {
+    return (
+      <View style={styles.container}>
+        <LinearGradient
+          colors={['#1E2530', '#252B38']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.frame}
+        >
+          <Text style={styles.label}>Current Block</Text>
+          <View style={styles.cardContainer}>
+            <LinearGradient
+              colors={['#252B38', '#2A3441']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.card}
+            >
+              <View style={styles.content}>
+                <AppIcon name="leaf-outline" size={24} color={colors.category.health} style={styles.quoteIcon} />
+                <Text style={styles.quoteText}>Take a deep breath. This moment is enough.</Text>
+              </View>
+            </LinearGradient>
+          </View>
+        </LinearGradient>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -29,6 +59,16 @@ export function CurrentBlockIndicator({ block }: CurrentBlockIndicatorProps) {
               <Text style={styles.blockTime}>
                 {block.startTime} - {block.endTime}
               </Text>
+              {block.routineActivities && block.routineActivities.length > 0 && (
+                <View style={styles.activitiesContainer}>
+                  {block.routineActivities.map((activity, index) => (
+                    <View key={index} style={styles.activityItem}>
+                      <AppIcon name="checkmark-circle-outline" size={14} color={colors.textSecondary} />
+                      <Text style={styles.activityText}>{activity}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>
             <View style={styles.glowIndicator} />
           </LinearGradient>
@@ -90,5 +130,29 @@ const styles = StyleSheet.create({
     width: 4,
     backgroundColor: colors.category.work,
     opacity: 0.6,
+  },
+  quoteIcon: {
+    marginBottom: spacing.s,
+    alignSelf: 'center',
+  },
+  quoteText: {
+    fontSize: typography.fontSize.body,
+    fontStyle: 'italic',
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  activitiesContainer: {
+    marginTop: spacing.s,
+    gap: spacing.xs,
+  },
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  activityText: {
+    fontSize: typography.fontSize.caption,
+    color: colors.textSecondary,
   },
 });

@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography } from '../../constants/designTokens';
 import { ScheduleBlockItem } from './ScheduleBlockItem';
 import type { ScheduleBlock } from '../../types';
@@ -10,13 +10,14 @@ interface ScheduleTimelineProps {
   refreshing?: boolean;
   onRefresh?: () => void;
   onUpdateBlock?: (id: string, updates: { title?: string; startTime?: string; endTime?: string }) => void;
+  onItemComplete?: (blockId: string, itemId: string) => Promise<void>;
 }
 
-export function ScheduleTimeline({ blocks, currentBlockId, refreshing, onRefresh, onUpdateBlock }: ScheduleTimelineProps) {
+export function ScheduleTimeline({ blocks, currentBlockId, refreshing, onRefresh, onUpdateBlock, onItemComplete }: ScheduleTimelineProps) {
   if (blocks.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name="calendar-outline" size={48} color={colors.textSecondary} style={styles.emptyIcon} />
+        <AppIcon name="calendar-outline" size={48} color={colors.textSecondary} style={styles.emptyIcon} />
         <Text style={styles.emptyText}>No schedule blocks configured.</Text>
       </View>
     );
@@ -38,6 +39,7 @@ export function ScheduleTimeline({ blocks, currentBlockId, refreshing, onRefresh
           block={block}
           isCurrent={block.id === currentBlockId}
           onUpdate={onUpdateBlock ? (updates) => onUpdateBlock(block.id, updates) : undefined}
+          onItemComplete={onItemComplete}
         />
       ))}
     </ScrollView>

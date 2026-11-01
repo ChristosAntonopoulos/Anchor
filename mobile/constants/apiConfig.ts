@@ -1,59 +1,69 @@
 // API configuration for backend connection
 // Environment-aware base URL configuration
 
-// Check if we're in development mode
-const isDev = typeof __DEV__ !== 'undefined' ? __DEV__ : true;
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
 /**
- * Development API Base URL Configuration
- * 
- * IMPORTANT: Update this URL based on your testing environment:
- * 
- * - iOS Simulator: Use 'http://localhost:5000/api' (works on simulator)
- * - Android Emulator: Use 'http://10.0.2.2:5000/api' (10.0.2.2 is special alias for host)
- * - Physical Device: Use your computer's IP address (e.g., 'http://192.168.1.43:5000/api')
- *   - Find your IP: Windows: `ipconfig` | Mac/Linux: `ifconfig` or `ip addr`
- *   - Both devices must be on the same Wi-Fi network
- * 
- * Backend runs on port 5000 (HTTP) - see backend/src/POS.Api/Properties/launchSettings.json
+ * Local POS.Api (dotnet run on POS.Api)
+ * - iOS Simulator / web: localhost
+ * - Android emulator: 10.0.2.2 (host machine)
+ * - Physical device: set EXPO_PUBLIC_API_URL=http://<your-pc-ip>:5000/api
  */
-const DEV_API_BASE_URL = 'http://192.168.1.43:5000/api';
+function getDevApiBaseUrl(): string {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+  if (Platform.OS === 'android') {
+    return 'http://10.0.2.2:5000/api';
+  }
+  return 'http://localhost:5000/api';
+}
 
 /**
- * Production API Base URL Configuration
- * 
- * Production server: http://185.193.66.50:35555/api
- * 
- * For production deployments, set EXPO_PUBLIC_API_URL environment variable:
- * 
- * Option 1: Set in Expo build configuration
- *   expo build:android --env EXPO_PUBLIC_API_URL=http://185.193.66.50:35555/api
- *   expo build:ios --env EXPO_PUBLIC_API_URL=http://185.193.66.50:35555/api
- * 
- * Option 2: Set in app.json (expo.extra)
- *   "extra": {
- *     "apiUrl": "http://185.193.66.50:35555/api"
- *   }
- * 
- * Option 3: The fallback URL below is set to the production server
+ * Remote production NodePort (deployed cluster)
  */
-const PROD_API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://185.193.66.50:35555/api';
+const PROD_API_BASE_URL = 'http://185.193.66.50:31247/api';
+
+const getApiBaseUrl = (): string => {
+  // Dev builds (Expo Go, expo start, debug run) → local POS.Api
+  if (typeof __DEV__ !== 'undefined' && __DEV__) {
+    return getDevApiBaseUrl();
+  }
+
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  return PROD_API_BASE_URL;
+};
+
+const apiBaseUrl = getApiBaseUrl();
 
 export const API_CONFIG = {
-  baseURL: isDev 
-    ? DEV_API_BASE_URL
-    : PROD_API_BASE_URL,
-  timeout: 10000, // 10 seconds
+  baseURL: apiBaseUrl,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
 };
 
-// Helper to get full URL for an endpoint
+if (__DEV__) {
+  console.log('🔗 API Base URL:', API_CONFIG.baseURL);
+  console.log('🔗 EXPO_PUBLIC_API_URL:', process.env.EXPO_PUBLIC_API_URL || '(not set)');
+  console.log('🔗 Execution:', Constants.executionEnvironment);
+} else {
+  console.log('[API] Base URL:', API_CONFIG.baseURL);
+}
+
 export function getApiUrl(endpoint: string): string {
-  const base = API_CONFIG.baseURL.endsWith('/') 
-    ? API_CONFIG.baseURL.slice(0, -1) 
+  const base = API_CONFIG.baseURL.endsWith('/')
+    ? API_CONFIG.baseURL.slice(0, -1)
     : API_CONFIG.baseURL;
   const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   return `${base}${path}`;
+}
+
+export function getApiBaseUrlForDebug(): string {
+  return API_CONFIG.baseURL;
 }

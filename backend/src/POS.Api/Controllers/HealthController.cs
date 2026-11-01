@@ -10,6 +10,7 @@ namespace POS.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Tags("Health")]
 public class HealthController : ControllerBase
 {
     private readonly IMongoDatabase _database;

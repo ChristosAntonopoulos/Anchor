@@ -53,6 +53,18 @@ export function transformScheduleBlock(dto: any): any {
     title: dto.title,
     startTime: dto.startTime,
     endTime: dto.endTime,
+    routineActivities: dto.routineActivities,
+    checklistItems: (dto.checklistItems || []).map((item: any, index: number) => {
+      const rawMinutes = Number(item.durationMinutes);
+      const durationMinutes = Number.isFinite(rawMinutes) && rawMinutes > 0 ? rawMinutes : 5;
+      return {
+        id: item.id || `step-${index}`,
+        title: item.title || 'Step',
+        durationMinutes,
+        completed: Boolean(item.completed),
+        order: Number.isFinite(Number(item.order)) ? Number(item.order) : index,
+      };
+    }),
   };
 }
 
@@ -66,21 +78,36 @@ export function transformTask(dto: any): any {
     title: dto.title,
     category: dto.category,
     completed: dto.completed,
+    status: dto.status,
+    focusRank: dto.focusRank,
+    plannedDate: dto.plannedDate,
+    snoozedUntil: dto.snoozedUntil,
+    aiInputId: dto.aiInputId,
+    source: dto.source,
+    notes: dto.notes,
+    privateNotes: dto.privateNotes,
+    subtasks: dto.subtasks,
+    location: dto.location,
+    dueDate: dto.dueDate,
+    priority: dto.priority,
+    recurrence: dto.recurrence,
+    tags: dto.tags,
+    estimatedMinutes: dto.estimatedMinutes,
+    reminders: dto.reminders,
+    completedAt: dto.completedAt,
+    order: dto.order,
   };
 }
 
 /**
  * Transforms DisciplineEntryDto to DisciplineEntry
- * Maps only fields needed by frontend
+ * Maps block-based structure
  */
 export function transformDisciplineEntry(dto: any): any {
   return {
-    gym: dto.gym || false,
-    walk: dto.walk || false,
-    cooked: dto.cooked || false,
-    diet: dto.diet || false,
-    meditation: dto.meditation || false,
-    water: dto.water || false,
+    blocks: dto.blocks || [],
+    note: dto.note,
+    date: dto.date,
   };
 }
 

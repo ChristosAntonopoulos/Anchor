@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography } from '../../constants/designTokens';
 import { DeadlineCard } from './DeadlineCard';
 import type { Deadline } from '../../types';
@@ -13,7 +14,7 @@ export function DeadlineList({ deadlines, refreshing, onRefresh }: DeadlineListP
   if (deadlines.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name="hourglass-outline" size={48} color={colors.textSecondary} style={styles.emptyIcon} />
+        <AppIcon name="hourglass-outline" size={48} color={colors.textSecondary} style={styles.emptyIcon} />
         <Text style={styles.emptyText}>No urgent commitments right now.</Text>
       </View>
     );

@@ -21,4 +21,5 @@ public class ScheduleBlockDefinitionDto : ResponseDto
     public string[] Tags { get; set; } = Array.Empty<string>();
     public bool Enabled { get; set; } = true;
     public int Priority { get; set; } = 3;
+    public List<string>? RoutineActivities { get; set; } // List of activities for routine blocks
 }

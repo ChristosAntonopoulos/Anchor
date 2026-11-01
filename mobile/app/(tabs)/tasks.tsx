@@ -1,32 +1,66 @@
-import { View, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, gradients } from '../../constants/designTokens';
-import { useTodayStore } from '../../store/useTodayStore';
+import { colors, gradients, spacing, typography } from '../../constants/designTokens';
+import { useTaskStore, canAddToTodayFocus } from '../../store/useTaskStore';
+import { useDayBootstrapStore } from '../../store/useDayBootstrapStore';
 import { TaskList } from '../../components/tasks/TaskList';
+import { InboxTaskItem } from '../../components/tasks/InboxTaskItem';
 import { AddTaskButton } from '../../components/tasks/AddTaskButton';
+import { TaskDetailModal } from '../../components/tasks/TaskDetailModal';
+import { MAX_TODAY_FOCUS } from '../../types';
+import type { Task } from '../../types';
 
 export default function TasksScreen() {
-  const { data, loading, error, fetchToday, createTask, completeTask } = useTodayStore();
+  const {
+    todayFocus,
+    inboxItems,
+    inboxTotalCount,
+    loading,
+    error,
+    fetchTasks,
+    createTask,
+    completeTask,
+    updateTask,
+    promoteTask,
+    demoteTask,
+  } = useTaskStore();
+  const bootstrapStatus = useDayBootstrapStore((s) => s.bootstrap?.status);
+  const dayStartProcessing = bootstrapStatus === 'processing' || bootstrapStatus === 'pending';
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [showTaskModal, setShowTaskModal] = useState(false);
 
   useEffect(() => {
-    if (!data) {
-      fetchToday();
-    }
-  }, [data, fetchToday]);
+    fetchTasks();
+  }, [fetchTasks]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchToday();
+    await fetchTasks();
     setRefreshing(false);
   };
 
-  const tasks = data?.tasks || [];
-  const canAddTask = tasks.length < 5;
+  const canAddFocus = canAddToTodayFocus(todayFocus.length);
+  const focusFull = todayFocus.length >= MAX_TODAY_FOCUS;
 
-  if (loading && !data) {
+  const handlePromote = async (taskId: string) => {
+    if (focusFull) {
+      Alert.alert(
+        'Focus list full',
+        `You can only have ${MAX_TODAY_FOCUS} tasks in today's focus. Move one back to inbox first.`
+      );
+      return;
+    }
+    try {
+      await promoteTask(taskId);
+    } catch {
+      // error surfaced via store
+    }
+  };
+
+  if (loading && todayFocus.length === 0 && inboxItems.length === 0) {
     return (
       <LinearGradient
         colors={gradients.background.colors}
@@ -58,12 +92,90 @@ export default function TasksScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.category.work} />
           }
         >
-          <TaskList tasks={tasks} onToggleTask={completeTask} />
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Today's focus</Text>
+            <Text style={styles.sectionMeta}>
+              {todayFocus.length}/{MAX_TODAY_FOCUS}
+            </Text>
+          </View>
+          <Text style={styles.sectionHint}>Pick up to {MAX_TODAY_FOCUS} tasks to execute today.</Text>
+
+          {dayStartProcessing && todayFocus.length === 0 ? (
+            <View style={styles.focusLoading}>
+              <ActivityIndicator size="small" color={colors.category.work} />
+              <Text style={styles.focusLoadingText}>Loading today's focus…</Text>
+            </View>
+          ) : (
+            <TaskList
+              tasks={todayFocus}
+              onToggleTask={completeTask}
+              onTaskPress={(task) => {
+                setSelectedTask(task);
+                setShowTaskModal(true);
+              }}
+              emptyMessage="No focus tasks yet. Promote from inbox or add one below."
+            />
+          )}
           <AddTaskButton
-            onAddTask={(title, category) => createTask(title, category)}
-            disabled={!canAddTask}
+            label="+ Add to today"
+            limitMessage={`Today's focus is full (${MAX_TODAY_FOCUS} tasks). Move one to inbox first.`}
+            onAddTask={(title, category) => createTask(title, category, 'today')}
+            disabled={!canAddFocus}
+          />
+
+          <View style={[styles.sectionHeader, styles.inboxHeader]}>
+            <Text style={styles.sectionTitle}>Inbox</Text>
+            <Text style={styles.sectionMeta}>{inboxTotalCount}</Text>
+          </View>
+          <Text style={styles.sectionHint}>Capture everything here. Promote when you're ready to work on it.</Text>
+
+          <View style={styles.inboxList}>
+            {inboxItems.length === 0 ? (
+              <Text style={styles.inboxEmpty}>Inbox is empty — great for a clear mind.</Text>
+            ) : (
+              inboxItems.map((task) => (
+                <InboxTaskItem
+                  key={task.id}
+                  task={task}
+                  promoteDisabled={focusFull}
+                  onPromote={() => handlePromote(task.id)}
+                  onPress={() => {
+                    setSelectedTask(task);
+                    setShowTaskModal(true);
+                  }}
+                />
+              ))
+            )}
+          </View>
+          <AddTaskButton
+            label="+ Add to inbox"
+            onAddTask={(title, category) => createTask(title, category, 'inbox')}
           />
         </ScrollView>
+        <TaskDetailModal
+          task={selectedTask}
+          visible={showTaskModal}
+          onClose={() => {
+            setShowTaskModal(false);
+            setSelectedTask(null);
+          }}
+          onSave={async (updates) => {
+            if (selectedTask) {
+              await updateTask(selectedTask.id, updates);
+            }
+          }}
+          onDemote={
+            selectedTask?.status === 'today'
+              ? async () => {
+                  await demoteTask(selectedTask!.id);
+                  setShowTaskModal(false);
+                  setSelectedTask(null);
+                }
+              : undefined
+          }
+        />
       </SafeAreaView>
     </LinearGradient>
   );
@@ -80,5 +192,58 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.l,
+    marginTop: spacing.l,
+    marginBottom: spacing.xs,
+  },
+  inboxHeader: {
+    marginTop: spacing.xl,
+  },
+  sectionTitle: {
+    fontSize: typography.fontSize.title,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.textPrimary,
+  },
+  sectionMeta: {
+    fontSize: typography.fontSize.caption,
+    color: colors.textSecondary,
+    fontWeight: typography.fontWeight.semibold,
+  },
+  sectionHint: {
+    fontSize: typography.fontSize.caption,
+    color: colors.textSecondary,
+    paddingHorizontal: spacing.l,
+    marginBottom: spacing.m,
+  },
+  focusLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.s,
+    paddingVertical: spacing.l,
+  },
+  focusLoadingText: {
+    fontSize: typography.fontSize.caption,
+    color: colors.textSecondary,
+  },
+  inboxList: {
+    paddingHorizontal: spacing.l,
+  },
+  inboxEmpty: {
+    fontSize: typography.fontSize.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    paddingVertical: spacing.l,
+  },
+  errorText: {
+    color: colors.category.health,
+    paddingHorizontal: spacing.l,
+    paddingTop: spacing.m,
+    fontSize: typography.fontSize.caption,
   },
 });

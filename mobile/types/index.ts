@@ -1,6 +1,290 @@
 // Type definitions matching the specification's JSON response formats exactly
 
-export type Category = 'work' | 'leverage' | 'health' | 'stability';
+// Category interface (database-driven)
+export interface Category {
+  id: string;
+  name: string;
+  displayName: string;
+  color: string;
+  icon?: string;
+  description?: string;
+  order: number;
+  isActive: boolean;
+}
+
+// Legacy category type for backward compatibility (category name/id as string)
+export type CategoryName = string;
+
+// Re-export notification types
+export type {
+  NotificationData,
+  Notification,
+  NotificationAction,
+  NotificationSettings,
+  NotificationInsights,
+  AppNotificationCount,
+  TimeSlotCount,
+  DayOfWeekCount,
+} from './notifications';
+
+// CBT Types
+export interface AutomaticThought {
+  text: string;
+  emotion?: string;
+  intensity?: number; // 0-10
+  distortions?: string[];
+}
+
+export interface FeelingRating {
+  code?: string;
+  customLabel?: string;
+  intensity?: number;
+  scaleMin?: number;
+  scaleMax?: number;
+  phase?: string;
+  measuredAtUtc?: string;
+}
+
+export interface ProblemSolvingRecord {
+  specificProblem?: string;
+  controllablePart?: string;
+  options?: string[];
+  selectedOption?: string;
+  smallestNextStep?: string;
+  state?: string;
+}
+
+export interface CBTEntry {
+  id: string;
+  text: string;
+  mood?: string;
+  moodIntensity?: number; // 0-10
+  situation?: string;
+  automaticThoughts?: AutomaticThought[];
+  cognitiveDistortions?: string[];
+  evidenceFor?: string[];
+  evidenceAgainst?: string[];
+  alternativeThoughts?: string[];
+  behaviors?: string[];
+  outcome?: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  processedAt?: string; // ISO datetime string
+  aiInsights?: string;
+  createdAt: string; // ISO datetime string
+  updatedAt?: string; // ISO datetime string
+  schemaVersion?: number;
+  title?: string;
+  recordState?: string;
+  supportType?: string;
+  occurredAtUtc?: string;
+  timezone?: string;
+  utcOffsetMinutes?: number;
+  energy?: string;
+  tiredness?: string;
+  numbness?: string;
+  feelings?: FeelingRating[];
+  thoughtState?: string;
+  beliefBefore?: number;
+  beliefAfter?: number;
+  problemSolving?: ProblemSolvingRecord;
+  linkedUnlockEventId?: string;
+}
+
+export interface MoodEntry {
+  id: string;
+  date: string; // ISO date string
+  mood: string;
+  intensity: number; // 0-10
+  notes?: string;
+  triggers?: string[];
+  activities?: string[];
+  createdAt: string; // ISO datetime string
+  updatedAt?: string; // ISO datetime string
+}
+
+export interface BehavioralActivity {
+  id: string;
+  title: string;
+  description?: string;
+  scheduledDate?: string; // ISO datetime string
+  completedDate?: string; // ISO datetime string
+  moodBefore?: number; // 0-10
+  moodAfter?: number; // 0-10
+  pleasureRating?: number; // 0-10
+  masteryRating?: number; // 0-10
+  notes?: string;
+  isCompleted: boolean;
+  createdAt: string; // ISO datetime string
+  updatedAt?: string; // ISO datetime string
+  schemaVersion?: number;
+  checkInId?: string;
+  templateId?: string;
+  templateVersion?: string;
+  lifecycle?: string;
+  firstStep?: string;
+  category?: string;
+  effort?: string;
+  durationMinutes?: number;
+  completionExtent?: string;
+  usefulness?: string;
+  enjoyment?: string;
+  accomplishment?: string;
+  changeNextTime?: string;
+  linkedTaskId?: string;
+}
+
+export interface CreateCBTEntryRequest {
+  text?: string;
+  title?: string;
+  recordState?: string;
+  supportType?: string;
+  occurredAtUtc?: string;
+  timezone?: string;
+  utcOffsetMinutes?: number;
+  energy?: string;
+  feelings?: FeelingRating[];
+  linkedUnlockEventId?: string;
+}
+
+export interface UpdateCBTEntryRequest {
+  text?: string;
+  title?: string;
+  recordState?: string;
+  supportType?: string;
+  energy?: string;
+  feelings?: FeelingRating[];
+  situation?: string;
+  automaticThoughts?: AutomaticThought[];
+  evidenceFor?: string[];
+  evidenceAgainst?: string[];
+  alternativeThoughts?: string[];
+  outcome?: string;
+  thoughtState?: string;
+  beliefBefore?: number;
+  beliefAfter?: number;
+  problemSolving?: ProblemSolvingRecord;
+  linkedUnlockEventId?: string;
+}
+
+export interface ActivityTemplate {
+  id: string;
+  title: string;
+  firstStep: string;
+  instructions: string;
+  durationMinutes: number;
+  effort: string;
+  purpose: string;
+  requirements: string;
+  smallerVersion: string;
+  category: string;
+  source: string;
+  contentVersion: string;
+  isBreathing?: boolean;
+}
+
+export interface CheckInAssistQuestion {
+  text: string;
+  targetField: string;
+}
+
+export interface CheckInSuggestedAction {
+  templateId: string;
+  rationale: string;
+  proposedFirstStep?: string;
+}
+
+export interface CheckInAssistResponse {
+  reflection?: string;
+  suggestedEmotionCodes?: string[];
+  question?: CheckInAssistQuestion;
+  suggestedActions?: CheckInSuggestedAction[];
+  usedAi?: boolean;
+}
+
+export interface CheckInAssistRequest {
+  supportType?: string;
+  dismissedTemplateIds?: string[];
+  excludedTemplateIds?: string[];
+  usePreviousEntries?: boolean;
+  requestedCategory?: string;
+}
+
+export interface CreateActivityAttemptRequest {
+  completionExtent?: string;
+  usefulness?: string;
+  enjoyment?: string;
+  accomplishment?: string;
+  changeNextTime?: string;
+  notes?: string;
+  durationMinutes?: number;
+  attemptedAtUtc?: string;
+  feelingAfter?: FeelingRating[];
+}
+
+export interface LinkActivityTaskResponse {
+  activity: BehavioralActivity;
+  taskId: string;
+  alreadyLinked: boolean;
+}
+
+export interface CreateMoodEntryRequest {
+  date: string; // ISO date string
+  mood: string;
+  intensity: number; // 0-10
+  notes?: string;
+  triggers?: string[];
+  activities?: string[];
+}
+
+export interface CreateBehavioralActivityRequest {
+  title?: string;
+  description?: string;
+  scheduledDate?: string; // ISO datetime string
+  notes?: string;
+  checkInId?: string;
+  templateId?: string;
+  templateVersion?: string;
+  lifecycle?: string;
+  firstStep?: string;
+  category?: string;
+  effort?: string;
+  durationMinutes?: number;
+}
+
+export interface UpdateBehavioralActivityRequest {
+  title?: string;
+  description?: string;
+  scheduledDate?: string; // ISO datetime string
+  notes?: string;
+  lifecycle?: string;
+  firstStep?: string;
+  linkedTaskId?: string;
+}
+
+export interface CompleteBehavioralActivityRequest {
+  moodBefore?: number; // 0-10
+  moodAfter?: number; // 0-10
+  pleasureRating?: number; // 0-10
+  masteryRating?: number; // 0-10
+  notes?: string;
+  completionExtent?: string;
+  usefulness?: string;
+  enjoyment?: string;
+  accomplishment?: string;
+  changeNextTime?: string;
+  lifecycle?: string;
+}
+
+export interface AIInput {
+  id: string;
+  text: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  createdAt: string;
+  updatedAt?: string;
+  processedAt?: string;
+  result?: string;
+  error?: string;
+}
 
 export type DeadlineStatus = 'on track' | 'behind';
 
@@ -13,26 +297,97 @@ export interface Day {
 export interface BetterItem {
   id: string;
   title: string;
-  category: Category;
+  category: CategoryName; // Category name/id as string
   completed: boolean;
 }
+
+// Subtask
+export interface Subtask {
+  id: string;
+  title: string;
+  completed: boolean;
+  order?: number;
+}
+
+// Location
+export interface Location {
+  latitude?: number;
+  longitude?: number;
+  address?: string;
+  placeName?: string;
+}
+
+// RecurrencePattern
+export interface RecurrencePattern {
+  type: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  interval?: number;
+  daysOfWeek?: number[]; // 0=Sunday, 1=Monday, etc.
+  dayOfMonth?: number;
+  endDate?: string; // ISO date string
+  occurrenceCount?: number;
+}
+
+// Reminder
+export interface Reminder {
+  reminderTime: string; // ISO datetime string
+  type: 'notification' | 'alarm';
+  triggered: boolean;
+}
+
+// Task workflow status
+export type TaskWorkflowStatus = 'inbox' | 'today' | 'done' | 'archived' | 'snoozed';
 
 // Task
 export interface Task {
   id: string;
   title: string;
-  category: Category;
+  category: CategoryName; // Category name/id as string
   completed: boolean;
+  status?: TaskWorkflowStatus;
+  focusRank?: number;
+  plannedDate?: string;
+  snoozedUntil?: string;
+  aiInputId?: string;
+  source?: 'ai' | 'user' | 'notification';
+  notes?: string;
+  privateNotes?: string;
+  subtasks?: Subtask[];
+  location?: Location;
+  dueDate?: string; // ISO datetime string
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  recurrence?: RecurrencePattern;
+  tags?: string[];
+  estimatedMinutes?: number;
+  reminders?: Reminder[];
+  completedAt?: string; // ISO datetime string
+  order?: number;
+}
+
+// DisciplineItemType
+export type DisciplineItemType = 'toggle' | 'counter';
+
+// DisciplineItem
+export interface DisciplineItem {
+  itemId: string;
+  itemName: string;
+  type: DisciplineItemType;
+  toggleValue?: boolean;
+  counterValue?: number;
+}
+
+// DisciplineBlock
+export interface DisciplineBlock {
+  blockId: string;
+  blockName: string;
+  items: DisciplineItem[];
+  order?: number;
 }
 
 // DisciplineEntry
 export interface DisciplineEntry {
-  gym: boolean;
-  walk: boolean;
-  cooked: boolean;
-  diet: boolean;
-  meditation: boolean;
-  water: boolean;
+  blocks: DisciplineBlock[];
+  note?: string;
+  date: string;
 }
 
 // DietEntry
@@ -42,12 +397,23 @@ export interface DietEntry {
   photoUri?: string;
 }
 
+// Timed checklist step within a schedule block (saved per day)
+export interface ScheduleChecklistItem {
+  id: string;
+  title: string;
+  durationMinutes: number;
+  completed: boolean;
+  order: number;
+}
+
 // ScheduleBlock
 export interface ScheduleBlock {
   id: string;
   title: string;
   startTime: string; // HH:mm format
   endTime: string; // HH:mm format
+  routineActivities?: string[]; // List of activities for routine blocks
+  checklistItems?: ScheduleChecklistItem[];
 }
 
 // Deadline
@@ -88,9 +454,29 @@ export interface WeeklyReview {
   completed: boolean;
 }
 
+// Day bootstrap / yesterday assessment
+export type DayBootstrapStatus = 'pending' | 'processing' | 'ready' | 'failed';
+
+export interface YesterdayAssessment {
+  summary: string;
+  wins: string[];
+  misses: string[];
+  carryForward: string[];
+  moodNote?: string;
+  generatedAt?: string;
+}
+
+export interface DayBootstrap {
+  status: DayBootstrapStatus;
+  assessmentSeen: boolean;
+  error?: string;
+  yesterdayAssessment?: YesterdayAssessment;
+}
+
 // TodayResponse - matches GET /api/today
 export interface TodayResponse {
   day: Day;
+  dayBootstrap?: DayBootstrap;
   betterItems: BetterItem[];
   tasks: Task[];
   discipline: DisciplineEntry;
@@ -126,12 +512,53 @@ export interface UpdateScheduleBlockRequest {
 
 export interface CreateTaskRequest {
   title: string;
-  category: Category;
+  category: CategoryName;
+  /** inbox (default) or today (focus list, max 5) */
+  status?: 'inbox' | 'today';
+  notes?: string;
+  privateNotes?: string;
+  subtasks?: Subtask[];
+  location?: Location;
+  dueDate?: string; // ISO datetime string
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  recurrence?: RecurrencePattern;
+  tags?: string[];
+  estimatedMinutes?: number;
+  reminders?: Reminder[];
+  order?: number;
+}
+
+export interface UpdateTaskRequest {
+  title?: string;
+  category?: CategoryName;
+  completed?: boolean;
+  status?: TaskWorkflowStatus;
+  focusRank?: number;
+  plannedDate?: string;
+  snoozedUntil?: string;
+  notes?: string;
+  privateNotes?: string;
+  subtasks?: Subtask[];
+  location?: Location;
+  dueDate?: string; // ISO datetime string
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  recurrence?: RecurrencePattern;
+  tags?: string[];
+  estimatedMinutes?: number;
+  reminders?: Reminder[];
+  order?: number;
 }
 
 export interface CompleteTaskRequest {
   id: string;
 }
+
+export interface TaskInboxResponse {
+  items: Task[];
+  totalCount: number;
+}
+
+export const MAX_TODAY_FOCUS = 5;
 
 export interface UpdateDisciplineRequest {
   discipline: Partial<DisciplineEntry>;
@@ -152,4 +579,49 @@ export interface SubmitWeeklyReviewRequest {
   improved: string;
   avoided: string;
   nextFocus: string;
+}
+
+// Phone Unlock Types
+export interface PhoneUnlockEntry {
+  id: string;
+  reason: string;
+  unlockedAt: string; // ISO datetime string
+  unlockMethod?: string;
+  createdAt: string; // ISO datetime string
+  updatedAt?: string; // ISO datetime string
+  promptId?: string;
+  schemaVersion?: number;
+  unlockEventId?: string;
+  shownAtUtc?: string;
+  utcOffsetMinutesAtShown?: number;
+  resolvedAtUtc?: string;
+  status?: string;
+  action?: string;
+  intentionCode?: string | null;
+  triggerCode?: string | null;
+  feelingCode?: string | null;
+  note?: string | null;
+  contextExpanded?: boolean;
+  submissionPath?: string | null;
+  putDownExecution?: string | null;
+}
+
+export interface CreatePhoneUnlockEntryRequest {
+  unlockedAt?: string;
+  unlockMethod?: string;
+  promptId?: string;
+  schemaVersion?: number;
+  unlockEventId?: string;
+  shownAtUtc?: string;
+  utcOffsetMinutesAtShown?: number;
+  resolvedAtUtc?: string;
+  status?: string;
+  action?: string | null;
+  intentionCode?: string | null;
+  triggerCode?: string | null;
+  feelingCode?: string | null;
+  note?: string | null;
+  contextExpanded?: boolean;
+  submissionPath?: string | null;
+  putDownExecution?: string | null;
 }
