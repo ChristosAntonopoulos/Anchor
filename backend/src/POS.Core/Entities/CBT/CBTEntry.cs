@@ -50,5 +50,54 @@ public class CBTEntry : EntityBase
     public DateTime? ProcessedAt { get; set; } // When AI finished processing
 
     [BsonElement("aiInsights")]
-    public string? AIInsights { get; set; } // AI-generated insights/summary
+    public string? AIInsights { get; set; }
+
+    [BsonElement("schemaVersion")]
+    public int SchemaVersion { get; set; } = 1;
+
+    [BsonElement("title")]
+    public string? Title { get; set; }
+
+    [BsonElement("recordState")]
+    public string RecordState { get; set; } = "saved";
+
+    [BsonElement("supportType")]
+    public string? SupportType { get; set; }
+
+    [BsonElement("occurredAtUtc")]
+    [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
+    public DateTime? OccurredAtUtc { get; set; }
+
+    [BsonElement("timezone")]
+    public string? Timezone { get; set; }
+
+    [BsonElement("utcOffsetMinutes")]
+    public int? UtcOffsetMinutes { get; set; }
+
+    [BsonElement("energy")]
+    public string? Energy { get; set; }
+
+    [BsonElement("tiredness")]
+    public string? Tiredness { get; set; }
+
+    [BsonElement("numbness")]
+    public string? Numbness { get; set; }
+
+    [BsonElement("feelings")]
+    public List<FeelingRating>? Feelings { get; set; }
+
+    [BsonElement("thoughtState")]
+    public string? ThoughtState { get; set; }
+
+    [BsonElement("beliefBefore")]
+    public int? BeliefBefore { get; set; }
+
+    [BsonElement("beliefAfter")]
+    public int? BeliefAfter { get; set; }
+
+    [BsonElement("problemSolving")]
+    public ProblemSolvingRecord? ProblemSolving { get; set; }
+
+    [BsonElement("linkedUnlockEventId")]
+    public string? LinkedUnlockEventId { get; set; }
 }

@@ -77,6 +77,15 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
+    fun consumePendingCheckInOffer(promise: Promise) {
+        try {
+            promise.resolve(PhoneUnlockStore.consumePendingCheckInOffer(reactApplicationContext))
+        } catch (error: Exception) {
+            promise.reject("UNLOCK_PROMPT", "Failed to read check-in offer", error)
+        }
+    }
+
+    @ReactMethod
     fun clearPendingUnlockTime() {
         resetPendingUnlockTime()
         android.util.Log.d(TAG, "Cleared pending unlock time")

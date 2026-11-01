@@ -29,9 +29,11 @@ export function ThoughtRecordCard({ entry, onPress }: ThoughtRecordCardProps) {
         <View style={styles.header}>
           <View style={[styles.statusBadge, isCompleted && styles.statusBadgeCompleted]}>
             <Text style={[styles.statusText, isCompleted && styles.statusTextCompleted]}>
-              {entry.status === 'pending' ? 'Processing...' : 
-               entry.status === 'processing' ? 'Analyzing...' :
-               entry.status === 'completed' ? 'Completed' : 'Failed'}
+              {entry.schemaVersion && entry.schemaVersion >= 2
+                ? entry.recordState === 'draft' ? 'Draft' : 'Saved'
+                : entry.status === 'pending' ? 'Saved' :
+               entry.status === 'processing' ? 'Saved' :
+               entry.status === 'completed' ? 'Saved' : 'Saved'}
             </Text>
           </View>
           <Text style={styles.date}>

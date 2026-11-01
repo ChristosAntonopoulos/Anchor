@@ -35,6 +35,25 @@ export interface AutomaticThought {
   distortions?: string[];
 }
 
+export interface FeelingRating {
+  code?: string;
+  customLabel?: string;
+  intensity?: number;
+  scaleMin?: number;
+  scaleMax?: number;
+  phase?: string;
+  measuredAtUtc?: string;
+}
+
+export interface ProblemSolvingRecord {
+  specificProblem?: string;
+  controllablePart?: string;
+  options?: string[];
+  selectedOption?: string;
+  smallestNextStep?: string;
+  state?: string;
+}
+
 export interface CBTEntry {
   id: string;
   text: string;
@@ -53,6 +72,22 @@ export interface CBTEntry {
   aiInsights?: string;
   createdAt: string; // ISO datetime string
   updatedAt?: string; // ISO datetime string
+  schemaVersion?: number;
+  title?: string;
+  recordState?: string;
+  supportType?: string;
+  occurredAtUtc?: string;
+  timezone?: string;
+  utcOffsetMinutes?: number;
+  energy?: string;
+  tiredness?: string;
+  numbness?: string;
+  feelings?: FeelingRating[];
+  thoughtState?: string;
+  beliefBefore?: number;
+  beliefAfter?: number;
+  problemSolving?: ProblemSolvingRecord;
+  linkedUnlockEventId?: string;
 }
 
 export interface MoodEntry {
@@ -81,19 +116,115 @@ export interface BehavioralActivity {
   isCompleted: boolean;
   createdAt: string; // ISO datetime string
   updatedAt?: string; // ISO datetime string
+  schemaVersion?: number;
+  checkInId?: string;
+  templateId?: string;
+  templateVersion?: string;
+  lifecycle?: string;
+  firstStep?: string;
+  category?: string;
+  effort?: string;
+  durationMinutes?: number;
+  completionExtent?: string;
+  usefulness?: string;
+  enjoyment?: string;
+  accomplishment?: string;
+  changeNextTime?: string;
+  linkedTaskId?: string;
 }
 
 export interface CreateCBTEntryRequest {
-  text: string;
+  text?: string;
+  title?: string;
+  recordState?: string;
+  supportType?: string;
+  occurredAtUtc?: string;
+  timezone?: string;
+  utcOffsetMinutes?: number;
+  energy?: string;
+  feelings?: FeelingRating[];
+  linkedUnlockEventId?: string;
 }
 
 export interface UpdateCBTEntryRequest {
+  text?: string;
+  title?: string;
+  recordState?: string;
+  supportType?: string;
+  energy?: string;
+  feelings?: FeelingRating[];
   situation?: string;
   automaticThoughts?: AutomaticThought[];
   evidenceFor?: string[];
   evidenceAgainst?: string[];
   alternativeThoughts?: string[];
   outcome?: string;
+  thoughtState?: string;
+  beliefBefore?: number;
+  beliefAfter?: number;
+  problemSolving?: ProblemSolvingRecord;
+  linkedUnlockEventId?: string;
+}
+
+export interface ActivityTemplate {
+  id: string;
+  title: string;
+  firstStep: string;
+  instructions: string;
+  durationMinutes: number;
+  effort: string;
+  purpose: string;
+  requirements: string;
+  smallerVersion: string;
+  category: string;
+  source: string;
+  contentVersion: string;
+  isBreathing?: boolean;
+}
+
+export interface CheckInAssistQuestion {
+  text: string;
+  targetField: string;
+}
+
+export interface CheckInSuggestedAction {
+  templateId: string;
+  rationale: string;
+  proposedFirstStep?: string;
+}
+
+export interface CheckInAssistResponse {
+  reflection?: string;
+  suggestedEmotionCodes?: string[];
+  question?: CheckInAssistQuestion;
+  suggestedActions?: CheckInSuggestedAction[];
+  usedAi?: boolean;
+}
+
+export interface CheckInAssistRequest {
+  supportType?: string;
+  dismissedTemplateIds?: string[];
+  excludedTemplateIds?: string[];
+  usePreviousEntries?: boolean;
+  requestedCategory?: string;
+}
+
+export interface CreateActivityAttemptRequest {
+  completionExtent?: string;
+  usefulness?: string;
+  enjoyment?: string;
+  accomplishment?: string;
+  changeNextTime?: string;
+  notes?: string;
+  durationMinutes?: number;
+  attemptedAtUtc?: string;
+  feelingAfter?: FeelingRating[];
+}
+
+export interface LinkActivityTaskResponse {
+  activity: BehavioralActivity;
+  taskId: string;
+  alreadyLinked: boolean;
 }
 
 export interface CreateMoodEntryRequest {
@@ -106,10 +237,18 @@ export interface CreateMoodEntryRequest {
 }
 
 export interface CreateBehavioralActivityRequest {
-  title: string;
+  title?: string;
   description?: string;
   scheduledDate?: string; // ISO datetime string
   notes?: string;
+  checkInId?: string;
+  templateId?: string;
+  templateVersion?: string;
+  lifecycle?: string;
+  firstStep?: string;
+  category?: string;
+  effort?: string;
+  durationMinutes?: number;
 }
 
 export interface UpdateBehavioralActivityRequest {
@@ -117,6 +256,9 @@ export interface UpdateBehavioralActivityRequest {
   description?: string;
   scheduledDate?: string; // ISO datetime string
   notes?: string;
+  lifecycle?: string;
+  firstStep?: string;
+  linkedTaskId?: string;
 }
 
 export interface CompleteBehavioralActivityRequest {
@@ -125,6 +267,12 @@ export interface CompleteBehavioralActivityRequest {
   pleasureRating?: number; // 0-10
   masteryRating?: number; // 0-10
   notes?: string;
+  completionExtent?: string;
+  usefulness?: string;
+  enjoyment?: string;
+  accomplishment?: string;
+  changeNextTime?: string;
+  lifecycle?: string;
 }
 
 export interface AIInput {

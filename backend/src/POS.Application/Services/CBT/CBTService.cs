@@ -114,12 +114,23 @@ public class CBTService
         var updateBuilder = Builders<CBTEntry>.Update
             .Set(e => e.UpdatedAt, DateTime.UtcNow);
 
+        if (request.Text != null) updateBuilder = updateBuilder.Set(e => e.Text, request.Text);
+        if (request.Title != null) updateBuilder = updateBuilder.Set(e => e.Title, request.Title);
+        if (request.RecordState != null) updateBuilder = updateBuilder.Set(e => e.RecordState, request.RecordState);
+        if (request.SupportType != null) updateBuilder = updateBuilder.Set(e => e.SupportType, request.SupportType);
+        if (request.Energy != null) updateBuilder = updateBuilder.Set(e => e.Energy, request.Energy);
+        if (request.Feelings != null) updateBuilder = updateBuilder.Set(e => e.Feelings, _mapper.Map<List<FeelingRating>>(request.Feelings));
         if (request.Situation != null) updateBuilder = updateBuilder.Set(e => e.Situation, request.Situation);
         if (request.AutomaticThoughts != null) updateBuilder = updateBuilder.Set(e => e.AutomaticThoughts, _mapper.Map<List<AutomaticThought>>(request.AutomaticThoughts));
         if (request.EvidenceFor != null) updateBuilder = updateBuilder.Set(e => e.EvidenceFor, request.EvidenceFor);
         if (request.EvidenceAgainst != null) updateBuilder = updateBuilder.Set(e => e.EvidenceAgainst, request.EvidenceAgainst);
         if (request.AlternativeThoughts != null) updateBuilder = updateBuilder.Set(e => e.AlternativeThoughts, request.AlternativeThoughts);
         if (request.Outcome != null) updateBuilder = updateBuilder.Set(e => e.Outcome, request.Outcome);
+        if (request.ThoughtState != null) updateBuilder = updateBuilder.Set(e => e.ThoughtState, request.ThoughtState);
+        if (request.BeliefBefore.HasValue) updateBuilder = updateBuilder.Set(e => e.BeliefBefore, request.BeliefBefore);
+        if (request.BeliefAfter.HasValue) updateBuilder = updateBuilder.Set(e => e.BeliefAfter, request.BeliefAfter);
+        if (request.ProblemSolving != null) updateBuilder = updateBuilder.Set(e => e.ProblemSolving, _mapper.Map<ProblemSolvingRecord>(request.ProblemSolving));
+        if (request.LinkedUnlockEventId != null) updateBuilder = updateBuilder.Set(e => e.LinkedUnlockEventId, request.LinkedUnlockEventId);
 
         await _context.CBTEntries.UpdateOneAsync(filter, updateBuilder);
 
@@ -234,6 +245,11 @@ public class CBTService
         activity.IsCompleted = false;
         activity.CreatedAt = DateTime.UtcNow;
         activity.UpdatedAt = DateTime.UtcNow;
+        if (!string.IsNullOrWhiteSpace(request.CheckInId) || !string.IsNullOrWhiteSpace(request.TemplateId))
+        {
+            activity.SchemaVersion = 2;
+            activity.Lifecycle ??= "planned";
+        }
 
         await _context.BehavioralActivities.InsertOneAsync(activity);
 
@@ -262,6 +278,9 @@ public class CBTService
         if (request.Description != null) updateBuilder = updateBuilder.Set(a => a.Description, request.Description);
         if (request.ScheduledDate.HasValue) updateBuilder = updateBuilder.Set(a => a.ScheduledDate, request.ScheduledDate.Value);
         if (request.Notes != null) updateBuilder = updateBuilder.Set(a => a.Notes, request.Notes);
+        if (request.Lifecycle != null) updateBuilder = updateBuilder.Set(a => a.Lifecycle, request.Lifecycle);
+        if (request.FirstStep != null) updateBuilder = updateBuilder.Set(a => a.FirstStep, request.FirstStep);
+        if (request.LinkedTaskId != null) updateBuilder = updateBuilder.Set(a => a.LinkedTaskId, request.LinkedTaskId);
 
         await _context.BehavioralActivities.UpdateOneAsync(filter, updateBuilder);
 
@@ -287,6 +306,12 @@ public class CBTService
         if (request.PleasureRating.HasValue) update = update.Set(a => a.PleasureRating, request.PleasureRating.Value);
         if (request.MasteryRating.HasValue) update = update.Set(a => a.MasteryRating, request.MasteryRating.Value);
         if (request.Notes != null) update = update.Set(a => a.Notes, request.Notes);
+        if (request.CompletionExtent != null) update = update.Set(a => a.CompletionExtent, request.CompletionExtent);
+        if (request.Usefulness != null) update = update.Set(a => a.Usefulness, request.Usefulness);
+        if (request.Enjoyment != null) update = update.Set(a => a.Enjoyment, request.Enjoyment);
+        if (request.Accomplishment != null) update = update.Set(a => a.Accomplishment, request.Accomplishment);
+        if (request.ChangeNextTime != null) update = update.Set(a => a.ChangeNextTime, request.ChangeNextTime);
+        if (request.Lifecycle != null) update = update.Set(a => a.Lifecycle, request.Lifecycle);
 
         await _context.BehavioralActivities.UpdateOneAsync(filter, update);
 

@@ -9,4 +9,7 @@ public class UpdateBehavioralActivityRequest
     public string? Description { get; set; }
     public DateTime? ScheduledDate { get; set; }
     public string? Notes { get; set; }
+    public string? Lifecycle { get; set; }
+    public string? FirstStep { get; set; }
+    public string? LinkedTaskId { get; set; }
 }

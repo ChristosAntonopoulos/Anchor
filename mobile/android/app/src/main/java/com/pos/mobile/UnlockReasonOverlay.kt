@@ -1,6 +1,7 @@
 package com.pos.mobile
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.Typeface
@@ -298,6 +299,18 @@ private class UnlockReasonFormView(
                 )
             }
         })
+        card.addView(actionText(R.string.unlock_check_in_offer, Color.parseColor("#C7E5CD")).apply {
+            contentDescription = context.getString(R.string.unlock_check_in_offer)
+            setOnClickListener {
+                submit(
+                    status = PhoneUnlockPrompt.STATUS_ANSWERED,
+                    action = PhoneUnlockPrompt.ACTION_CONTINUE,
+                    path = if (contextExpanded) PhoneUnlockPrompt.PATH_CONTEXT else PhoneUnlockPrompt.PATH_DIRECT,
+                    keepContext = contextExpanded,
+                    openCheckIn = true,
+                )
+            }
+        })
         card.addView(actionText(R.string.unlock_skip, Color.parseColor("#8B95A6")).apply {
             setOnClickListener {
                 submit(
@@ -375,6 +388,7 @@ private class UnlockReasonFormView(
         path: String?,
         keepContext: Boolean,
         putDownExecution: String? = null,
+        openCheckIn: Boolean = false,
     ) {
         if (!submitting.compareAndSet(false, true)) {
             return
@@ -406,6 +420,14 @@ private class UnlockReasonFormView(
             submissionPath = decision.submissionPath,
             putDownExecution = decision.putDownExecution,
         )
+        if (openCheckIn) {
+            PhoneUnlockStore.setPendingCheckInOffer(context, prompt.id)
+            val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
+            if (launch != null) {
+                launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                context.startActivity(launch)
+            }
+        }
         dismiss()
     }
 

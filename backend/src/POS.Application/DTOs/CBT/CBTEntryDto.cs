@@ -22,4 +22,20 @@ public class CBTEntryDto
     public string? AIInsights { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
+    public int SchemaVersion { get; set; } = 1;
+    public string? Title { get; set; }
+    public string RecordState { get; set; } = "saved";
+    public string? SupportType { get; set; }
+    public DateTime? OccurredAtUtc { get; set; }
+    public string? Timezone { get; set; }
+    public int? UtcOffsetMinutes { get; set; }
+    public string? Energy { get; set; }
+    public string? Tiredness { get; set; }
+    public string? Numbness { get; set; }
+    public List<FeelingRatingDto>? Feelings { get; set; }
+    public string? ThoughtState { get; set; }
+    public int? BeliefBefore { get; set; }
+    public int? BeliefAfter { get; set; }
+    public ProblemSolvingRecordDto? ProblemSolving { get; set; }
+    public string? LinkedUnlockEventId { get; set; }
 }

@@ -25,6 +25,8 @@ import {
   type IntentionCode,
 } from '../../utils/phoneUnlockMapping';
 import { beginUnlockPrompt, resolveUnlockPrompt } from '../../services/phoneUnlockPrompt';
+import { useRouter } from 'expo-router';
+import { CHECK_IN_COPY } from '../../constants/checkIn';
 
 interface PhoneUnlockReasonModalProps {
   visible: boolean;
@@ -48,6 +50,7 @@ export function PhoneUnlockReasonModal({
   unlockTime,
   onClose,
 }: PhoneUnlockReasonModalProps) {
+  const router = useRouter();
   const [promptId, setPromptId] = useState<string | null>(null);
   const [intention, setIntention] = useState<string | null>(null);
   const [trigger, setTrigger] = useState<string | null>(null);
@@ -121,6 +124,7 @@ export function PhoneUnlockReasonModal({
     } catch (error) {
       console.error('[PhoneUnlockReasonModal] Could not save unlock prompt', error);
     }
+    return id;
   };
 
   const onIntentionPress = (code: string) => {
@@ -289,6 +293,27 @@ export function PhoneUnlockReasonModal({
                   accessibilityLabel={UNLOCK_COPY.putPhoneDown}
                 >
                   <Text style={styles.putDownText}>{UNLOCK_COPY.putPhoneDown}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.skipButton}
+                  onPress={() => {
+                    void submit({
+                      skip: false,
+                      keepContext: contextExpanded,
+                      action: 'continue',
+                      status: 'answered',
+                      path: contextExpanded ? 'context_form' : 'quick_choice',
+                    }).then((id) => {
+                      if (id) {
+                        router.push(`/check-in/capture?unlockEventId=${id}&intent=small_step`);
+                      }
+                    });
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={CHECK_IN_COPY.unlockOffer}
+                >
+                  <Text style={styles.skipText}>{CHECK_IN_COPY.unlockOffer}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity

@@ -14,6 +14,10 @@ public class CBTMappingProfile : Profile
         // AutomaticThought mappings
         CreateMap<AutomaticThought, AutomaticThoughtDto>();
         CreateMap<AutomaticThoughtDto, AutomaticThought>();
+        CreateMap<FeelingRating, FeelingRatingDto>();
+        CreateMap<FeelingRatingDto, FeelingRating>();
+        CreateMap<ProblemSolvingRecord, ProblemSolvingRecordDto>();
+        CreateMap<ProblemSolvingRecordDto, ProblemSolvingRecord>();
 
         // CBTEntry mappings
         CreateMap<CBTEntry, CBTEntryDto>();

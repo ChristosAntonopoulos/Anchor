@@ -1,163 +1,174 @@
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useCBTStore } from '../../store/useCBTStore';
-import { CBTInput } from '../../components/cbt/CBTInput';
-import { ThoughtRecordList } from '../../components/cbt/ThoughtRecordList';
-import { MoodTracker } from '../../components/cbt/MoodTracker';
-import { ActivityList } from '../../components/cbt/ActivityList';
-import { ActivityCompletionModal } from '../../components/cbt/ActivityCompletionModal';
-import { submitIntakeAndRefresh } from '../../services/intakeService';
-import { colors, spacing, typography } from '../../constants/designTokens';
-import type { BehavioralActivity } from '../../types';
+import { useCallback, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { CheckInChrome } from '../../components/checkIn/CheckInChrome';
+import { CrisisCard } from '../../components/checkIn/CrisisCard';
+import { PrimaryButton, SecondaryButton } from '../../components/checkIn/CheckInButtons';
+import { CHECK_IN_COPY } from '../../constants/checkIn';
+import { colors, spacing, typography, borderRadius } from '../../constants/designTokens';
+import { consumePendingCheckInOffer } from '../../services/phoneUnlockListener';
+import { useCheckInStore } from '../../store/useCheckInStore';
 
-export default function CBTScreen() {
-  const {
-    entries,
-    activities,
-    loading,
-    fetchCBTEntries,
-    fetchBehavioralActivities,
-    completeActivity,
-  } = useCBTStore();
-  const [activeTab, setActiveTab] = useState<'thoughts' | 'mood' | 'activities'>('thoughts');
-  const [refreshing, setRefreshing] = useState(false);
-  const [completingActivity, setCompletingActivity] = useState<BehavioralActivity | null>(null);
+const QUICK_CHOICES: { code: string; label: string }[] = [
+  { code: 'anxious', label: 'Anxious' },
+  { code: 'sad_low', label: 'Low' },
+  { code: 'overwhelmed', label: 'Overwhelmed' },
+  { code: 'numb_disconnected', label: 'Numb' },
+  { code: 'happy_content', label: 'Okay' },
+  { code: 'more', label: 'More…' },
+];
 
-  useEffect(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    fetchCBTEntries(today);
-    fetchBehavioralActivities();
-  }, [fetchCBTEntries, fetchBehavioralActivities]);
+export default function CheckInLandingScreen() {
+  const router = useRouter();
+  const draftId = useCheckInStore((state) => state.draftId);
+  const loadLanding = useCheckInStore((state) => state.loadLanding);
+  const [unlockOfferId, setUnlockOfferId] = useState<string | null>(null);
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    const today = new Date().toISOString().slice(0, 10);
-    await Promise.all([
-      fetchCBTEntries(today),
-      fetchBehavioralActivities(),
-    ]);
-    setRefreshing(false);
-  };
+  useFocusEffect(
+    useCallback(() => {
+      void loadLanding();
+      void consumePendingCheckInOffer().then((id) => {
+        if (id) {
+          setUnlockOfferId(id);
+        }
+      });
+    }, [loadLanding])
+  );
 
-  const handleSubmit = async (text: string) => {
-    await submitIntakeAndRefresh(text);
-    const today = new Date().toISOString().slice(0, 10);
-    await fetchCBTEntries(today);
-    await fetchBehavioralActivities();
-    setActiveTab('activities');
-  };
-
-  const handleCompleteActivity = async (request: Parameters<typeof completeActivity>[1]) => {
-    if (!completingActivity) return;
-    await completeActivity(completingActivity.id, request);
-    setCompletingActivity(null);
+  const openCapture = (feeling?: string) => {
+    const query = feeling && feeling !== 'more' ? `?feeling=${feeling}` : '';
+    router.push(`/check-in/capture${query}`);
   };
 
   return (
-    <LinearGradient
-      colors={['#0F1419', '#1A1F2E']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-    >
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.textPrimary} />
-        }
-      >
-        <CBTInput onSubmit={handleSubmit} disabled={loading} />
+    <CheckInChrome>
+      <Text style={styles.title}>{CHECK_IN_COPY.landingTitle}</Text>
+      <Text style={styles.subtitle}>{CHECK_IN_COPY.landingSubtitle}</Text>
+      <Text style={styles.support}>{CHECK_IN_COPY.landingSupport}</Text>
 
-        <View style={styles.tabContainer}>
-          <View style={styles.tabRow}>
-            <View
-              style={[styles.tab, activeTab === 'thoughts' && styles.tabActive]}
-              onTouchEnd={() => setActiveTab('thoughts')}
-            >
-              <Text style={[styles.tabText, activeTab === 'thoughts' && styles.tabTextActive]}>
-                Thought Records
-              </Text>
-            </View>
-            <View
-              style={[styles.tab, activeTab === 'mood' && styles.tabActive]}
-              onTouchEnd={() => setActiveTab('mood')}
-            >
-              <Text style={[styles.tabText, activeTab === 'mood' && styles.tabTextActive]}>
-                Mood
-              </Text>
-            </View>
-            <View
-              style={[styles.tab, activeTab === 'activities' && styles.tabActive]}
-              onTouchEnd={() => setActiveTab('activities')}
-            >
-              <Text style={[styles.tabText, activeTab === 'activities' && styles.tabTextActive]}>
-                Activities
-              </Text>
-            </View>
-          </View>
-        </View>
+      <PrimaryButton label={CHECK_IN_COPY.write} onPress={() => openCapture()} />
 
-        {activeTab === 'thoughts' && <ThoughtRecordList entries={entries} />}
-        {activeTab === 'mood' && <MoodTracker />}
-        {activeTab === 'activities' && (
-          <ActivityList
-            activities={activities}
-            onComplete={(activity) => setCompletingActivity(activity)}
-          />
-        )}
-      </ScrollView>
+      <View style={styles.quickWrap} accessibilityRole="list" accessibilityLabel="Quick choices">
+        {QUICK_CHOICES.map((choice) => (
+          <Pressable
+            key={choice.code}
+            onPress={() => openCapture(choice.code)}
+            accessibilityRole="button"
+            accessibilityLabel={choice.label}
+            style={({ pressed }) => [styles.quick, pressed && styles.pressed]}
+          >
+            <Text style={styles.quickText}>{choice.label}</Text>
+          </Pressable>
+        ))}
+      </View>
 
-      <ActivityCompletionModal
-        visible={completingActivity != null}
-        activityTitle={completingActivity?.title ?? ''}
-        onClose={() => setCompletingActivity(null)}
-        onSubmit={handleCompleteActivity}
+      <SecondaryButton
+        label={CHECK_IN_COPY.smallStep}
+        onPress={() => router.push('/check-in/capture?intent=small_step')}
       />
-    </LinearGradient>
+
+      {draftId ? (
+        <SecondaryButton
+          label={CHECK_IN_COPY.continueDraft}
+          onPress={() => router.push(`/check-in/capture?id=${draftId}`)}
+        />
+      ) : null}
+
+      {unlockOfferId ? (
+        <SecondaryButton
+          label={CHECK_IN_COPY.unlockOffer}
+          onPress={() => {
+            const id = unlockOfferId;
+            setUnlockOfferId(null);
+            router.push(`/check-in/capture?unlockEventId=${id}&intent=small_step`);
+          }}
+        />
+      ) : null}
+
+      <View style={styles.destinations}>
+        <Pressable
+          onPress={() => router.push('/check-in/steps')}
+          accessibilityRole="button"
+          accessibilityLabel={CHECK_IN_COPY.mySteps}
+          style={styles.destination}
+        >
+          <Text style={styles.destinationTitle}>{CHECK_IN_COPY.mySteps}</Text>
+          <Text style={styles.destinationBody}>Chosen activities, plans, and things tried.</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => router.push('/check-in/history')}
+          accessibilityRole="button"
+          accessibilityLabel={CHECK_IN_COPY.history}
+          style={styles.destination}
+        >
+          <Text style={styles.destinationTitle}>{CHECK_IN_COPY.history}</Text>
+          <Text style={styles.destinationBody}>Previous check-ins and linked exercises.</Text>
+        </Pressable>
+      </View>
+
+      <CrisisCard />
+    </CheckInChrome>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  title: {
+    color: colors.textPrimary,
+    fontSize: typography.fontSize.title,
+    fontWeight: typography.fontWeight.semibold,
+    lineHeight: typography.lineHeight.title,
   },
-  scrollView: {
-    flex: 1,
+  subtitle: {
+    color: colors.textSecondary,
+    fontSize: typography.fontSize.body,
+    lineHeight: typography.lineHeight.body,
   },
-  content: {
-    paddingBottom: spacing.xl,
+  support: {
+    color: colors.textSecondary,
+    fontSize: typography.fontSize.caption,
+    lineHeight: typography.lineHeight.caption,
   },
-  tabContainer: {
-    paddingHorizontal: spacing.l,
-    marginTop: spacing.m,
-  },
-  tabRow: {
+  quickWrap: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.s,
+  },
+  quick: {
+    minHeight: 44,
+    paddingHorizontal: spacing.m,
+    paddingVertical: spacing.s,
+    borderRadius: borderRadius.round,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
     backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 4,
+    justifyContent: 'center',
+  },
+  quickText: {
+    color: colors.textPrimary,
+    fontSize: typography.fontSize.body,
+  },
+  pressed: {
+    opacity: 0.8,
+  },
+  destinations: {
+    gap: spacing.s,
+  },
+  destination: {
+    minHeight: 48,
+    borderRadius: borderRadius.medium,
     borderWidth: 1,
     borderColor: colors.border,
+    backgroundColor: colors.surface,
+    padding: spacing.m,
   },
-  tab: {
-    flex: 1,
-    paddingVertical: spacing.s,
-    paddingHorizontal: spacing.m,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  tabActive: {
-    backgroundColor: colors.category.health + '20',
-  },
-  tabText: {
+  destinationTitle: {
+    color: colors.textPrimary,
     fontSize: typography.fontSize.body,
-    color: colors.textSecondary,
-    fontWeight: typography.fontWeight.medium,
-  },
-  tabTextActive: {
-    color: colors.category.health,
     fontWeight: typography.fontWeight.semibold,
+  },
+  destinationBody: {
+    color: colors.textSecondary,
+    fontSize: typography.fontSize.caption,
+    marginTop: spacing.xs,
   },
 });

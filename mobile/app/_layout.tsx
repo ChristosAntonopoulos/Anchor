@@ -262,6 +262,7 @@ export default function RootLayout() {
       >
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="more" />
+        <Stack.Screen name="check-in" />
       </Stack>
       <ErrorBoundary>
         <AppUpdatePrompt />

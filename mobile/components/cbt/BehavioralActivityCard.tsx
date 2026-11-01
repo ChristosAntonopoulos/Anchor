@@ -64,27 +64,27 @@ export function BehavioralActivityCard({ activity, onPress, onComplete }: Behavi
         {(activity.moodBefore !== undefined || activity.moodAfter !== undefined || 
           activity.pleasureRating !== undefined || activity.masteryRating !== undefined) && (
           <View style={styles.ratingsContainer}>
-            {activity.moodBefore !== undefined && (
+            {activity.moodBefore != null && (
               <View style={styles.rating}>
-                <Text style={styles.ratingLabel}>Mood Before:</Text>
+                <Text style={styles.ratingLabel}>Before:</Text>
                 <Text style={styles.ratingValue}>{activity.moodBefore}/10</Text>
               </View>
             )}
-            {activity.moodAfter !== undefined && (
+            {activity.moodAfter != null && (
               <View style={styles.rating}>
-                <Text style={styles.ratingLabel}>Mood After:</Text>
+                <Text style={styles.ratingLabel}>After:</Text>
                 <Text style={styles.ratingValue}>{activity.moodAfter}/10</Text>
               </View>
             )}
-            {activity.pleasureRating !== undefined && (
+            {activity.pleasureRating != null && (
               <View style={styles.rating}>
-                <Text style={styles.ratingLabel}>Pleasure:</Text>
+                <Text style={styles.ratingLabel}>Enjoyment:</Text>
                 <Text style={styles.ratingValue}>{activity.pleasureRating}/10</Text>
               </View>
             )}
-            {activity.masteryRating !== undefined && (
+            {activity.masteryRating != null && (
               <View style={styles.rating}>
-                <Text style={styles.ratingLabel}>Mastery:</Text>
+                <Text style={styles.ratingLabel}>Sense of accomplishment:</Text>
                 <Text style={styles.ratingValue}>{activity.masteryRating}/10</Text>
               </View>
             )}

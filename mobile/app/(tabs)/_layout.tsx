@@ -121,8 +121,8 @@ export default function TabLayout() {
         <Tabs.Screen
           name="cbt"
           options={{
-            title: 'CBT',
-            tabBarLabel: 'CBT',
+            title: 'Check-in',
+            tabBarLabel: 'Check-in',
             tabBarIcon: ({ size, focused }) => (
               <AppIcon name="mood" size={size} opacity={focused ? 1 : 0.45} />
             ),

@@ -177,3 +177,15 @@ class PhoneUnlockListenerServiceImpl implements PhoneUnlockListenerService {
 }
 
 export const phoneUnlockListener: PhoneUnlockListenerService = new PhoneUnlockListenerServiceImpl();
+
+export async function consumePendingCheckInOffer(): Promise<string | null> {
+  if (!isAndroid || !PhoneUnlockModule || typeof PhoneUnlockModule.consumePendingCheckInOffer !== 'function') {
+    return null;
+  }
+  try {
+    const value = await PhoneUnlockModule.consumePendingCheckInOffer();
+    return typeof value === 'string' && value.length > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}

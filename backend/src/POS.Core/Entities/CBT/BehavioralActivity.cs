@@ -39,4 +39,49 @@ public class BehavioralActivity : EntityBase
 
     [BsonElement("isCompleted")]
     public bool IsCompleted { get; set; } = false;
+
+    [BsonElement("schemaVersion")]
+    public int SchemaVersion { get; set; } = 1;
+
+    [BsonElement("checkInId")]
+    public string? CheckInId { get; set; }
+
+    [BsonElement("templateId")]
+    public string? TemplateId { get; set; }
+
+    [BsonElement("templateVersion")]
+    public string? TemplateVersion { get; set; }
+
+    [BsonElement("lifecycle")]
+    public string? Lifecycle { get; set; }
+
+    [BsonElement("firstStep")]
+    public string? FirstStep { get; set; }
+
+    [BsonElement("category")]
+    public string? Category { get; set; }
+
+    [BsonElement("effort")]
+    public string? Effort { get; set; }
+
+    [BsonElement("durationMinutes")]
+    public int? DurationMinutes { get; set; }
+
+    [BsonElement("completionExtent")]
+    public string? CompletionExtent { get; set; }
+
+    [BsonElement("usefulness")]
+    public string? Usefulness { get; set; }
+
+    [BsonElement("enjoyment")]
+    public string? Enjoyment { get; set; }
+
+    [BsonElement("accomplishment")]
+    public string? Accomplishment { get; set; }
+
+    [BsonElement("changeNextTime")]
+    public string? ChangeNextTime { get; set; }
+
+    [BsonElement("linkedTaskId")]
+    public string? LinkedTaskId { get; set; }
 }

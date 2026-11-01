@@ -3,9 +3,13 @@ import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, typography, gradients, borderRadius, shadows } from '../../constants/designTokens';
+import { CHECK_IN_COPY } from '../../constants/checkIn';
+import { CrisisCard } from '../../components/checkIn/CrisisCard';
+import { useCheckInStore } from '../../store/useCheckInStore';
 
 export default function SettingsScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const usePreviousEntries = useCheckInStore((state) => state.usePreviousEntries);
 
   return (
     <LinearGradient
@@ -40,6 +44,46 @@ export default function SettingsScreen() {
                   />
                 </LinearGradient>
               </View>
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Check-in</Text>
+              <View style={styles.settingItem}>
+                <LinearGradient
+                  colors={['#1E2530', '#252B38']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.settingCard}
+                >
+                  <View style={styles.settingContent}>
+                    <Text style={styles.settingLabel}>Self-help tools</Text>
+                    <Text style={styles.settingDescription}>{CHECK_IN_COPY.landingSupport}</Text>
+                  </View>
+                </LinearGradient>
+              </View>
+              <View style={styles.settingItem}>
+                <LinearGradient
+                  colors={['#1E2530', '#252B38']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.settingCard}
+                >
+                  <View style={styles.settingContent}>
+                    <Text style={styles.settingLabel}>Use earlier check-ins for suggestions</Text>
+                    <Text style={styles.settingDescription}>
+                      Off by default. When on, only your own saved entries can help rank reviewed steps. Entries are not sent to a model in this version.
+                    </Text>
+                  </View>
+                  <Switch
+                    value={usePreviousEntries}
+                    onValueChange={(value) => useCheckInStore.setState({ usePreviousEntries: value })}
+                    trackColor={{ false: colors.border, true: colors.category.work }}
+                    thumbColor={colors.surface}
+                    accessibilityLabel="Use earlier check-ins for suggestions"
+                  />
+                </LinearGradient>
+              </View>
+              <CrisisCard />
             </View>
 
             <View style={styles.section}>

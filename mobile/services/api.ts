@@ -32,11 +32,18 @@ import type {
   CBTEntry,
   MoodEntry,
   BehavioralActivity,
+  CreateCBTEntryRequest,
   UpdateCBTEntryRequest,
   CreateMoodEntryRequest,
   CreateBehavioralActivityRequest,
   UpdateBehavioralActivityRequest,
   CompleteBehavioralActivityRequest,
+  ActivityTemplate,
+  CheckInAssistRequest,
+  CheckInAssistResponse,
+  CreateActivityAttemptRequest,
+  LinkActivityTaskResponse,
+  ProblemSolvingRecord,
   Task,
   TaskInboxResponse,
   DayBootstrap,
@@ -77,6 +84,20 @@ export interface APIClient {
   createBehavioralActivity(request: CreateBehavioralActivityRequest): Promise<void>;
   updateBehavioralActivity(id: string, request: UpdateBehavioralActivityRequest): Promise<void>;
   completeBehavioralActivity(id: string, request: CompleteBehavioralActivityRequest): Promise<void>;
+  createCheckIn(request: CreateCBTEntryRequest): Promise<CBTEntry>;
+  listCheckIns(params?: { from?: string; to?: string; state?: string; type?: string }): Promise<CBTEntry[]>;
+  getCheckIn(id: string): Promise<CBTEntry>;
+  updateCheckIn(id: string, request: UpdateCBTEntryRequest): Promise<CBTEntry>;
+  deleteCheckIn(id: string): Promise<void>;
+  assistCheckIn(id: string, request?: CheckInAssistRequest): Promise<CheckInAssistResponse>;
+  saveThoughtRecord(id: string, request: UpdateCBTEntryRequest): Promise<CBTEntry>;
+  saveProblemSolving(id: string, record: ProblemSolvingRecord): Promise<CBTEntry>;
+  getActivityTemplates(): Promise<ActivityTemplate[]>;
+  listActivityPlans(checkInId?: string): Promise<BehavioralActivity[]>;
+  createActivityPlan(request: CreateBehavioralActivityRequest): Promise<BehavioralActivity>;
+  updateActivityPlan(id: string, request: UpdateBehavioralActivityRequest): Promise<BehavioralActivity>;
+  recordActivityAttempt(id: string, request: CreateActivityAttemptRequest): Promise<BehavioralActivity>;
+  linkActivityTask(id: string): Promise<LinkActivityTaskResponse>;
   
   // POST endpoints
   completeBetterItem(request: CompleteBetterItemRequest): Promise<void>;
@@ -815,6 +836,147 @@ class HTTPAPIClient implements APIClient {
       return data || [];
     } catch (error) {
       throw this.handleError(error, 'Failed to get notification apps');
+    }
+  }
+
+  async createCheckIn(request: CreateCBTEntryRequest): Promise<CBTEntry> {
+    try {
+      const response = await this.axiosInstance.post<ApiResponse<CBTEntry>>('/check-ins', request);
+      return unwrapResponse(response.data);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to save check-in');
+    }
+  }
+
+  async listCheckIns(params?: { from?: string; to?: string; state?: string; type?: string }): Promise<CBTEntry[]> {
+    try {
+      const query = new URLSearchParams();
+      if (params?.from) query.append('from', params.from);
+      if (params?.to) query.append('to', params.to);
+      if (params?.state) query.append('state', params.state);
+      if (params?.type) query.append('type', params.type);
+      const suffix = query.toString() ? `?${query.toString()}` : '';
+      const response = await this.axiosInstance.get<ApiResponse<CBTEntry[]>>(`/check-ins${suffix}`);
+      return unwrapResponse(response.data) || [];
+    } catch (error) {
+      throw this.handleError(error, 'Failed to load check-ins');
+    }
+  }
+
+  async getCheckIn(id: string): Promise<CBTEntry> {
+    try {
+      const response = await this.axiosInstance.get<ApiResponse<CBTEntry>>(`/check-ins/${id}`);
+      return unwrapResponse(response.data);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to load check-in');
+    }
+  }
+
+  async updateCheckIn(id: string, request: UpdateCBTEntryRequest): Promise<CBTEntry> {
+    try {
+      const response = await this.axiosInstance.patch<ApiResponse<CBTEntry>>(`/check-ins/${id}`, request);
+      return unwrapResponse(response.data);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to update check-in');
+    }
+  }
+
+  async deleteCheckIn(id: string): Promise<void> {
+    try {
+      const response = await this.axiosInstance.delete<ApiResponse<void>>(`/check-ins/${id}`);
+      unwrapResponse(response.data);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to delete check-in');
+    }
+  }
+
+  async assistCheckIn(id: string, request?: CheckInAssistRequest): Promise<CheckInAssistResponse> {
+    try {
+      const response = await this.axiosInstance.post<ApiResponse<CheckInAssistResponse>>(
+        `/check-ins/${id}/assistance`,
+        request ?? {}
+      );
+      return unwrapResponse(response.data);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to load suggestions');
+    }
+  }
+
+  async saveThoughtRecord(id: string, request: UpdateCBTEntryRequest): Promise<CBTEntry> {
+    try {
+      const response = await this.axiosInstance.put<ApiResponse<CBTEntry>>(`/check-ins/${id}/thought-record`, request);
+      return unwrapResponse(response.data);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to save thought record');
+    }
+  }
+
+  async saveProblemSolving(id: string, record: ProblemSolvingRecord): Promise<CBTEntry> {
+    try {
+      const response = await this.axiosInstance.put<ApiResponse<CBTEntry>>(`/check-ins/${id}/problem-solving`, record);
+      return unwrapResponse(response.data);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to save problem-solving');
+    }
+  }
+
+  async getActivityTemplates(): Promise<ActivityTemplate[]> {
+    try {
+      const response = await this.axiosInstance.get<ApiResponse<ActivityTemplate[]>>('/activity-templates');
+      return unwrapResponse(response.data) || [];
+    } catch (error) {
+      throw this.handleError(error, 'Failed to load activity options');
+    }
+  }
+
+  async listActivityPlans(checkInId?: string): Promise<BehavioralActivity[]> {
+    try {
+      const url = checkInId ? `/activity-plans?checkInId=${encodeURIComponent(checkInId)}` : '/activity-plans';
+      const response = await this.axiosInstance.get<ApiResponse<BehavioralActivity[]>>(url);
+      return unwrapResponse(response.data) || [];
+    } catch (error) {
+      throw this.handleError(error, 'Failed to load steps');
+    }
+  }
+
+  async createActivityPlan(request: CreateBehavioralActivityRequest): Promise<BehavioralActivity> {
+    try {
+      const response = await this.axiosInstance.post<ApiResponse<BehavioralActivity>>('/activity-plans', request);
+      return unwrapResponse(response.data);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to save step');
+    }
+  }
+
+  async updateActivityPlan(id: string, request: UpdateBehavioralActivityRequest): Promise<BehavioralActivity> {
+    try {
+      const response = await this.axiosInstance.patch<ApiResponse<BehavioralActivity>>(`/activity-plans/${id}`, request);
+      return unwrapResponse(response.data);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to update step');
+    }
+  }
+
+  async recordActivityAttempt(id: string, request: CreateActivityAttemptRequest): Promise<BehavioralActivity> {
+    try {
+      const response = await this.axiosInstance.post<ApiResponse<BehavioralActivity>>(
+        `/activity-plans/${id}/attempts`,
+        request
+      );
+      return unwrapResponse(response.data);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to save what happened');
+    }
+  }
+
+  async linkActivityTask(id: string): Promise<LinkActivityTaskResponse> {
+    try {
+      const response = await this.axiosInstance.post<ApiResponse<LinkActivityTaskResponse>>(
+        `/activity-plans/${id}/task`
+      );
+      return unwrapResponse(response.data);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to add to tasks');
     }
   }
 

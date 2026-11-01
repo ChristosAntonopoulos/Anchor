@@ -89,6 +89,8 @@ builder.Services.AddHttpClient<BotSystemIntakeClient>();
 builder.Services.AddScoped<AIInputService>();
 builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<CBTService>();
+builder.Services.AddSingleton<ActivityCatalogService>();
+builder.Services.AddScoped<CheckInService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<POS.Application.Services.PhoneUnlock.PhoneUnlockService>();
 builder.Services.AddSingleton<POS.Api.Services.AppReleaseService>();

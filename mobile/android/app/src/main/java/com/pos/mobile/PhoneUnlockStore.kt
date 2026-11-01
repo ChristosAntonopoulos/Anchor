@@ -7,6 +7,7 @@ object PhoneUnlockStore {
     private const val TAG = "PhoneUnlockStore"
     private const val PREFS = "pos_unlock"
     private const val KEY_PROMPTS = "promptRecords"
+    private const val KEY_PENDING_CHECK_IN = "pendingCheckInUnlockId"
 
     @Synchronized
     fun interruptStalePending(context: Context, exceptId: String? = null) {
@@ -129,6 +130,25 @@ object PhoneUnlockStore {
         val records = load(context)
         records.find { it.id == id }?.synced = true
         save(context, records)
+    }
+
+    @Synchronized
+    fun setPendingCheckInOffer(context: Context, unlockEventId: String) {
+        context.applicationContext
+            .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_PENDING_CHECK_IN, unlockEventId)
+            .apply()
+    }
+
+    @Synchronized
+    fun consumePendingCheckInOffer(context: Context): String? {
+        val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val value = prefs.getString(KEY_PENDING_CHECK_IN, null)
+        if (value != null) {
+            prefs.edit().remove(KEY_PENDING_CHECK_IN).apply()
+        }
+        return value
     }
 
     @Synchronized

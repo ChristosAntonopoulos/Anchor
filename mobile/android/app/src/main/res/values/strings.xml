@@ -25,6 +25,7 @@
 
   <string name="unlock_put_phone_down">Put phone down</string>
   <string name="unlock_skip">Skip for now</string>
+  <string name="unlock_check_in_offer">Want help finding a smaller first step?</string>
   <string name="unlock_add_context">Add context</string>
   <string name="unlock_add_context_helper">Optional</string>
   <string name="unlock_continue">Continue</string>
