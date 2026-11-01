@@ -204,10 +204,23 @@ private class UnlockReasonFormView(
             setPadding(0, dp(6), 0, dp(14))
         })
 
-        INTENTIONS.forEach { item ->
-            val row = intentionRow(item)
-            intentionRows[item.code] = row
-            card.addView(row)
+        INTENTIONS.chunked(2).forEach { pair ->
+            val row = LinearLayout(context).apply {
+                orientation = HORIZONTAL
+            }
+            pair.forEach { item ->
+                val cell = intentionCard(item)
+                intentionRows[item.code] = cell
+                val params = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f).apply {
+                    marginEnd = dp(6)
+                    bottomMargin = dp(6)
+                }
+                row.addView(cell, params)
+            }
+            if (pair.size == 1) {
+                row.addView(View(context), LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
+            }
+            card.addView(row, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         }
 
         addContextButton = actionText(R.string.unlock_add_context, Color.parseColor("#C7E5CD")).apply {
@@ -396,13 +409,13 @@ private class UnlockReasonFormView(
         dismiss()
     }
 
-    private fun intentionRow(item: IntentionItem): View {
-        val row = LinearLayout(context).apply {
-            orientation = HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+    private fun intentionCard(item: IntentionItem): View {
+        val card = LinearLayout(context).apply {
+            orientation = VERTICAL
+            gravity = Gravity.START
             background = rounded(Color.parseColor("#252B38"), dp(14))
-            setPadding(dp(12), dp(10), dp(12), dp(10))
-            minimumHeight = dp(48)
+            setPadding(dp(10), dp(10), dp(10), dp(10))
+            minimumHeight = dp(88)
             isClickable = true
             isFocusable = true
             contentDescription = "${context.getString(item.label)}. ${context.getString(item.support)}"
@@ -412,24 +425,20 @@ private class UnlockReasonFormView(
         val icon = TextView(context).apply {
             text = item.icon
             setTextColor(Color.parseColor("#C7E5CD"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
-            width = dp(24)
-            gravity = Gravity.CENTER
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            gravity = Gravity.START
             importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
+            setPadding(0, 0, 0, dp(6))
         }
-        val copy = LinearLayout(context).apply {
-            orientation = VERTICAL
-            setPadding(dp(8), 0, 0, 0)
-        }
-        copy.addView(text(item.label, Color.parseColor("#E8EAED"), 15f, true, Gravity.START))
-        copy.addView(text(item.support, Color.parseColor("#8B95A6"), 12f, false, Gravity.START))
-        row.addView(icon)
-        row.addView(copy, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
-        val params = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-            bottomMargin = dp(8)
-        }
-        row.layoutParams = params
-        return row
+        card.addView(icon)
+        card.addView(text(item.label, Color.parseColor("#E8EAED"), 14f, true, Gravity.START).apply {
+            setLineSpacing(0f, 1.05f)
+        })
+        card.addView(text(item.support, Color.parseColor("#8B95A6"), 11f, false, Gravity.START).apply {
+            setPadding(0, dp(3), 0, 0)
+            setLineSpacing(0f, 1.1f)
+        })
+        return card
     }
 
     private fun refreshIntentionRows() {
@@ -457,6 +466,8 @@ private class UnlockReasonFormView(
             "specific_task" -> R.string.unlock_note_label_specific_task to R.string.unlock_note_placeholder_specific_task
             "connection" -> R.string.unlock_note_label_connection to R.string.unlock_note_placeholder_connection
             "intentional_break" -> R.string.unlock_note_label_intentional_break to R.string.unlock_note_placeholder_intentional_break
+            "social_check" -> R.string.unlock_note_label_social_check to R.string.unlock_note_placeholder_social_check
+            "pay" -> R.string.unlock_note_label_pay to R.string.unlock_note_placeholder_pay
             "automatic_check" -> R.string.unlock_note_label_automatic_check to R.string.unlock_note_placeholder_automatic_check
             "unsure" -> R.string.unlock_note_label_unsure to R.string.unlock_note_placeholder_optional
             "other" -> R.string.unlock_note_label_other to R.string.unlock_note_placeholder_optional
@@ -650,12 +661,14 @@ private class UnlockReasonFormView(
 
     companion object {
         private val INTENTIONS = listOf(
-            IntentionItem("specific_task", R.string.unlock_intention_specific_task, R.string.unlock_intention_specific_task_support, "•"),
-            IntentionItem("connection", R.string.unlock_intention_connection, R.string.unlock_intention_connection_support, "•"),
-            IntentionItem("intentional_break", R.string.unlock_intention_intentional_break, R.string.unlock_intention_intentional_break_support, "•"),
-            IntentionItem("automatic_check", R.string.unlock_intention_automatic_check, R.string.unlock_intention_automatic_check_support, "•"),
-            IntentionItem("unsure", R.string.unlock_intention_unsure, R.string.unlock_intention_unsure_support, "•"),
-            IntentionItem("other", R.string.unlock_intention_other, R.string.unlock_intention_other_support, "•"),
+            IntentionItem("specific_task", R.string.unlock_intention_specific_task, R.string.unlock_intention_specific_task_support, "✓"),
+            IntentionItem("connection", R.string.unlock_intention_connection, R.string.unlock_intention_connection_support, "◎"),
+            IntentionItem("intentional_break", R.string.unlock_intention_intentional_break, R.string.unlock_intention_intentional_break_support, "♪"),
+            IntentionItem("social_check", R.string.unlock_intention_social_check, R.string.unlock_intention_social_check_support, "☰"),
+            IntentionItem("pay", R.string.unlock_intention_pay, R.string.unlock_intention_pay_support, "€"),
+            IntentionItem("automatic_check", R.string.unlock_intention_automatic_check, R.string.unlock_intention_automatic_check_support, "↻"),
+            IntentionItem("unsure", R.string.unlock_intention_unsure, R.string.unlock_intention_unsure_support, "?"),
+            IntentionItem("other", R.string.unlock_intention_other, R.string.unlock_intention_other_support, "+"),
         )
         private val TRIGGERS = listOf(
             ChipItem("notification", R.string.unlock_trigger_notification),

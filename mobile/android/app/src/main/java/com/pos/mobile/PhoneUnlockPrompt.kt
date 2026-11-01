@@ -64,6 +64,8 @@ data class PhoneUnlockPrompt(
             "specific_task",
             "connection",
             "intentional_break",
+            "social_check",
+            "pay",
             "automatic_check",
             "unsure",
             "other",

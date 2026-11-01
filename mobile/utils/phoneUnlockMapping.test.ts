@@ -30,11 +30,13 @@ test('quick intention choice keeps the stable code and continue action', () => {
   assert.equal(result.submissionPath, 'quick_choice');
 });
 
-test('all six intention codes stay distinct', () => {
+test('all eight intention codes stay distinct', () => {
   const codes = [
     'specific_task',
     'connection',
     'intentional_break',
+    'social_check',
+    'pay',
     'automatic_check',
     'unsure',
     'other',

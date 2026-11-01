@@ -32,11 +32,13 @@ class PhoneUnlockResolutionTest {
     }
 
     @Test
-    fun sixIntentionCodesStayDistinct() {
+    fun eightIntentionCodesStayDistinct() {
         val codes = listOf(
             "specific_task",
             "connection",
             "intentional_break",
+            "social_check",
+            "pay",
             "automatic_check",
             "unsure",
             "other",
@@ -57,8 +59,8 @@ class PhoneUnlockResolutionTest {
             ).intentionCode
         }
         assertEquals(codes, saved)
-        assertNotEquals("automatic_check", saved[4])
-        assertNotEquals("unsure", saved[5])
+        assertNotEquals("automatic_check", saved[3])
+        assertNotEquals("pay", saved[6])
     }
 
     @Test

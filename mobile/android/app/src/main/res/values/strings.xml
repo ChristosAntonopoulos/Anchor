@@ -12,6 +12,10 @@
   <string name="unlock_intention_connection_support">A message, call, or time with people</string>
   <string name="unlock_intention_intentional_break">Enjoy a break</string>
   <string name="unlock_intention_intentional_break_support">Entertainment, browsing, or relaxing</string>
+  <string name="unlock_intention_social_check">Social check</string>
+  <string name="unlock_intention_social_check_support">Feeds, stories, or seeing what others posted</string>
+  <string name="unlock_intention_pay">Pay</string>
+  <string name="unlock_intention_pay_support">A purchase, transfer, or bill</string>
   <string name="unlock_intention_automatic_check">Automatic check</string>
   <string name="unlock_intention_automatic_check_support">I reached for it without deciding to</string>
   <string name="unlock_intention_unsure">Not sure yet</string>
@@ -55,6 +59,10 @@
   <string name="unlock_note_placeholder_connection">e.g. Reply to a friend</string>
   <string name="unlock_note_label_intentional_break">What would you like to do?</string>
   <string name="unlock_note_placeholder_intentional_break">e.g. Listen to music for a while</string>
+  <string name="unlock_note_label_social_check">Anything you noticed?</string>
+  <string name="unlock_note_placeholder_social_check">e.g. I opened Instagram after a notification</string>
+  <string name="unlock_note_label_pay">What’s the payment?</string>
+  <string name="unlock_note_placeholder_pay">e.g. Pay the electricity bill</string>
   <string name="unlock_note_label_automatic_check">Anything you noticed?</string>
   <string name="unlock_note_placeholder_automatic_check">e.g. I picked it up while my code was building</string>
   <string name="unlock_note_label_unsure">Anything on your mind?</string>

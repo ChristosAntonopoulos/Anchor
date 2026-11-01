@@ -5,6 +5,8 @@ export const INTENTION_CODES = [
   'specific_task',
   'connection',
   'intentional_break',
+  'social_check',
+  'pay',
   'automatic_check',
   'unsure',
   'other',
@@ -77,6 +79,14 @@ export const UNLOCK_COPY = {
       label: 'Enjoy a break',
       support: 'Entertainment, browsing, or relaxing',
     },
+    social_check: {
+      label: 'Social check',
+      support: 'Feeds, stories, or seeing what others posted',
+    },
+    pay: {
+      label: 'Pay',
+      support: 'A purchase, transfer, or bill',
+    },
     automatic_check: {
       label: 'Automatic check',
       support: 'I reached for it without deciding to',
@@ -125,6 +135,14 @@ export const UNLOCK_COPY = {
     intentional_break: {
       label: 'What would you like to do?',
       placeholder: 'e.g. Listen to music for a while',
+    },
+    social_check: {
+      label: 'Anything you noticed?',
+      placeholder: 'e.g. I opened Instagram after a notification',
+    },
+    pay: {
+      label: 'What’s the payment?',
+      placeholder: 'e.g. Pay the electricity bill',
     },
     automatic_check: {
       label: 'Anything you noticed?',

@@ -36,6 +36,8 @@ const INTENTION_ICONS: Record<IntentionCode, string> = {
   specific_task: 'tasks',
   connection: 'heart',
   intentional_break: 'sleep',
+  social_check: 'notification',
+  pay: 'goals',
   automatic_check: 'habits',
   unsure: 'search',
   other: 'add',
@@ -173,30 +175,31 @@ export function PhoneUnlockReasonModal({
                 </Text>
                 <Text style={styles.subtitle}>{UNLOCK_COPY.subtitle}</Text>
 
-                {INTENTION_CODES.map((code) => {
-                  const copy = UNLOCK_COPY.intentions[code];
-                  const selected = intention === code;
-                  return (
-                    <Pressable
-                      key={code}
-                      onPress={() => onIntentionPress(code)}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${copy.label}. ${copy.support}`}
-                      accessibilityState={{ selected: contextExpanded ? selected : false }}
-                      style={({ pressed }) => [
-                        styles.intentionRow,
-                        selected && contextExpanded ? styles.intentionRowSelected : null,
-                        pressed ? styles.pressed : null,
-                      ]}
-                    >
-                      <AppIcon name={INTENTION_ICONS[code]} size={18} color={colors.success} />
-                      <View style={styles.intentionCopy}>
-                        <Text style={styles.intentionLabel}>{copy.label}</Text>
-                        <Text style={styles.intentionSupport}>{copy.support}</Text>
+                <View style={styles.intentionGrid}>
+                  {INTENTION_CODES.map((code) => {
+                    const copy = UNLOCK_COPY.intentions[code];
+                    const selected = intention === code;
+                    return (
+                      <View key={code} style={styles.intentionSlot}>
+                        <Pressable
+                          onPress={() => onIntentionPress(code)}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${copy.label}. ${copy.support}`}
+                          accessibilityState={{ selected: contextExpanded ? selected : false }}
+                          style={({ pressed }) => [
+                            styles.intentionCell,
+                            selected && contextExpanded ? styles.intentionRowSelected : null,
+                            pressed ? styles.pressed : null,
+                          ]}
+                        >
+                          <AppIcon name={INTENTION_ICONS[code]} size={18} color={colors.success} />
+                          <Text style={styles.intentionLabel}>{copy.label}</Text>
+                          <Text style={styles.intentionSupport}>{copy.support}</Text>
+                        </Pressable>
                       </View>
-                    </Pressable>
-                  );
-                })}
+                    );
+                  })}
+                </View>
 
                 {!contextExpanded ? (
                   <View style={styles.addContextWrap}>
@@ -374,33 +377,39 @@ const styles = StyleSheet.create({
     marginBottom: spacing.m,
     lineHeight: typography.lineHeight.body,
   },
-  intentionRow: {
+  intentionGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.s,
+    flexWrap: 'wrap',
+    marginHorizontal: -4,
+    marginBottom: spacing.xs,
+  },
+  intentionSlot: {
+    width: '50%',
+    maxWidth: '50%',
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+  },
+  intentionCell: {
     backgroundColor: colors.surfaceElevated,
     borderRadius: borderRadius.medium,
+    minHeight: 88,
     paddingVertical: 10,
     paddingHorizontal: spacing.s,
-    marginBottom: spacing.s,
-    minHeight: 48,
   },
   intentionRowSelected: {
     backgroundColor: '#31443C',
   },
-  intentionCopy: {
-    flex: 1,
-  },
   intentionLabel: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: typography.fontWeight.semibold,
     color: colors.textPrimary,
+    marginTop: spacing.s,
   },
   intentionSupport: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.textSecondary,
     marginTop: 2,
-    lineHeight: 16,
+    lineHeight: 15,
   },
   addContextWrap: {
     alignItems: 'center',
