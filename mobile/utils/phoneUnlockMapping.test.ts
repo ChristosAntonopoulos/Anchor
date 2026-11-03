@@ -4,6 +4,8 @@ import {
   PHONE_UNLOCK_NOTE_MAX_LENGTH,
   displayUnlockHeadline,
   fieldsForUnlockChoice,
+  formatCurrentBlockLine,
+  needsUnlockPause,
   noteCopyForIntention,
   sanitizeUnlockNote,
 } from './phoneUnlockMapping.ts';
@@ -210,4 +212,19 @@ test('skipped and interrupted outcomes stay distinct from automatic check', () =
     'Dismissed',
   );
   assert.equal(displayUnlockHeadline({}), 'No intention reported');
+});
+
+test('social check and automatic check need a three-second pause', () => {
+  assert.equal(needsUnlockPause('social_check'), true);
+  assert.equal(needsUnlockPause('automatic_check'), true);
+  assert.equal(needsUnlockPause('specific_task'), false);
+  assert.equal(needsUnlockPause('pay'), false);
+});
+
+test('current block line keeps title and time and hides empty blocks', () => {
+  assert.deepEqual(formatCurrentBlockLine({ title: 'Deep work', startTime: '09:00', endTime: '11:00' }), {
+    title: 'Deep work',
+    time: '09:00 – 11:00',
+  });
+  assert.equal(formatCurrentBlockLine({ title: '   ' }), null);
 });

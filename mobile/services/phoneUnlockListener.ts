@@ -178,6 +178,58 @@ class PhoneUnlockListenerServiceImpl implements PhoneUnlockListenerService {
 
 export const phoneUnlockListener: PhoneUnlockListenerService = new PhoneUnlockListenerServiceImpl();
 
+export function cacheCurrentBlock(block?: {
+  title?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+} | null): void {
+  if (!isAndroid || !PhoneUnlockModule || typeof PhoneUnlockModule.setCurrentBlock !== 'function') {
+    return;
+  }
+  try {
+    PhoneUnlockModule.setCurrentBlock(
+      block?.title ?? null,
+      block?.startTime ?? null,
+      block?.endTime ?? null,
+    );
+  } catch {
+    // Cached for the native overlay; failure is non-critical.
+  }
+}
+
+export async function isLockAdminActive(): Promise<boolean> {
+  if (!isAndroid || !PhoneUnlockModule || typeof PhoneUnlockModule.isLockAdminActive !== 'function') {
+    return false;
+  }
+  try {
+    return Boolean(await PhoneUnlockModule.isLockAdminActive());
+  } catch {
+    return false;
+  }
+}
+
+export function requestLockAdmin(): void {
+  if (!isAndroid || !PhoneUnlockModule || typeof PhoneUnlockModule.requestLockAdmin !== 'function') {
+    return;
+  }
+  PhoneUnlockModule.requestLockAdmin();
+}
+
+export async function lockPhone(): Promise<'lock_requested' | 'overlay_dismissed' | 'failed'> {
+  if (!isAndroid || !PhoneUnlockModule || typeof PhoneUnlockModule.lockPhone !== 'function') {
+    return 'overlay_dismissed';
+  }
+  try {
+    const result = await PhoneUnlockModule.lockPhone();
+    if (result === 'lock_requested' || result === 'failed') {
+      return result;
+    }
+    return 'overlay_dismissed';
+  } catch {
+    return 'failed';
+  }
+}
+
 export async function consumePendingCheckInOffer(): Promise<string | null> {
   if (!isAndroid || !PhoneUnlockModule || typeof PhoneUnlockModule.consumePendingCheckInOffer !== 'function') {
     return null;

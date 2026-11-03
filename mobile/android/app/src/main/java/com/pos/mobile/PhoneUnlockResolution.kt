@@ -64,5 +64,10 @@ object PhoneUnlockResolution {
         return true
     }
 
+    fun needsPause(intentionCode: String?): Boolean {
+        return intentionCode == "social_check" || intentionCode == "automatic_check"
+    }
+
     const val NOTE_MAX_LENGTH = 200
+    const val PAUSE_SECONDS = 3
 }

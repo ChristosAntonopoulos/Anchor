@@ -50,10 +50,37 @@ export type UnlockPromptAction = 'continue' | 'put_down' | 'skip';
 export type UnlockSubmissionPath = 'quick_choice' | 'context_form' | 'direct_action';
 export type UnlockPutDownExecution = 'lock_requested' | 'overlay_dismissed' | 'failed';
 
+export const PAUSE_INTENTION_CODES = ['social_check', 'automatic_check'] as const;
+export const UNLOCK_PAUSE_SECONDS = 3;
+
+export function needsUnlockPause(code?: string | null): boolean {
+  return code === 'social_check' || code === 'automatic_check';
+}
+
+export function formatCurrentBlockLine(block?: {
+  title?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+} | null): { title: string; time: string | null } | null {
+  const title = block?.title?.trim();
+  if (!title) {
+    return null;
+  }
+  const start = block?.startTime?.trim() ?? '';
+  const end = block?.endTime?.trim() ?? '';
+  const time = start && end ? `${start} – ${end}` : start || end || null;
+  return { title, time };
+}
+
 export const UNLOCK_COPY = {
   title: 'What brings you to your phone?',
   subtitle: 'Take a moment. Choose what fits.',
   putPhoneDown: 'Put phone down',
+  now: 'Now',
+  pauseTitle: 'A short pause',
+  pauseCancel: 'Tap here to choose something else',
+  pauseSocial: (seconds: number) => `Social check in ${seconds}`,
+  pauseAutomatic: (seconds: number) => `Automatic check in ${seconds}`,
   skip: 'Skip for now',
   addContext: 'Add context',
   addContextHelper: 'Optional',

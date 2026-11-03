@@ -33,6 +33,17 @@
     <service android:name=".POSForegroundService" android:enabled="true" android:exported="false" android:foregroundServiceType="specialUse">
       <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="pos_background_service"/>
     </service>
+    <receiver
+        android:name=".PhoneLockReceiver"
+        android:permission="android.permission.BIND_DEVICE_ADMIN"
+        android:exported="true">
+      <meta-data
+          android:name="android.app.device_admin"
+          android:resource="@xml/device_admin"/>
+      <intent-filter>
+        <action android:name="android.app.action.DEVICE_ADMIN_ENABLED"/>
+      </intent-filter>
+    </receiver>
     <receiver android:name=".BootCompletedReceiver" android:enabled="true" android:exported="true">
       <intent-filter>
         <action android:name="android.intent.action.BOOT_COMPLETED"/>

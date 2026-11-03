@@ -36,6 +36,20 @@ object PhoneUnlockApi {
         return format.format(Date(atMs))
     }
 
+    fun enqueueCurrentBlockRefresh(context: Context, onResult: (CurrentBlockSnapshot?) -> Unit) {
+        val appContext = context.applicationContext
+        executor.execute {
+            val snapshot = try {
+                fetchCurrentBlock(appContext)
+            } catch (error: Exception) {
+                android.util.Log.e(TAG, "Could not refresh current block", error)
+                CurrentBlockStore.read(appContext)
+            }
+            CurrentBlockStore.write(appContext, snapshot)
+            onResult(snapshot)
+        }
+    }
+
     fun enqueueSync(context: Context) {
         val appContext = context.applicationContext
         executor.execute {
@@ -55,11 +69,35 @@ object PhoneUnlockApi {
         }
     }
 
-    private fun post(context: Context, prompt: PhoneUnlockPrompt) {
-        val base = context
+    private fun apiBase(context: Context): String {
+        return context
             .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(KEY_URL, DEFAULT_URL)
             ?: DEFAULT_URL
+    }
+
+    private fun fetchCurrentBlock(context: Context): CurrentBlockSnapshot? {
+        val endpoint = "${apiBase(context).trimEnd('/')}/today"
+        val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 8_000
+            readTimeout = 8_000
+            setRequestProperty("Accept", "application/json")
+        }
+        return try {
+            val code = connection.responseCode
+            if (code !in 200..299) {
+                throw IllegalStateException("Today GET returned HTTP $code")
+            }
+            val body = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+            CurrentBlockSnapshot.fromTodayJson(body)
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun post(context: Context, prompt: PhoneUnlockPrompt) {
+        val base = apiBase(context)
         val endpoint = "${base.trimEnd('/')}/phone-unlock"
         val body = JSONObject().apply {
             put("promptId", prompt.id)

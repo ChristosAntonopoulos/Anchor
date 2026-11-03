@@ -72,5 +72,13 @@
   <string name="unlock_note_label_none">Anything you want to remember?</string>
 
   <string name="unlock_selected">Selected</string>
+  <string name="unlock_now">Now</string>
+  <string name="unlock_pause_title">A short pause</string>
+  <string name="unlock_pause_social">Social check in %d</string>
+  <string name="unlock_pause_automatic">Automatic check in %d</string>
+  <string name="unlock_pause_cancel">Tap here to choose something else</string>
+  <string name="unlock_lock_admin_title">Allow screen lock</string>
+  <string name="unlock_lock_admin_body">So Put phone down can turn the screen off. This only lets the app lock the screen. It cannot erase data.</string>
+  <string name="unlock_lock_admin_button">Allow screen lock</string>
   <string name="unlock_lock_yourself">You can lock the phone now if you want to put it down.</string>
 </resources>

@@ -97,6 +97,35 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
+    fun setCurrentBlock(title: String?, startTime: String?, endTime: String?) {
+        val snapshot = if (title.isNullOrBlank()) {
+            null
+        } else {
+            CurrentBlockSnapshot(
+                title = title.trim(),
+                startTime = startTime?.trim()?.ifBlank { null },
+                endTime = endTime?.trim()?.ifBlank { null },
+            )
+        }
+        CurrentBlockStore.write(reactApplicationContext, snapshot)
+    }
+
+    @ReactMethod
+    fun isLockAdminActive(promise: Promise) {
+        promise.resolve(PhoneLock.isAdminActive(reactApplicationContext))
+    }
+
+    @ReactMethod
+    fun requestLockAdmin() {
+        PhoneLock.requestAdmin(reactApplicationContext)
+    }
+
+    @ReactMethod
+    fun lockPhone(promise: Promise) {
+        promise.resolve(PhoneLock.complete(reactApplicationContext))
+    }
+
+    @ReactMethod
     fun beginUnlockPrompt(unlockTimeMs: Double, promise: Promise) {
         try {
             val prompt = PhoneUnlockStore.createPending(

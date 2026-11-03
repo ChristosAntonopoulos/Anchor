@@ -230,4 +230,13 @@ class PhoneUnlockResolutionTest {
         assertNull(prompt.action)
         assertNotEquals("automatic_check", prompt.intentionCode)
     }
+
+    @Test
+    fun socialCheckAndAutomaticCheckNeedAPause() {
+        assertTrue(PhoneUnlockResolution.needsPause("social_check"))
+        assertTrue(PhoneUnlockResolution.needsPause("automatic_check"))
+        assertFalse(PhoneUnlockResolution.needsPause("specific_task"))
+        assertFalse(PhoneUnlockResolution.needsPause("pay"))
+        assertEquals(3, PhoneUnlockResolution.PAUSE_SECONDS)
+    }
 }

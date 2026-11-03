@@ -21,10 +21,16 @@ import {
   PHONE_UNLOCK_NOTE_MAX_LENGTH,
   TRIGGER_CODES,
   UNLOCK_COPY,
+  UNLOCK_PAUSE_SECONDS,
+  formatCurrentBlockLine,
+  needsUnlockPause,
   noteCopyForIntention,
   type IntentionCode,
+  type UnlockPutDownExecution,
 } from '../../utils/phoneUnlockMapping';
 import { beginUnlockPrompt, resolveUnlockPrompt } from '../../services/phoneUnlockPrompt';
+import { lockPhone } from '../../services/phoneUnlockListener';
+import { useTodayStore } from '../../store/useTodayStore';
 import { useRouter } from 'expo-router';
 import { CHECK_IN_COPY } from '../../constants/checkIn';
 
@@ -57,7 +63,11 @@ export function PhoneUnlockReasonModal({
   const [feeling, setFeeling] = useState<string | null>(null);
   const [note, setNote] = useState('');
   const [contextExpanded, setContextExpanded] = useState(false);
+  const [pauseSeconds, setPauseSeconds] = useState<number | null>(null);
   const submittingRef = useRef(false);
+  const pauseTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pendingContinueRef = useRef<null | (() => void)>(null);
+  const currentBlock = formatCurrentBlockLine(useTodayStore((state) => state.data?.currentBlock));
 
   useEffect(() => {
     if (!visible) {
@@ -68,6 +78,12 @@ export function PhoneUnlockReasonModal({
       setFeeling(null);
       setNote('');
       setContextExpanded(false);
+      setPauseSeconds(null);
+      pendingContinueRef.current = null;
+      if (pauseTimerRef.current) {
+        clearInterval(pauseTimerRef.current);
+        pauseTimerRef.current = null;
+      }
       return;
     }
 
@@ -84,6 +100,40 @@ export function PhoneUnlockReasonModal({
 
   const noteCopy = useMemo(() => noteCopyForIntention(intention), [intention]);
 
+  const cancelPause = (clearIntention = true) => {
+    if (pauseTimerRef.current) {
+      clearInterval(pauseTimerRef.current);
+      pauseTimerRef.current = null;
+    }
+    pendingContinueRef.current = null;
+    setPauseSeconds(null);
+    if (clearIntention && !contextExpanded) {
+      setIntention(null);
+    }
+  };
+
+  const startPause = (then: () => void) => {
+    cancelPause(false);
+    pendingContinueRef.current = then;
+    let remaining = UNLOCK_PAUSE_SECONDS;
+    setPauseSeconds(remaining);
+    pauseTimerRef.current = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        if (pauseTimerRef.current) {
+          clearInterval(pauseTimerRef.current);
+          pauseTimerRef.current = null;
+        }
+        setPauseSeconds(null);
+        const next = pendingContinueRef.current;
+        pendingContinueRef.current = null;
+        next?.();
+        return;
+      }
+      setPauseSeconds(remaining);
+    }, 1000);
+  };
+
   const close = () => {
     onClose?.();
   };
@@ -95,6 +145,7 @@ export function PhoneUnlockReasonModal({
     status: 'answered' | 'skipped' | 'dismissed';
     path: 'quick_choice' | 'context_form' | 'direct_action' | null;
     nextIntention?: string | null;
+    putDownExecution?: UnlockPutDownExecution | null;
   }) => {
     if (submittingRef.current) {
       return;
@@ -114,9 +165,7 @@ export function PhoneUnlockReasonModal({
       action: input.action,
       status: input.status,
       path: input.path,
-      putDownExecution: (input.action === 'put_down' ? 'overlay_dismissed' : null) as
-        | 'overlay_dismissed'
-        | null,
+      putDownExecution: input.putDownExecution ?? null,
     };
     close();
     try {
@@ -129,17 +178,30 @@ export function PhoneUnlockReasonModal({
 
   const onIntentionPress = (code: string) => {
     if (contextExpanded) {
+      cancelPause();
       setIntention((current) => (current === code ? null : code));
       return;
     }
-    void submit({
-      skip: false,
-      keepContext: false,
-      action: 'continue',
-      status: 'answered',
-      path: 'quick_choice',
-      nextIntention: code,
-    });
+    if (pauseSeconds != null && intention === code) {
+      cancelPause();
+      return;
+    }
+    const run = () => {
+      void submit({
+        skip: false,
+        keepContext: false,
+        action: 'continue',
+        status: 'answered',
+        path: 'quick_choice',
+        nextIntention: code,
+      });
+    };
+    setIntention(code);
+    if (needsUnlockPause(code)) {
+      startPause(run);
+      return;
+    }
+    run();
   };
 
   return (
@@ -179,6 +241,39 @@ export function PhoneUnlockReasonModal({
                 </Text>
                 <Text style={styles.subtitle}>{UNLOCK_COPY.subtitle}</Text>
 
+                {currentBlock ? (
+                  <View
+                    style={styles.blockCard}
+                    accessibilityRole="summary"
+                    accessibilityLabel={`${UNLOCK_COPY.now}. ${currentBlock.title}${currentBlock.time ? `. ${currentBlock.time}` : ''}`}
+                  >
+                    <Text style={styles.blockNow}>{UNLOCK_COPY.now}</Text>
+                    <Text style={styles.blockTitle}>{currentBlock.title}</Text>
+                    {currentBlock.time ? <Text style={styles.blockTime}>{currentBlock.time}</Text> : null}
+                  </View>
+                ) : null}
+
+                {pauseSeconds != null ? (
+                  <Pressable
+                    onPress={() => cancelPause()}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${UNLOCK_COPY.pauseTitle}. ${
+                      intention === 'social_check'
+                        ? UNLOCK_COPY.pauseSocial(pauseSeconds)
+                        : UNLOCK_COPY.pauseAutomatic(pauseSeconds)
+                    }. ${UNLOCK_COPY.pauseCancel}`}
+                    style={styles.pauseBanner}
+                  >
+                    <Text style={styles.pauseCount}>{pauseSeconds}</Text>
+                    <Text style={styles.pauseCaption}>
+                      {intention === 'social_check'
+                        ? UNLOCK_COPY.pauseSocial(pauseSeconds)
+                        : UNLOCK_COPY.pauseAutomatic(pauseSeconds)}
+                    </Text>
+                    <Text style={styles.pauseCancel}>{UNLOCK_COPY.pauseCancel}</Text>
+                  </Pressable>
+                ) : null}
+
                 <View style={styles.intentionGrid}>
                   {INTENTION_CODES.map((code) => {
                     const copy = UNLOCK_COPY.intentions[code];
@@ -192,7 +287,9 @@ export function PhoneUnlockReasonModal({
                           accessibilityState={{ selected: contextExpanded ? selected : false }}
                           style={({ pressed }) => [
                             styles.intentionCell,
-                            selected && contextExpanded ? styles.intentionRowSelected : null,
+                            selected && (contextExpanded || pauseSeconds != null)
+                              ? styles.intentionRowSelected
+                              : null,
                             pressed ? styles.pressed : null,
                           ]}
                         >
@@ -261,15 +358,21 @@ export function PhoneUnlockReasonModal({
 
                     <TouchableOpacity
                       style={styles.continueButton}
-                      onPress={() =>
-                        void submit({
-                          skip: false,
-                          keepContext: true,
-                          action: 'continue',
-                          status: 'answered',
-                          path: 'context_form',
-                        })
-                      }
+                      onPress={() => {
+                        const run = () =>
+                          void submit({
+                            skip: false,
+                            keepContext: true,
+                            action: 'continue',
+                            status: 'answered',
+                            path: 'context_form',
+                          });
+                        if (needsUnlockPause(intention)) {
+                          startPause(run);
+                          return;
+                        }
+                        run();
+                      }}
                       accessibilityRole="button"
                       accessibilityLabel={UNLOCK_COPY.continue}
                     >
@@ -280,15 +383,19 @@ export function PhoneUnlockReasonModal({
 
                 <TouchableOpacity
                   style={styles.putDownButton}
-                  onPress={() =>
+                  onPress={() => {
+                    cancelPause();
                     void submit({
                       skip: false,
                       keepContext: contextExpanded,
                       action: 'put_down',
                       status: 'answered',
                       path: 'direct_action',
-                    })
-                  }
+                      putDownExecution: 'lock_requested',
+                    }).then(() => {
+                      void lockPhone();
+                    });
+                  }}
                   accessibilityRole="button"
                   accessibilityLabel={UNLOCK_COPY.putPhoneDown}
                 >
@@ -318,15 +425,16 @@ export function PhoneUnlockReasonModal({
 
                 <TouchableOpacity
                   style={styles.skipButton}
-                  onPress={() =>
+                  onPress={() => {
+                    cancelPause();
                     void submit({
                       skip: true,
                       keepContext: false,
                       action: 'skip',
                       status: 'skipped',
                       path: 'direct_action',
-                    })
-                  }
+                    });
+                  }}
                   accessibilityRole="button"
                   accessibilityLabel={UNLOCK_COPY.skip}
                 >
@@ -401,6 +509,57 @@ const styles = StyleSheet.create({
     marginTop: spacing.s,
     marginBottom: spacing.m,
     lineHeight: typography.lineHeight.body,
+  },
+  blockCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.medium,
+    borderWidth: 1,
+    borderColor: '#316F5F',
+    paddingVertical: spacing.s,
+    paddingHorizontal: spacing.m,
+    marginBottom: spacing.m,
+  },
+  blockNow: {
+    color: '#C7E5CD',
+    fontSize: 11,
+    fontWeight: typography.fontWeight.semibold,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  blockTitle: {
+    color: colors.textPrimary,
+    fontSize: typography.fontSize.body,
+    fontWeight: typography.fontWeight.semibold,
+  },
+  blockTime: {
+    color: colors.textSecondary,
+    fontSize: typography.fontSize.caption,
+    marginTop: 2,
+  },
+  pauseBanner: {
+    backgroundColor: '#31443C',
+    borderRadius: borderRadius.medium,
+    padding: spacing.m,
+    alignItems: 'center',
+    marginBottom: spacing.m,
+  },
+  pauseCount: {
+    color: '#C7E5CD',
+    fontSize: 28,
+    fontWeight: typography.fontWeight.bold,
+  },
+  pauseCaption: {
+    color: colors.textPrimary,
+    fontSize: typography.fontSize.body,
+    marginTop: spacing.xs,
+    textAlign: 'center',
+  },
+  pauseCancel: {
+    color: colors.textSecondary,
+    fontSize: typography.fontSize.caption,
+    marginTop: spacing.s,
+    textAlign: 'center',
   },
   intentionGrid: {
     flexDirection: 'row',

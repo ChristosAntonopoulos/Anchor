@@ -72,6 +72,7 @@ object UnlockReasonOverlay {
         }
         val windowType = windowTypeFor(host) ?: return false
         val windowContext = host.applicationContext
+        PhoneLock.clearPending(windowContext)
         val prompt = PhoneUnlockStore.createPending(windowContext, unlockTime)
         val form = UnlockReasonFormView(windowContext, prompt) { hideOnMain(null) }
         val params = WindowManager.LayoutParams(
@@ -177,6 +178,17 @@ private class UnlockReasonFormView(
     private val intentionRows = mutableMapOf<String, View>()
     private val triggerChips = mutableMapOf<String, TextView>()
     private val feelingChips = mutableMapOf<String, TextView>()
+    private val currentBlockCard: LinearLayout
+    private val currentBlockTitle: TextView
+    private val currentBlockTime: TextView
+    private val pauseBanner: LinearLayout
+    private val pauseCount: TextView
+    private val pauseCaption: TextView
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var pauseRemaining = 0
+    private var pauseIntention: String? = null
+    private var pauseRunnable: Runnable? = null
+    private var pendingSubmit: (() -> Unit)? = null
 
     init {
         orientation = VERTICAL
@@ -202,8 +214,71 @@ private class UnlockReasonFormView(
 
         card.addView(text(R.string.unlock_title, Color.parseColor("#E8EAED"), 22f, true, Gravity.CENTER))
         card.addView(text(R.string.unlock_subtitle, Color.parseColor("#8B95A6"), 15f, false, Gravity.CENTER).apply {
-            setPadding(0, dp(6), 0, dp(14))
+            setPadding(0, dp(6), 0, dp(12))
         })
+
+        currentBlockTitle = TextView(context).apply {
+            setTextColor(Color.parseColor("#E8EAED"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+            setTypeface(typeface, Typeface.BOLD)
+        }
+        currentBlockTime = TextView(context).apply {
+            setTextColor(Color.parseColor("#8B95A6"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setPadding(0, dp(2), 0, 0)
+        }
+        currentBlockCard = LinearLayout(context).apply {
+            orientation = VERTICAL
+            background = roundedStroke(Color.parseColor("#252B38"), Color.parseColor("#316F5F"), dp(14))
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+            visibility = GONE
+            importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
+            addView(text(R.string.unlock_now, Color.parseColor("#C7E5CD"), 11f, true, Gravity.START).apply {
+                letterSpacing = 0.08f
+            })
+            addView(currentBlockTitle)
+            addView(currentBlockTime)
+            val params = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+            params.bottomMargin = dp(14)
+            layoutParams = params
+        }
+        card.addView(currentBlockCard)
+        bindCurrentBlock(CurrentBlockStore.read(context))
+        PhoneUnlockApi.enqueueCurrentBlockRefresh(context) { snapshot ->
+            post { if (isAttachedToWindow) bindCurrentBlock(snapshot) }
+        }
+
+        pauseCount = TextView(context).apply {
+            setTextColor(Color.parseColor("#C7E5CD"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+        }
+        pauseCaption = TextView(context).apply {
+            setTextColor(Color.parseColor("#E8EAED"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            gravity = Gravity.CENTER
+            setPadding(0, dp(4), 0, 0)
+        }
+        pauseBanner = LinearLayout(context).apply {
+            orientation = VERTICAL
+            gravity = Gravity.CENTER
+            background = rounded(Color.parseColor("#31443C"), dp(14))
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+            visibility = GONE
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { cancelPause() }
+            addView(pauseCount)
+            addView(pauseCaption)
+            addView(text(R.string.unlock_pause_cancel, Color.parseColor("#8B95A6"), 12f, false, Gravity.CENTER).apply {
+                setPadding(0, dp(6), 0, 0)
+            })
+            val params = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+            params.bottomMargin = dp(12)
+            layoutParams = params
+        }
+        card.addView(pauseBanner)
 
         INTENTIONS.chunked(2).forEach { pair ->
             val row = LinearLayout(context).apply {
@@ -277,7 +352,7 @@ private class UnlockReasonFormView(
         continueButton = filledButton(R.string.unlock_continue).apply {
             visibility = GONE
             setOnClickListener {
-                submit(
+                beginOrSubmit(
                     status = PhoneUnlockPrompt.STATUS_ANSWERED,
                     action = PhoneUnlockPrompt.ACTION_CONTINUE,
                     path = PhoneUnlockPrompt.PATH_CONTEXT,
@@ -289,15 +364,7 @@ private class UnlockReasonFormView(
         card.addView(contextSection)
 
         card.addView(outlineButton(R.string.unlock_put_phone_down).apply {
-            setOnClickListener {
-                submit(
-                    status = PhoneUnlockPrompt.STATUS_ANSWERED,
-                    action = PhoneUnlockPrompt.ACTION_PUT_DOWN,
-                    path = PhoneUnlockPrompt.PATH_DIRECT,
-                    keepContext = contextExpanded,
-                    putDownExecution = PhoneUnlockPrompt.PUT_DOWN_OVERLAY,
-                )
-            }
+            setOnClickListener { putPhoneDown() }
         })
         card.addView(actionText(R.string.unlock_check_in_offer, Color.parseColor("#C7E5CD")).apply {
             contentDescription = context.getString(R.string.unlock_check_in_offer)
@@ -313,6 +380,7 @@ private class UnlockReasonFormView(
         })
         card.addView(actionText(R.string.unlock_skip, Color.parseColor("#8B95A6")).apply {
             setOnClickListener {
+                cancelPause()
                 submit(
                     status = PhoneUnlockPrompt.STATUS_SKIPPED,
                     action = PhoneUnlockPrompt.ACTION_SKIP,
@@ -329,8 +397,14 @@ private class UnlockReasonFormView(
         addView(scroll, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
     }
 
+    override fun onDetachedFromWindow() {
+        cancelPause()
+        super.onDetachedFromWindow()
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP) {
+            cancelPause()
             submit(
                 status = PhoneUnlockPrompt.STATUS_DISMISSED,
                 action = null,
@@ -365,6 +439,7 @@ private class UnlockReasonFormView(
 
     private fun onIntention(code: String) {
         if (contextExpanded) {
+            cancelPause()
             intention = if (intention == code) null else code
             refreshIntentionRows()
             refreshNoteCopy()
@@ -373,13 +448,120 @@ private class UnlockReasonFormView(
             )
             return
         }
+        if (pauseIntention == code) {
+            cancelPause()
+            return
+        }
         intention = code
-        submit(
+        beginOrSubmit(
             status = PhoneUnlockPrompt.STATUS_ANSWERED,
             action = PhoneUnlockPrompt.ACTION_CONTINUE,
             path = PhoneUnlockPrompt.PATH_QUICK,
             keepContext = false,
         )
+    }
+
+    private fun beginOrSubmit(
+        status: String,
+        action: String?,
+        path: String?,
+        keepContext: Boolean,
+        putDownExecution: String? = null,
+        openCheckIn: Boolean = false,
+        lockAfter: Boolean = false,
+    ) {
+        if (action == PhoneUnlockPrompt.ACTION_CONTINUE && PhoneUnlockResolution.needsPause(intention)) {
+            startPause {
+                submit(status, action, path, keepContext, putDownExecution, openCheckIn, lockAfter)
+            }
+            return
+        }
+        submit(status, action, path, keepContext, putDownExecution, openCheckIn, lockAfter)
+    }
+
+    private fun startPause(then: () -> Unit) {
+        cancelPause(clearIntention = false)
+        pauseIntention = intention
+        pendingSubmit = then
+        pauseRemaining = PhoneUnlockResolution.PAUSE_SECONDS
+        pauseBanner.visibility = VISIBLE
+        refreshIntentionRows()
+        updatePauseCopy()
+        pauseBanner.announceForAccessibility(pauseCaption.text)
+        val tick = object : Runnable {
+            override fun run() {
+                pauseRemaining -= 1
+                if (pauseRemaining <= 0) {
+                    val next = pendingSubmit
+                    cancelPause(clearIntention = false)
+                    next?.invoke()
+                    return
+                }
+                updatePauseCopy()
+                mainHandler.postDelayed(this, 1000)
+            }
+        }
+        pauseRunnable = tick
+        mainHandler.postDelayed(tick, 1000)
+    }
+
+    private fun updatePauseCopy() {
+        pauseCount.text = pauseRemaining.toString()
+        val label = when (pauseIntention) {
+            "social_check" -> context.getString(R.string.unlock_pause_social, pauseRemaining)
+            else -> context.getString(R.string.unlock_pause_automatic, pauseRemaining)
+        }
+        pauseCaption.text = label
+        pauseBanner.contentDescription = "${context.getString(R.string.unlock_pause_title)}. $label. ${context.getString(R.string.unlock_pause_cancel)}"
+    }
+
+    private fun cancelPause(clearIntention: Boolean = true) {
+        pauseRunnable?.let { mainHandler.removeCallbacks(it) }
+        pauseRunnable = null
+        pendingSubmit = null
+        pauseRemaining = 0
+        pauseBanner.visibility = GONE
+        if (clearIntention) {
+            pauseIntention = null
+        }
+        if (clearIntention && !contextExpanded) {
+            intention = null
+            refreshIntentionRows()
+        }
+    }
+
+    private fun putPhoneDown() {
+        cancelPause()
+        val execution = PhoneLock.prepare(context)
+        submit(
+            status = PhoneUnlockPrompt.STATUS_ANSWERED,
+            action = PhoneUnlockPrompt.ACTION_PUT_DOWN,
+            path = PhoneUnlockPrompt.PATH_DIRECT,
+            keepContext = contextExpanded,
+            putDownExecution = execution,
+            lockAfter = true,
+        )
+    }
+
+    private fun bindCurrentBlock(snapshot: CurrentBlockSnapshot?) {
+        if (snapshot == null) {
+            currentBlockCard.visibility = GONE
+            return
+        }
+        currentBlockTitle.text = snapshot.title
+        val range = snapshot.timeRange()
+        currentBlockTime.text = range ?: ""
+        currentBlockTime.visibility = if (range == null) GONE else VISIBLE
+        currentBlockCard.visibility = VISIBLE
+        currentBlockCard.contentDescription = buildString {
+            append(context.getString(R.string.unlock_now))
+            append(". ")
+            append(snapshot.title)
+            if (range != null) {
+                append(". ")
+                append(range)
+            }
+        }
     }
 
     private fun submit(
@@ -389,7 +571,9 @@ private class UnlockReasonFormView(
         keepContext: Boolean,
         putDownExecution: String? = null,
         openCheckIn: Boolean = false,
+        lockAfter: Boolean = false,
     ) {
+        cancelPause(clearIntention = false)
         if (!submitting.compareAndSet(false, true)) {
             return
         }
@@ -429,6 +613,9 @@ private class UnlockReasonFormView(
             }
         }
         dismiss()
+        if (lockAfter) {
+            mainHandler.post { PhoneLock.complete(context) }
+        }
     }
 
     private fun intentionCard(item: IntentionItem): View {

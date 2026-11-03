@@ -59,6 +59,8 @@ data class PhoneUnlockPrompt(
         const val PATH_CONTEXT = "context_form"
         const val PATH_DIRECT = "direct_action"
         const val PUT_DOWN_OVERLAY = "overlay_dismissed"
+        const val PUT_DOWN_LOCK = "lock_requested"
+        const val PUT_DOWN_FAILED = "failed"
 
         val INTENTIONS = listOf(
             "specific_task",

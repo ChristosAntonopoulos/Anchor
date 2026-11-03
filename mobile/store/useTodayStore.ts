@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { TodayResponse, BetterItem, Task, DisciplineEntry, DietEntry, UpdateTaskRequest, CreateTaskRequest, CategoryName } from '../types';
 import { apiClient } from '../services/api';
 import { submitIntakeAndRefresh } from '../services/intakeService';
+import { cacheCurrentBlock } from '../services/phoneUnlockListener';
 
 interface TodayStore {
   // State
@@ -43,6 +44,7 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
         betterItemsCount: data.betterItems?.length || 0,
         tasksCount: data.tasks?.length || 0,
       });
+      cacheCurrentBlock(data.currentBlock);
       set({ data, loading: false });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to load today data';

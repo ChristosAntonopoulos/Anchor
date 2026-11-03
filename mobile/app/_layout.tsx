@@ -5,7 +5,7 @@ import { Platform, AppState, Modal, View, StyleSheet } from 'react-native';
 import { AppUpdatePrompt } from '../components/shared/AppUpdatePrompt';
 import { ErrorBoundary } from '../components/shared/ErrorBoundary';
 import { useCategoryStore } from '../store/useCategoryStore';
-import { phoneUnlockListener } from '../services/phoneUnlockListener';
+import { isLockAdminActive, phoneUnlockListener } from '../services/phoneUnlockListener';
 import { PhoneUnlockReasonModal } from '../components/phoneUnlock/PhoneUnlockReasonModal';
 import { UnlockSetupPrompt } from '../components/phoneUnlock/UnlockSetupPrompt';
 import { hasPhoneUnlockModule, isExpoGo } from '../utils/nativeModuleSupport';
@@ -51,10 +51,9 @@ export default function RootLayout() {
 
     if (Platform.OS === 'android' && !isExpoGo && hasPhoneUnlockModule) {
       phoneUnlockListener.setApiUrl(API_CONFIG.baseURL);
-      overlayPermission
-        .isOverlayPermissionGranted()
-        .then((granted) => {
-          setShowOverlayPrompt(!granted);
+      Promise.all([overlayPermission.isOverlayPermissionGranted(), isLockAdminActive()])
+        .then(([overlay, lock]) => {
+          setShowOverlayPrompt(!overlay || !lock);
         })
         .catch(() => {
           setShowOverlayPrompt(true);
@@ -196,10 +195,9 @@ export default function RootLayout() {
         setTimeout(() => {
           void checkPendingUnlock();
         }, 400);
-        overlayPermission
-          .isOverlayPermissionGranted()
-          .then((granted) => {
-            if (granted) {
+        Promise.all([overlayPermission.isOverlayPermissionGranted(), isLockAdminActive()])
+          .then(([overlay, lock]) => {
+            if (overlay && lock) {
               setShowOverlayPrompt(false);
             }
           })
