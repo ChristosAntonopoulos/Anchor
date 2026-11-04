@@ -156,7 +156,7 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
     fun requestLockAdmin(promise: Promise) {
         reactApplicationContext.runOnUiQueueThread {
             try {
-                val host = currentActivity ?: reactApplicationContext
+                val host = reactApplicationContext.currentActivity ?: reactApplicationContext
                 PhoneLock.requestAdmin(host)
                 promise.resolve(true)
             } catch (error: Exception) {
@@ -180,7 +180,7 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
     fun requestUsageAccess(promise: Promise) {
         reactApplicationContext.runOnUiQueueThread {
             try {
-                val host = currentActivity ?: reactApplicationContext
+                val host = reactApplicationContext.currentActivity ?: reactApplicationContext
                 WalletLaunchDetector.requestUsageAccess(host)
                 promise.resolve(true)
             } catch (error: Exception) {

@@ -67,42 +67,43 @@ object PhoneLock {
     }
 
     fun requestAdmin(context: Context) {
-        val start = {
-            if (isAdminActive(context)) {
-                android.util.Log.d("PhoneLock", "Device admin already active")
-            } else {
-                val addAdmin = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
-                    putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, component(context))
-                    putExtra(
-                        DevicePolicyManager.EXTRA_ADD_EXPLANATION,
-                        context.getString(R.string.unlock_lock_admin_body),
-                    )
-                }
-                val security = Intent(Settings.ACTION_SECURITY_SETTINGS)
-                val settings = Intent(Settings.ACTION_SETTINGS)
-                val activity = context as? Activity
-                val launched = if (activity != null && !activity.isFinishing && !activity.isDestroyed) {
-                    // Device-admin UI is a dialog. NEW_TASK from the application
-                    // context is ignored on Nothing OS, and a React Native Modal
-                    // will cover it unless this starts from the resumed activity.
-                    startOnActivity(activity, addAdmin, forResult = true)
-                        || startOnActivity(activity, addAdmin, forResult = false)
-                        || startOnActivity(activity, security, forResult = false)
-                        || startOnActivity(activity, settings, forResult = false)
-                } else {
-                    startOnContext(context.applicationContext, addAdmin)
-                        || startOnContext(context.applicationContext, security)
-                        || startOnContext(context.applicationContext, settings)
-                }
-                if (!launched) {
-                    android.util.Log.e("PhoneLock", "Could not open device admin or security settings")
-                }
-            }
-        }
         if (Looper.myLooper() == Looper.getMainLooper()) {
-            start()
+            openAdminSettings(context)
         } else {
-            mainHandler.post(start)
+            mainHandler.post { openAdminSettings(context) }
+        }
+    }
+
+    private fun openAdminSettings(context: Context) {
+        if (isAdminActive(context)) {
+            android.util.Log.d("PhoneLock", "Device admin already active")
+            return
+        }
+        val addAdmin = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
+            putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, component(context))
+            putExtra(
+                DevicePolicyManager.EXTRA_ADD_EXPLANATION,
+                context.getString(R.string.unlock_lock_admin_body),
+            )
+        }
+        val security = Intent(Settings.ACTION_SECURITY_SETTINGS)
+        val settings = Intent(Settings.ACTION_SETTINGS)
+        val activity = context as? Activity
+        val launched = if (activity != null && !activity.isFinishing && !activity.isDestroyed) {
+            // Device-admin UI is a dialog. NEW_TASK from the application
+            // context is ignored on Nothing OS, and a React Native Modal
+            // will cover it unless this starts from the resumed activity.
+            startOnActivity(activity, addAdmin, forResult = true)
+                || startOnActivity(activity, addAdmin, forResult = false)
+                || startOnActivity(activity, security, forResult = false)
+                || startOnActivity(activity, settings, forResult = false)
+        } else {
+            startOnContext(context.applicationContext, addAdmin)
+                || startOnContext(context.applicationContext, security)
+                || startOnContext(context.applicationContext, settings)
+        }
+        if (!launched) {
+            android.util.Log.e("PhoneLock", "Could not open device admin or security settings")
         }
     }
 
