@@ -85,13 +85,14 @@ stages:
   jobs:
   - job: BuildMobile
     displayName: 'Build Android APK with EAS'
+    timeoutInMinutes: 90
     pool:
       name: 'Default'
     steps:
     - task: NodeTool@0
       displayName: 'Install Node.js'
       inputs:
-        versionSpec: '18.x'
+        versionSpec: '20.x'
 
     - script: 'npm install -g eas-cli@20.1.0'
       displayName: 'Install EAS CLI'
@@ -185,7 +186,8 @@ stages:
         echo "Build profile: production"
         echo "API URL: http://185.193.66.50:31247/api"
         echo ""
-        echo "This will start a cloud build. It may take 10-15 minutes."
+        echo "This will start a cloud build. Queue plus compile often takes longer than 15 minutes."
+        export EAS_SKIP_AUTO_FINGERPRINT=1
 
         eas build --platform android --profile production --non-interactive --wait --json > eas-build-output.json
 
@@ -244,8 +246,9 @@ stages:
       displayName: 'Build and download Android APK with EAS'
       env:
         EXPO_TOKEN: $(EXPO_TOKEN)
+        EAS_SKIP_AUTO_FINGERPRINT: '1'
       continueOnError: false
-      timeoutInMinutes: 25
+      timeoutInMinutes: 55
 
     - task: PublishBuildArtifacts@1
       displayName: 'Publish APK as artifact'
