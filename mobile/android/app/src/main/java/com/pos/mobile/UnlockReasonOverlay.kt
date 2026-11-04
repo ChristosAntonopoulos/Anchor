@@ -636,7 +636,11 @@ private class UnlockReasonFormView(
         }
         todayCountView.text = countLabel
         val usualLabel = stats.mostCommonIntention?.let { code ->
-            INTENTIONS.find { it.code == code }?.let { context.getString(it.label) }
+            if (code == "pay") {
+                context.getString(R.string.unlock_intention_pay)
+            } else {
+                INTENTIONS.find { it.code == code }?.let { context.getString(it.label) }
+            }
         }
         if (usualLabel == null) {
             mostOftenView.visibility = GONE
@@ -974,7 +978,6 @@ private class UnlockReasonFormView(
             IntentionItem("connection", R.string.unlock_intention_connection, R.string.unlock_intention_connection_support, "◎"),
             IntentionItem("intentional_break", R.string.unlock_intention_intentional_break, R.string.unlock_intention_intentional_break_support, "♪"),
             IntentionItem("social_check", R.string.unlock_intention_social_check, R.string.unlock_intention_social_check_support, "☰"),
-            IntentionItem("pay", R.string.unlock_intention_pay, R.string.unlock_intention_pay_support, "€"),
             IntentionItem("automatic_check", R.string.unlock_intention_automatic_check, R.string.unlock_intention_automatic_check_support, "↻"),
             IntentionItem("spotify", R.string.unlock_intention_spotify, R.string.unlock_intention_spotify_support, "♫"),
             IntentionItem("other", R.string.unlock_intention_other, R.string.unlock_intention_other_support, "+"),

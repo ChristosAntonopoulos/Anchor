@@ -4,16 +4,27 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 import { overlayPermission } from '../../services/overlayPermission';
-import { isLockAdminActive, requestLockAdmin } from '../../services/phoneUnlockListener';
+import {
+  isLockAdminActive,
+  isUsageAccessGranted,
+  requestLockAdmin,
+  requestUsageAccess,
+} from '../../services/phoneUnlockListener';
 
 interface UnlockSetupPromptProps {
   onReady?: () => void;
 }
 
+type SetupStep = 'overlay' | 'usage' | 'lock';
+
 export function UnlockSetupPrompt({ onReady }: UnlockSetupPromptProps) {
   const [overlayOn, setOverlayOn] = useState(false);
+  const [usageOn, setUsageOn] = useState(false);
   const [lockOn, setLockOn] = useState(false);
+  const [usageSkipped, setUsageSkipped] = useState(false);
   const [lockSkipped, setLockSkipped] = useState(false);
+
+  const ready = overlayOn && (usageOn || usageSkipped) && (lockOn || lockSkipped);
 
   const check = useCallback(async () => {
     if (Platform.OS !== 'android') {
@@ -23,26 +34,50 @@ export function UnlockSetupPrompt({ onReady }: UnlockSetupPromptProps) {
 
     try {
       const overlay = await overlayPermission.isOverlayPermissionGranted();
+      const usage = await isUsageAccessGranted();
       const lock = await isLockAdminActive();
       setOverlayOn(overlay);
+      setUsageOn(usage);
       setLockOn(lock);
-      if (overlay && (lock || lockSkipped)) {
+      if (overlay && (usage || usageSkipped) && (lock || lockSkipped)) {
         onReady?.();
       }
     } catch (error) {
-      console.error('[UnlockSetupPrompt] Could not check overlay permission', error);
+      console.error('[UnlockSetupPrompt] Could not check unlock permissions', error);
     }
-  }, [onReady, lockSkipped]);
+  }, [onReady, usageSkipped, lockSkipped]);
 
   useEffect(() => {
     void check();
   }, [check]);
 
-  if (Platform.OS !== 'android' || (overlayOn && (lockOn || lockSkipped))) {
+  if (Platform.OS !== 'android' || ready) {
     return null;
   }
 
-  const askingLock = overlayOn && !lockOn && !lockSkipped;
+  const step: SetupStep = !overlayOn ? 'overlay' : !usageOn && !usageSkipped ? 'usage' : 'lock';
+
+  const copy =
+    step === 'overlay'
+      ? {
+          title: 'Allow the unlock popup',
+          description:
+            'Android will not let this app jump in front after you unlock. Allow display over other apps so “What brings you to your phone?” can appear on the home screen.',
+          button: 'Open overlay settings',
+        }
+      : step === 'usage'
+        ? {
+            title: 'Log Cards automatically',
+            description:
+              'Nothing’s lock-screen Cards button can skip the popup and log Pay. Android needs App usage access for that. POS only checks which app opened after unlock.',
+            button: 'Allow app usage',
+          }
+        : {
+            title: 'Allow screen lock',
+            description:
+              'So Put phone down can turn the screen off. This only lets the app lock the screen. It cannot erase data.',
+            button: 'Allow screen lock',
+          };
 
   return (
     <View style={styles.container}>
@@ -50,18 +85,16 @@ export function UnlockSetupPrompt({ onReady }: UnlockSetupPromptProps) {
         <View style={styles.iconContainer}>
           <AppIcon name="focus" size={48} />
         </View>
-        <Text style={styles.title}>
-          {askingLock ? 'Allow screen lock' : 'Allow the unlock popup'}
-        </Text>
-        <Text style={styles.description}>
-          {askingLock
-            ? 'So Put phone down can turn the screen off. This only lets the app lock the screen. It cannot erase data.'
-            : 'Android will not let this app jump in front after you unlock. Allow display over other apps so “What brings you to your phone?” can appear on the home screen.'}
-        </Text>
+        <Text style={styles.title}>{copy.title}</Text>
+        <Text style={styles.description}>{copy.description}</Text>
         <TouchableOpacity
           style={styles.button}
           onPress={() => {
-            if (askingLock) {
+            if (step === 'usage') {
+              requestUsageAccess();
+              return;
+            }
+            if (step === 'lock') {
               requestLockAdmin();
               return;
             }
@@ -74,18 +107,23 @@ export function UnlockSetupPrompt({ onReady }: UnlockSetupPromptProps) {
             end={{ x: 1, y: 1 }}
             style={styles.buttonGradient}
           >
-            <Text style={styles.buttonText}>
-              {askingLock ? 'Allow screen lock' : 'Open overlay settings'}
-            </Text>
+            <Text style={styles.buttonText}>{copy.button}</Text>
           </LinearGradient>
         </TouchableOpacity>
         <TouchableOpacity style={styles.checkButton} onPress={() => void check()}>
           <Text style={styles.checkButtonText}>I allowed it</Text>
         </TouchableOpacity>
-        {askingLock ? (
+        {step === 'usage' || step === 'lock' ? (
           <TouchableOpacity
             style={styles.checkButton}
             onPress={() => {
+              if (step === 'usage') {
+                setUsageSkipped(true);
+                if (overlayOn && (lockOn || lockSkipped)) {
+                  onReady?.();
+                }
+                return;
+              }
               setLockSkipped(true);
               onReady?.();
             }}

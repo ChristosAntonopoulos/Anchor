@@ -4,6 +4,7 @@ import {
   PHONE_UNLOCK_NOTE_MAX_LENGTH,
   displayUnlockHeadline,
   fieldsForUnlockChoice,
+  intentionLabel,
   formatCurrentBlockLine,
   formatUnlockedDuration,
   needsUnlockPause,
@@ -34,13 +35,12 @@ test('quick intention choice keeps the stable code and continue action', () => {
   assert.equal(result.submissionPath, 'quick_choice');
 });
 
-test('all eight intention codes stay distinct', () => {
+test('choice intention codes stay distinct', () => {
   const codes = [
     'specific_task',
     'connection',
     'intentional_break',
     'social_check',
-    'pay',
     'automatic_check',
     'spotify',
     'other',
@@ -77,6 +77,27 @@ test('all eight intention codes stay distinct', () => {
     }).intentionCode,
     'other',
   );
+});
+
+test('lock-screen wallet still stores pay without being a choice', () => {
+  const result = fieldsForUnlockChoice({
+    skip: false,
+    keepContext: false,
+    contextExpanded: false,
+    intention: 'pay',
+    trigger: null,
+    feeling: null,
+    note: null,
+    action: 'continue',
+    status: 'answered',
+    path: 'wallet_shortcut',
+    putDownExecution: null,
+  });
+  assert.equal(result.intentionCode, 'pay');
+  assert.equal(result.action, 'continue');
+  assert.equal(result.submissionPath, 'wallet_shortcut');
+  assert.equal(intentionLabel('pay'), 'Pay');
+  assert.equal(displayUnlockHeadline({ intentionCode: 'pay' }), 'Pay');
 });
 
 test('put phone down without an intention leaves intention null', () => {

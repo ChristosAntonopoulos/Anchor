@@ -18,7 +18,7 @@ public class CreatePhoneUnlockEntryValidator : BaseValidator<CreatePhoneUnlockEn
 
     private static readonly HashSet<string> SubmissionPaths =
     [
-        "quick_choice", "context_form", "direct_action"
+        "quick_choice", "context_form", "direct_action", "wallet_shortcut"
     ];
 
     private static readonly HashSet<string> PutDownExecutions =

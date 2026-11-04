@@ -32,13 +32,12 @@ class PhoneUnlockResolutionTest {
     }
 
     @Test
-    fun eightIntentionCodesStayDistinct() {
+    fun choiceIntentionCodesStayDistinctAndPayStillSaves() {
         val codes = listOf(
             "specific_task",
             "connection",
             "intentional_break",
             "social_check",
-            "pay",
             "automatic_check",
             "spotify",
             "other",
@@ -60,7 +59,21 @@ class PhoneUnlockResolutionTest {
         }
         assertEquals(codes, saved)
         assertNotEquals("automatic_check", saved[3])
-        assertNotEquals("pay", saved[6])
+        val pay = PhoneUnlockResolution.fromUserChoice(
+            skip = false,
+            keepContext = false,
+            contextExpanded = false,
+            intention = "pay",
+            trigger = null,
+            feeling = null,
+            note = null,
+            action = PhoneUnlockPrompt.ACTION_CONTINUE,
+            status = PhoneUnlockPrompt.STATUS_ANSWERED,
+            path = PhoneUnlockPrompt.PATH_WALLET,
+            putDownExecution = null,
+        )
+        assertEquals("pay", pay.intentionCode)
+        assertEquals(PhoneUnlockPrompt.PATH_WALLET, pay.submissionPath)
     }
 
     @Test

@@ -255,6 +255,24 @@ export function requestLockAdmin(): void {
   PhoneUnlockModule.requestLockAdmin();
 }
 
+export async function isUsageAccessGranted(): Promise<boolean> {
+  if (!isAndroid || !PhoneUnlockModule || typeof PhoneUnlockModule.isUsageAccessGranted !== 'function') {
+    return false;
+  }
+  try {
+    return Boolean(await PhoneUnlockModule.isUsageAccessGranted());
+  } catch {
+    return false;
+  }
+}
+
+export function requestUsageAccess(): void {
+  if (!isAndroid || !PhoneUnlockModule || typeof PhoneUnlockModule.requestUsageAccess !== 'function') {
+    return;
+  }
+  PhoneUnlockModule.requestUsageAccess();
+}
+
 export async function lockPhone(): Promise<'lock_requested' | 'overlay_dismissed' | 'failed'> {
   if (!isAndroid || !PhoneUnlockModule || typeof PhoneUnlockModule.lockPhone !== 'function') {
     return 'overlay_dismissed';

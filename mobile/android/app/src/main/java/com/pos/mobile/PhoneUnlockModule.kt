@@ -163,6 +163,16 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
+    fun isUsageAccessGranted(promise: Promise) {
+        promise.resolve(WalletLaunchDetector.isUsageAccessGranted(reactApplicationContext))
+    }
+
+    @ReactMethod
+    fun requestUsageAccess() {
+        WalletLaunchDetector.requestUsageAccess(reactApplicationContext)
+    }
+
+    @ReactMethod
     fun beginUnlockPrompt(unlockTimeMs: Double, promise: Promise) {
         try {
             val prompt = PhoneUnlockStore.createPending(

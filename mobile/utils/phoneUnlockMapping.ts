@@ -6,7 +6,6 @@ export const INTENTION_CODES = [
   'connection',
   'intentional_break',
   'social_check',
-  'pay',
   'automatic_check',
   'spotify',
   'other',
@@ -47,7 +46,7 @@ export type UnlockPromptStatus =
   | 'dismissed'
   | 'interrupted';
 export type UnlockPromptAction = 'continue' | 'put_down' | 'skip';
-export type UnlockSubmissionPath = 'quick_choice' | 'context_form' | 'direct_action';
+export type UnlockSubmissionPath = 'quick_choice' | 'context_form' | 'direct_action' | 'wallet_shortcut';
 export type UnlockPutDownExecution = 'lock_requested' | 'overlay_dismissed' | 'failed';
 
 export const PAUSE_INTENTION_CODES = ['social_check', 'automatic_check'] as const;
@@ -348,13 +347,21 @@ export function noteCopyForIntention(intention: string | null | undefined) {
   return UNLOCK_COPY.notes.none;
 }
 
+export function intentionLabel(code?: string | null): string | null {
+  if (!code || !(code in UNLOCK_COPY.intentions)) {
+    return null;
+  }
+  return UNLOCK_COPY.intentions[code as keyof typeof UNLOCK_COPY.intentions].label;
+}
+
 export function displayUnlockHeadline(entry: {
   intentionCode?: string | null;
   status?: string | null;
   action?: string | null;
 }): string {
-  if (entry.intentionCode && entry.intentionCode in UNLOCK_COPY.intentions) {
-    return UNLOCK_COPY.intentions[entry.intentionCode as IntentionCode].label;
+  const label = intentionLabel(entry.intentionCode);
+  if (label) {
+    return label;
   }
   if (entry.intentionCode) {
     return entry.intentionCode;

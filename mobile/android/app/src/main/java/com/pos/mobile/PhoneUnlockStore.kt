@@ -70,6 +70,24 @@ object PhoneUnlockStore {
     }
 
     @Synchronized
+    fun recordWalletUnlock(context: Context, unlockTimeMs: Long): Boolean {
+        val prompt = createPending(context, unlockTimeMs)
+        return resolve(
+            context = context,
+            prompt = prompt,
+            status = PhoneUnlockPrompt.STATUS_ANSWERED,
+            action = PhoneUnlockPrompt.ACTION_CONTINUE,
+            intentionCode = "pay",
+            triggerCode = null,
+            feelingCode = null,
+            note = null,
+            contextExpanded = false,
+            submissionPath = PhoneUnlockPrompt.PATH_WALLET,
+            putDownExecution = null,
+        )
+    }
+
+    @Synchronized
     fun getById(context: Context, id: String): PhoneUnlockPrompt? {
         return load(context).find { it.id == id }
     }

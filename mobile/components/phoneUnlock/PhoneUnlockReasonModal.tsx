@@ -23,6 +23,7 @@ import {
   UNLOCK_COPY,
   UNLOCK_PAUSE_SECONDS,
   formatCurrentBlockLine,
+  intentionLabel,
   needsUnlockPause,
   noteCopyForIntention,
   type IntentionCode,
@@ -45,7 +46,6 @@ const INTENTION_ICONS: Record<IntentionCode, string> = {
   connection: 'heart',
   intentional_break: 'sleep',
   social_check: 'notification',
-  pay: 'goals',
   automatic_check: 'habits',
   spotify: 'musical-notes-outline',
   other: 'add',
@@ -259,17 +259,15 @@ export function PhoneUnlockReasonModal({
                     style={styles.statsCard}
                     accessibilityRole="summary"
                     accessibilityLabel={`${UNLOCK_COPY.todayCount(stats.todayCount)}${
-                      stats.mostCommonIntention && stats.mostCommonIntention in UNLOCK_COPY.intentions
-                        ? `. ${UNLOCK_COPY.mostOften(UNLOCK_COPY.intentions[stats.mostCommonIntention as IntentionCode].label)}`
+                      intentionLabel(stats.mostCommonIntention)
+                        ? `. ${UNLOCK_COPY.mostOften(intentionLabel(stats.mostCommonIntention) ?? '')}`
                         : ''
                     }`}
                   >
                     <Text style={styles.statsToday}>{UNLOCK_COPY.todayCount(stats.todayCount)}</Text>
-                    {stats.mostCommonIntention && stats.mostCommonIntention in UNLOCK_COPY.intentions ? (
+                    {intentionLabel(stats.mostCommonIntention) ? (
                       <Text style={styles.statsOften}>
-                        {UNLOCK_COPY.mostOften(
-                          UNLOCK_COPY.intentions[stats.mostCommonIntention as IntentionCode].label,
-                        )}
+                        {UNLOCK_COPY.mostOften(intentionLabel(stats.mostCommonIntention) ?? '')}
                       </Text>
                     ) : null}
                   </View>

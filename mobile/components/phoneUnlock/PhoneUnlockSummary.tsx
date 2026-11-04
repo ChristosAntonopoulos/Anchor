@@ -3,8 +3,8 @@ import { colors, spacing, typography, borderRadius } from '../../constants/desig
 import {
   UNLOCK_COPY,
   formatUnlockedDuration,
+  intentionLabel,
   summarizeUnlockEntries,
-  type IntentionCode,
 } from '../../utils/phoneUnlockMapping';
 import type { PhoneUnlockEntry } from '../../types';
 
@@ -14,10 +14,7 @@ interface PhoneUnlockSummaryProps {
 
 export function PhoneUnlockSummary({ entries }: PhoneUnlockSummaryProps) {
   const stats = summarizeUnlockEntries(entries);
-  const mostOften =
-    stats.mostCommonIntention && stats.mostCommonIntention in UNLOCK_COPY.intentions
-      ? UNLOCK_COPY.intentions[stats.mostCommonIntention as IntentionCode].label
-      : stats.mostCommonIntention;
+  const mostOften = intentionLabel(stats.mostCommonIntention) ?? stats.mostCommonIntention;
   const average = formatUnlockedDuration(stats.averageDurationMs);
   const todayTime = formatUnlockedDuration(stats.todayDurationMs);
 
