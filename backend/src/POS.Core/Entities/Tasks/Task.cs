@@ -1,4 +1,5 @@
 using MongoDB.Bson.Serialization.Attributes;
+using POS.Core.Entities.Execution;
 
 namespace POS.Core.Entities.Tasks;
 
@@ -84,4 +85,31 @@ public class Task : DayAnchoredEntity
 
     [BsonElement("aiInputId")]
     public string? AiInputId { get; set; }
+
+    [BsonElement("nextAction")]
+    public NextAction? NextAction { get; set; }
+
+    [BsonElement("upcomingSteps")]
+    public List<UpcomingStep>? UpcomingSteps { get; set; }
+
+    [BsonElement("definitionOfDone")]
+    public string? DefinitionOfDone { get; set; }
+
+    [BsonElement("dependencies")]
+    public List<string>? Dependencies { get; set; }
+
+    [BsonElement("returnPoint")]
+    public string? ReturnPoint { get; set; }
+
+    [BsonElement("pendingSuggestion")]
+    public TaskPlanSuggestion? PendingSuggestion { get; set; }
+
+    [BsonElement("rejectedSuggestionKeys")]
+    public List<string>? RejectedSuggestionKeys { get; set; }
+
+    [BsonElement("stuckAttemptCount")]
+    public int StuckAttemptCount { get; set; }
+
+    [BsonElement("lastStuckApproach")]
+    public string? LastStuckApproach { get; set; }
 }

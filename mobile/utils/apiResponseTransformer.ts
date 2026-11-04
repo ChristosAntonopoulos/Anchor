@@ -54,6 +54,16 @@ export function transformScheduleBlock(dto: any): any {
     startTime: dto.startTime,
     endTime: dto.endTime,
     routineActivities: dto.routineActivities,
+    taskId: dto.taskId,
+    taskTitle: dto.taskTitle,
+    entryAction: dto.entryAction,
+    startMinutes: dto.startMinutes,
+    windowKind: dto.windowKind,
+    manualCue: dto.manualCue,
+    routineVersion: dto.routineVersion,
+    skipped: dto.skipped,
+    shorterRoutineActivities: dto.shorterRoutineActivities,
+    isRoutine: dto.isRoutine,
     checklistItems: (dto.checklistItems || []).map((item: any, index: number) => {
       const rawMinutes = Number(item.durationMinutes);
       const durationMinutes = Number.isFinite(rawMinutes) && rawMinutes > 0 ? rawMinutes : 5;
@@ -96,6 +106,12 @@ export function transformTask(dto: any): any {
     reminders: dto.reminders,
     completedAt: dto.completedAt,
     order: dto.order,
+    nextAction: dto.nextAction,
+    upcomingSteps: dto.upcomingSteps,
+    definitionOfDone: dto.definitionOfDone,
+    dependencies: dto.dependencies,
+    returnPoint: dto.returnPoint,
+    pendingSuggestion: dto.pendingSuggestion,
   };
 }
 

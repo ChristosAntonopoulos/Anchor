@@ -44,7 +44,10 @@ public class ScheduleBlockDefinition : DefinitionEntity
     public string[] Tags { get; set; } = Array.Empty<string>();
 
     [BsonElement("routineActivities")]
-    public List<string>? RoutineActivities { get; set; } // List of activities for routine blocks
+    public List<string>? RoutineActivities { get; set; }
+
+    [BsonElement("shorterRoutineActivities")]
+    public List<string>? ShorterRoutineActivities { get; set; }
 }
 
 public enum ScheduleBlockKind

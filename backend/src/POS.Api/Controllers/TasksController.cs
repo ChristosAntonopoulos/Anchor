@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using POS.Application.DTOs.Tasks;
+using POS.Application.Services.Execution;
 using POS.Application.Services.Tasks;
 using POS.Core.Constants;
 using POS.Shared.Results;
@@ -13,10 +14,12 @@ namespace POS.Api.Controllers;
 public class TasksController : BaseController
 {
     private readonly TaskService _taskService;
+    private readonly ExecutionService _executionService;
 
-    public TasksController(TaskService taskService)
+    public TasksController(TaskService taskService, ExecutionService executionService)
     {
         _taskService = taskService;
+        _executionService = executionService;
     }
 
     /// <summary>
@@ -69,6 +72,7 @@ public class TasksController : BaseController
         try
         {
             var task = await _taskService.CreateTaskAsync(request, userId);
+            _ = _executionService.PlanTaskInBackgroundAsync(userId, task.Id);
             return Success(task, "Task created successfully");
         }
         catch (InvalidOperationException ex)

@@ -16,4 +16,14 @@ public class ScheduleBlockInstanceDto : ResponseDto
     public DateTime Date { get; set; }
     public List<string>? RoutineActivities { get; set; } // Activities for this routine instance
     public List<ScheduleChecklistItemDto>? ChecklistItems { get; set; }
+    public string? TaskId { get; set; }
+    public string? TaskTitle { get; set; }
+    public string? EntryAction { get; set; }
+    public int? StartMinutes { get; set; }
+    public string WindowKind { get; set; } = "exact";
+    public string? ManualCue { get; set; }
+    public string RoutineVersion { get; set; } = "regular";
+    public bool Skipped { get; set; }
+    public List<string>? ShorterRoutineActivities { get; set; }
+    public bool IsRoutine { get; set; }
 }

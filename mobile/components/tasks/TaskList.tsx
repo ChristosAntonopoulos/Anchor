@@ -8,6 +8,7 @@ interface TaskListProps {
   tasks: Task[];
   onToggleTask: (id: string) => void;
   onTaskPress?: (task: Task) => void;
+  onStartTask?: (task: Task) => void;
   emptyMessage?: string;
 }
 
@@ -15,6 +16,7 @@ export function TaskList({
   tasks,
   onToggleTask,
   onTaskPress,
+  onStartTask,
   emptyMessage = 'Add one task that makes today successful.',
 }: TaskListProps) {
   if (tasks.length === 0) {
@@ -34,6 +36,7 @@ export function TaskList({
           task={task}
           onToggle={() => onToggleTask(task.id)}
           onPress={onTaskPress ? () => onTaskPress(task) : undefined}
+          onStart={onStartTask ? () => onStartTask(task) : undefined}
         />
       ))}
     </View>

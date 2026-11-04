@@ -25,9 +25,10 @@ interface TaskItemProps {
   task: Task;
   onToggle: () => void;
   onPress?: () => void;
+  onStart?: () => void;
 }
 
-export function TaskItem({ task, onToggle, onPress }: TaskItemProps) {
+export function TaskItem({ task, onToggle, onPress, onStart }: TaskItemProps) {
   const { getCategoryColor, getCategoryGlow } = useCategoryStore();
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -136,6 +137,16 @@ export function TaskItem({ task, onToggle, onPress }: TaskItemProps) {
               </View>
             )}
           </View>
+          {task.nextAction?.text || task.returnPoint ? (
+            <Text style={styles.nextAction} numberOfLines={2}>
+              {task.returnPoint ?? task.nextAction?.text}
+            </Text>
+          ) : null}
+          {onStart && !task.completed ? (
+            <TouchableOpacity style={styles.startBtn} onPress={onStart}>
+              <Text style={styles.startBtnText}>Start</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       </LinearGradient>
       </TouchableOpacity>
@@ -182,6 +193,24 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  nextAction: {
+    color: colors.textSecondary,
+    fontSize: typography.fontSize.caption,
+    marginTop: spacing.s,
+  },
+  startBtn: {
+    alignSelf: 'flex-start',
+    marginTop: spacing.s,
+    backgroundColor: colors.category.work,
+    paddingHorizontal: spacing.m,
+    paddingVertical: 6,
+    borderRadius: 14,
+  },
+  startBtnText: {
+    color: colors.background,
+    fontSize: typography.fontSize.caption,
+    fontWeight: typography.fontWeight.semibold,
   },
   title: {
     fontSize: typography.fontSize.body,

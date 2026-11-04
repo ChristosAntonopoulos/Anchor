@@ -1,4 +1,5 @@
 using POS.Application.DTOs;
+using POS.Application.DTOs.Execution;
 
 namespace POS.Application.DTOs.Tasks;
 
@@ -33,4 +34,10 @@ public class TaskDto : ResponseDto
     public DateTime? PlannedDate { get; set; }
     public DateTime? SnoozedUntil { get; set; }
     public string? AiInputId { get; set; }
+    public NextActionDto? NextAction { get; set; }
+    public List<UpcomingStepDto>? UpcomingSteps { get; set; }
+    public string? DefinitionOfDone { get; set; }
+    public List<string>? Dependencies { get; set; }
+    public string? ReturnPoint { get; set; }
+    public TaskPlanSuggestionDto? PendingSuggestion { get; set; }
 }

@@ -1,15 +1,26 @@
 import { View, Text, StyleSheet, ScrollView, Switch } from 'react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, typography, gradients, borderRadius, shadows } from '../../constants/designTokens';
 import { CHECK_IN_COPY } from '../../constants/checkIn';
 import { CrisisCard } from '../../components/checkIn/CrisisCard';
 import { useCheckInStore } from '../../store/useCheckInStore';
+import { useExecutionStore } from '../../store/useExecutionStore';
+import { ExecutionProfileCard } from '../../components/execution/ExecutionProfileCard';
 
 export default function SettingsScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const usePreviousEntries = useCheckInStore((state) => state.usePreviousEntries);
+  const profile = useExecutionStore((state) => state.profile);
+  const fetchProfile = useExecutionStore((state) => state.fetchProfile);
+  const saveProfile = useExecutionStore((state) => state.saveProfile);
+  const review = useExecutionStore((state) => state.review);
+  const runReview = useExecutionStore((state) => state.runReview);
+
+  useEffect(() => {
+    void fetchProfile();
+  }, [fetchProfile]);
 
   return (
     <LinearGradient
@@ -21,6 +32,17 @@ export default function SettingsScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           <View style={styles.content}>
+            {profile ? (
+              <View style={styles.section}>
+                <ExecutionProfileCard
+                  profile={profile}
+                  onChange={(patch) => void saveProfile(patch)}
+                  review={review}
+                  onReview={() => void runReview()}
+                />
+              </View>
+            ) : null}
+
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Notifications</Text>
               <View style={styles.settingItem}>

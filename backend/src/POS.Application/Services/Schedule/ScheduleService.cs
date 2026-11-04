@@ -57,7 +57,7 @@ public class ScheduleService
         foreach (var block in blocks)
             await EnsureChecklistItemsAsync(block);
 
-        return _mapper.Map<List<ScheduleBlockInstanceDto>>(blocks);
+        return await MapBlocksAsync(blocks);
     }
 
     /// <summary>
@@ -157,6 +157,16 @@ public class ScheduleService
             block.StartTime = request.StartTime;
         if (!string.IsNullOrEmpty(request.EndTime))
             block.EndTime = request.EndTime;
+        if (request.TaskId != null)
+            block.TaskId = string.IsNullOrWhiteSpace(request.TaskId) ? null : request.TaskId;
+        if (request.EntryAction != null)
+            block.EntryAction = request.EntryAction;
+        if (request.StartMinutes.HasValue)
+            block.StartMinutes = request.StartMinutes;
+        if (request.WindowKind != null)
+            block.WindowKind = request.WindowKind;
+        if (request.ManualCue != null)
+            block.ManualCue = request.ManualCue;
 
         block.UpdatedAt = DateTime.UtcNow;
         await _context.ScheduleBlockInstances.ReplaceOneAsync(filter, block);
@@ -287,5 +297,43 @@ public class ScheduleService
         
         var result = await _context.ScheduleBlockDefinitions.DeleteOneAsync(filter);
         return result.DeletedCount > 0;
+    }
+
+    private async Task<List<ScheduleBlockInstanceDto>> MapBlocksAsync(List<ScheduleBlockInstance> blocks)
+    {
+        var dtos = _mapper.Map<List<ScheduleBlockInstanceDto>>(blocks);
+        var taskIds = blocks.Select(b => b.TaskId).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
+        var tasks = taskIds.Count == 0
+            ? []
+            : await _context.Tasks.Find(t => taskIds.Contains(t.Id)).ToListAsync();
+        var byId = tasks.ToDictionary(t => t.Id);
+        var definitionIds = blocks.Select(b => b.DefinitionId).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
+        var definitions = definitionIds.Count == 0
+            ? []
+            : await _context.ScheduleBlockDefinitions.Find(d => definitionIds.Contains(d.Id)).ToListAsync();
+        var definitionsById = definitions.ToDictionary(d => d.Id);
+
+        for (var i = 0; i < dtos.Count; i++)
+        {
+            var block = blocks[i];
+            var dto = dtos[i];
+            if (!string.IsNullOrWhiteSpace(block.TaskId) && byId.TryGetValue(block.TaskId, out var task))
+            {
+                dto.TaskTitle = task.Title;
+                dto.EntryAction ??= task.NextAction?.Text;
+            }
+
+            if (!string.IsNullOrWhiteSpace(block.DefinitionId) && definitionsById.TryGetValue(block.DefinitionId, out var definition))
+            {
+                dto.ShorterRoutineActivities = definition.ShorterRoutineActivities;
+                dto.IsRoutine = definition.Kind == ScheduleBlockKind.Routine || (definition.RoutineActivities?.Count ?? 0) > 0;
+            }
+            else
+            {
+                dto.IsRoutine = (block.RoutineActivities?.Count ?? 0) > 0;
+            }
+        }
+
+        return dtos;
     }
 }

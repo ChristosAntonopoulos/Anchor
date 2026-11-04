@@ -11,9 +11,12 @@ interface ScheduleTimelineProps {
   onRefresh?: () => void;
   onUpdateBlock?: (id: string, updates: { title?: string; startTime?: string; endTime?: string }) => void;
   onItemComplete?: (blockId: string, itemId: string) => Promise<void>;
+  onStartBlock?: (block: ScheduleBlock) => void;
+  onRoutineVersion?: (block: ScheduleBlock, version: 'regular' | 'shorter') => void;
+  onSkipRoutine?: (block: ScheduleBlock) => void;
 }
 
-export function ScheduleTimeline({ blocks, currentBlockId, refreshing, onRefresh, onUpdateBlock, onItemComplete }: ScheduleTimelineProps) {
+export function ScheduleTimeline({ blocks, currentBlockId, refreshing, onRefresh, onUpdateBlock, onItemComplete, onStartBlock, onRoutineVersion, onSkipRoutine }: ScheduleTimelineProps) {
   if (blocks.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -40,6 +43,9 @@ export function ScheduleTimeline({ blocks, currentBlockId, refreshing, onRefresh
           isCurrent={block.id === currentBlockId}
           onUpdate={onUpdateBlock ? (updates) => onUpdateBlock(block.id, updates) : undefined}
           onItemComplete={onItemComplete}
+          onStartBlock={onStartBlock ? () => onStartBlock(block) : undefined}
+          onRoutineVersion={onRoutineVersion ? (version) => onRoutineVersion(block, version) : undefined}
+          onSkipRoutine={onSkipRoutine ? () => onSkipRoutine(block) : undefined}
         />
       ))}
     </ScrollView>

@@ -47,7 +47,17 @@ import type {
   Task,
   TaskInboxResponse,
   DayBootstrap,
+  ExecutionProfile,
+  WorkSession,
+  NowRecommendation,
+  StuckHelp,
+  DayPlan,
 } from '../types';
+import type {
+  AdaptRoutine,
+  CapacityChoice,
+  ReturnPointDraft,
+} from '../types/execution';
 import { API_CONFIG, getApiUrl } from '../constants/apiConfig';
 import {
   unwrapResponse,
@@ -106,7 +116,30 @@ export interface APIClient {
   rejectBetterItem(request: RejectBetterItemRequest): Promise<void>;
   updateScheduleBlock(request: UpdateScheduleBlockRequest): Promise<void>;
   updateScheduleChecklistItem(blockId: string, itemId: string, completed: boolean): Promise<void>;
-  createTask(request: CreateTaskRequest): Promise<void>;
+  createTask(request: CreateTaskRequest): Promise<Task>;
+  getExecutionProfile(): Promise<ExecutionProfile>;
+  updateExecutionProfile(request: Partial<ExecutionProfile>): Promise<ExecutionProfile>;
+  getNowRecommendation(params?: { capacity?: CapacityChoice; easier?: boolean; refresh?: boolean }): Promise<NowRecommendation>;
+  rejectNowSuggestion(taskId?: string | null): Promise<void>;
+  getActiveSession(): Promise<WorkSession | null>;
+  startSession(request: { taskId?: string; blockId?: string; minutes?: number; timerEnabled?: boolean; currentAction?: string }): Promise<WorkSession>;
+  pauseSession(id: string): Promise<WorkSession>;
+  resumeSession(id: string): Promise<WorkSession>;
+  timeCheckSession(id: string): Promise<WorkSession>;
+  captureDistraction(id: string, text: string): Promise<WorkSession>;
+  finishSession(id: string, request: { outcome?: string; returnPoint?: string; notes?: string }): Promise<WorkSession>;
+  planTask(id: string): Promise<Task>;
+  acceptTaskPlan(id: string, request?: { edit?: boolean; nextActionText?: string; estimatedMinutes?: number }): Promise<Task>;
+  helpStuck(request: { taskId?: string; sessionId?: string; explanation?: string; choice?: string; makeSmaller?: boolean }): Promise<StuckHelp>;
+  acceptStuck(request: { sessionId?: string; taskId?: string; suggestedAction: string; suggestedMinutes?: number | null }): Promise<Task>;
+  planDay(request?: { scope?: 'today' | 'remaining'; capacity?: string }): Promise<DayPlan>;
+  applyDayPlan(draftId: string, mode: 'all' | 'first' | 'discard'): Promise<DayPlan>;
+  recoveryAction(request: { action: 'shorter' | 'move' | 'leave' | 'replan'; blockId?: string; taskId?: string }): Promise<NowRecommendation>;
+  draftReturnPoint(sessionId: string, notes?: string): Promise<ReturnPointDraft>;
+  adaptRoutine(request: { definitionId?: string; blockId?: string; capacity?: string }): Promise<AdaptRoutine>;
+  setRoutineVersion(blockId: string, version: 'regular' | 'shorter'): Promise<void>;
+  skipRoutine(blockId: string): Promise<void>;
+  getExecutionReview(): Promise<import('../types/execution').ExecutionReview>;
   getTodayFocus(): Promise<Task[]>;
   getInbox(limit?: number): Promise<TaskInboxResponse>;
   promoteTask(id: string): Promise<Task>;
@@ -378,10 +411,10 @@ class HTTPAPIClient implements APIClient {
     }
   }
 
-  async createTask(request: CreateTaskRequest): Promise<void> {
+  async createTask(request: CreateTaskRequest): Promise<Task> {
     try {
-      const response = await this.axiosInstance.post<ApiResponse<any>>('/tasks', request);
-      unwrapResponse(response.data);
+      const response = await this.axiosInstance.post<ApiResponse<Task>>('/tasks', request);
+      return transformTask(unwrapResponse(response.data));
     } catch (error) {
       throw this.handleError(error, 'Failed to create task');
     }
@@ -1004,6 +1037,123 @@ class HTTPAPIClient implements APIClient {
     } catch (error) {
       throw this.handleError(error, 'Failed to get phone unlock entries');
     }
+  }
+
+  async getExecutionProfile(): Promise<ExecutionProfile> {
+    const response = await this.axiosInstance.get<ApiResponse<ExecutionProfile>>('/execution/profile');
+    return unwrapResponse(response.data);
+  }
+
+  async updateExecutionProfile(request: Partial<ExecutionProfile>): Promise<ExecutionProfile> {
+    const response = await this.axiosInstance.put<ApiResponse<ExecutionProfile>>('/execution/profile', request);
+    return unwrapResponse(response.data);
+  }
+
+  async getNowRecommendation(params?: { capacity?: CapacityChoice; easier?: boolean; refresh?: boolean }): Promise<NowRecommendation> {
+    const query = new URLSearchParams();
+    if (params?.capacity) query.set('capacity', params.capacity);
+    if (params?.easier) query.set('easier', 'true');
+    if (params?.refresh) query.set('refresh', 'true');
+    const suffix = query.toString() ? `?${query.toString()}` : '';
+    const response = await this.axiosInstance.get<ApiResponse<NowRecommendation>>(`/execution/now${suffix}`);
+    return unwrapResponse(response.data);
+  }
+
+  async rejectNowSuggestion(taskId?: string | null): Promise<void> {
+    await this.axiosInstance.post('/execution/now/reject', { taskId });
+  }
+
+  async getActiveSession(): Promise<WorkSession | null> {
+    const response = await this.axiosInstance.get<ApiResponse<WorkSession | null>>('/execution/sessions/active');
+    return unwrapResponse(response.data);
+  }
+
+  async startSession(request: { taskId?: string; blockId?: string; minutes?: number; timerEnabled?: boolean; currentAction?: string }): Promise<WorkSession> {
+    const response = await this.axiosInstance.post<ApiResponse<WorkSession>>('/execution/sessions/start', request);
+    return unwrapResponse(response.data);
+  }
+
+  async pauseSession(id: string): Promise<WorkSession> {
+    const response = await this.axiosInstance.post<ApiResponse<WorkSession>>(`/execution/sessions/${id}/pause`);
+    return unwrapResponse(response.data);
+  }
+
+  async resumeSession(id: string): Promise<WorkSession> {
+    const response = await this.axiosInstance.post<ApiResponse<WorkSession>>(`/execution/sessions/${id}/resume`);
+    return unwrapResponse(response.data);
+  }
+
+  async timeCheckSession(id: string): Promise<WorkSession> {
+    const response = await this.axiosInstance.post<ApiResponse<WorkSession>>(`/execution/sessions/${id}/time-check`);
+    return unwrapResponse(response.data);
+  }
+
+  async captureDistraction(id: string, text: string): Promise<WorkSession> {
+    const response = await this.axiosInstance.post<ApiResponse<WorkSession>>(`/execution/sessions/${id}/distraction`, { text });
+    return unwrapResponse(response.data);
+  }
+
+  async finishSession(id: string, request: { outcome?: string; returnPoint?: string; notes?: string }): Promise<WorkSession> {
+    const response = await this.axiosInstance.post<ApiResponse<WorkSession>>(`/execution/sessions/${id}/finish`, request);
+    return unwrapResponse(response.data);
+  }
+
+  async planTask(id: string): Promise<Task> {
+    const response = await this.axiosInstance.post<ApiResponse<Task>>(`/execution/tasks/${id}/plan`);
+    return transformTask(unwrapResponse(response.data));
+  }
+
+  async acceptTaskPlan(id: string, request: { edit?: boolean; nextActionText?: string; estimatedMinutes?: number } = {}): Promise<Task> {
+    const response = await this.axiosInstance.post<ApiResponse<Task>>(`/execution/tasks/${id}/plan/accept`, request);
+    return transformTask(unwrapResponse(response.data));
+  }
+
+  async helpStuck(request: { taskId?: string; sessionId?: string; explanation?: string; choice?: string; makeSmaller?: boolean }): Promise<StuckHelp> {
+    const response = await this.axiosInstance.post<ApiResponse<StuckHelp>>('/execution/stuck', request);
+    return unwrapResponse(response.data);
+  }
+
+  async acceptStuck(request: { sessionId?: string; taskId?: string; suggestedAction: string; suggestedMinutes?: number | null }): Promise<Task> {
+    const response = await this.axiosInstance.post<ApiResponse<Task>>('/execution/stuck/accept', request);
+    return transformTask(unwrapResponse(response.data));
+  }
+
+  async planDay(request: { scope?: 'today' | 'remaining'; capacity?: string } = {}): Promise<DayPlan> {
+    const response = await this.axiosInstance.post<ApiResponse<DayPlan>>('/execution/day-plan', request);
+    return unwrapResponse(response.data);
+  }
+
+  async applyDayPlan(draftId: string, mode: 'all' | 'first' | 'discard'): Promise<DayPlan> {
+    const response = await this.axiosInstance.post<ApiResponse<DayPlan>>('/execution/day-plan/apply', { draftId, mode });
+    return unwrapResponse(response.data);
+  }
+
+  async recoveryAction(request: { action: 'shorter' | 'move' | 'leave' | 'replan'; blockId?: string; taskId?: string }): Promise<NowRecommendation> {
+    const response = await this.axiosInstance.post<ApiResponse<NowRecommendation>>('/execution/recovery', request);
+    return unwrapResponse(response.data);
+  }
+
+  async draftReturnPoint(sessionId: string, notes?: string): Promise<ReturnPointDraft> {
+    const response = await this.axiosInstance.post<ApiResponse<ReturnPointDraft>>(`/execution/sessions/${sessionId}/return-point`, { notes });
+    return unwrapResponse(response.data);
+  }
+
+  async adaptRoutine(request: { definitionId?: string; blockId?: string; capacity?: string }): Promise<AdaptRoutine> {
+    const response = await this.axiosInstance.post<ApiResponse<AdaptRoutine>>('/execution/routines/adapt', request);
+    return unwrapResponse(response.data);
+  }
+
+  async setRoutineVersion(blockId: string, version: 'regular' | 'shorter'): Promise<void> {
+    await this.axiosInstance.post(`/execution/routines/${blockId}/version`, { version });
+  }
+
+  async skipRoutine(blockId: string): Promise<void> {
+    await this.axiosInstance.post(`/execution/routines/${blockId}/skip`);
+  }
+
+  async getExecutionReview(): Promise<import('../types/execution').ExecutionReview> {
+    const response = await this.axiosInstance.get<ApiResponse<import('../types/execution').ExecutionReview>>('/execution/review');
+    return unwrapResponse(response.data);
   }
 
   private handleError(error: unknown, defaultMessage: string): Error {

@@ -16,9 +16,12 @@ interface TaskDetailModalProps {
   onClose: () => void;
   onSave: (updates: Partial<Task>) => Promise<void>;
   onDemote?: () => Promise<void>;
+  onHelpStart?: () => Promise<void>;
+  onAcceptSuggestion?: (text?: string) => Promise<void>;
+  onStartSession?: () => void;
 }
 
-export function TaskDetailModal({ task, visible, onClose, onSave, onDemote }: TaskDetailModalProps) {
+export function TaskDetailModal({ task, visible, onClose, onSave, onDemote, onHelpStart, onAcceptSuggestion, onStartSession }: TaskDetailModalProps) {
   const { categories, fetchCategories, getCategoryColor } = useCategoryStore();
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<CategoryName>('work');
@@ -32,6 +35,7 @@ export function TaskDetailModal({ task, visible, onClose, onSave, onDemote }: Ta
   const [tags, setTags] = useState<string[]>([]);
   const [estimatedMinutes, setEstimatedMinutes] = useState<number | undefined>();
   const [saving, setSaving] = useState(false);
+  const [planning, setPlanning] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [showRecurrencePicker, setShowRecurrencePicker] = useState(false);
 
@@ -167,6 +171,50 @@ export function TaskDetailModal({ task, visible, onClose, onSave, onDemote }: Ta
                 autoFocus
               />
             </View>
+
+            {(task.nextAction?.text || task.returnPoint || task.pendingSuggestion || onHelpStart || onStartSession) ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>Next action</Text>
+                <Text style={styles.nextActionText}>
+                  {task.returnPoint || task.nextAction?.text || 'No next action yet.'}
+                </Text>
+                {task.upcomingSteps && task.upcomingSteps.length > 0 ? (
+                  <Text style={styles.upcomingText}>
+                    Later: {task.upcomingSteps.slice(0, 3).map((step) => step.text).join(' · ')}
+                  </Text>
+                ) : null}
+                {task.pendingSuggestion?.nextAction?.text && onAcceptSuggestion ? (
+                  <View style={styles.suggestionBox}>
+                    <Text style={styles.sectionLabel}>Suggested first step</Text>
+                    <Text style={styles.nextActionText}>{task.pendingSuggestion.nextAction.text}</Text>
+                    <TouchableOpacity style={styles.executionButton} onPress={() => void onAcceptSuggestion()}>
+                      <Text style={styles.executionButtonText}>Use this</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+                {onStartSession ? (
+                  <TouchableOpacity style={styles.executionButton} onPress={onStartSession}>
+                    <Text style={styles.executionButtonText}>Start</Text>
+                  </TouchableOpacity>
+                ) : null}
+                {onHelpStart ? (
+                  <TouchableOpacity
+                    style={styles.secondaryButton}
+                    onPress={async () => {
+                      setPlanning(true);
+                      try {
+                        await onHelpStart();
+                      } finally {
+                        setPlanning(false);
+                      }
+                    }}
+                    disabled={planning}
+                  >
+                    <Text style={styles.secondaryButtonText}>{planning ? 'Working…' : 'Help me start'}</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+            ) : null}
 
             {/* Category */}
             <View style={styles.section}>
@@ -571,7 +619,7 @@ const styles = StyleSheet.create({
   addSubtaskText: {
     fontSize: typography.fontSize.caption,
     color: colors.category.work,
-    fontWeight: typography.fontWeight.medium,
+    fontWeight: typography.fontWeight.semibold,
   },
   notesInput: {
     fontSize: typography.fontSize.body,
@@ -614,6 +662,45 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
+  },
+  nextActionText: {
+    fontSize: typography.fontSize.body,
+    color: colors.textPrimary,
+  },
+  upcomingText: {
+    fontSize: typography.fontSize.caption,
+    color: colors.textSecondary,
+    marginTop: spacing.s,
+  },
+  suggestionBox: {
+    marginTop: spacing.s,
+    padding: spacing.s,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.medium,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  executionButton: {
+    marginTop: spacing.s,
+    backgroundColor: colors.category.work,
+    borderRadius: borderRadius.medium,
+    padding: spacing.s,
+    alignItems: 'center',
+  },
+  executionButtonText: {
+    color: colors.background,
+    fontWeight: typography.fontWeight.semibold,
+  },
+  secondaryButton: {
+    marginTop: spacing.s,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.medium,
+    padding: spacing.s,
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    color: colors.textPrimary,
   },
   demoteButtonText: {
     fontSize: typography.fontSize.body,

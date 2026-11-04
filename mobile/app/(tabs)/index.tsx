@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
 import { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -12,21 +12,45 @@ import { DisciplineQuickToggle } from '../../components/today/DisciplineQuickTog
 import { DeadlineWarningBanner } from '../../components/today/DeadlineWarningBanner';
 import { NaturalLanguageInput } from '../../components/tasks/NaturalLanguageInput';
 import { NotificationAccessPrompt } from '../../components/notifications/NotificationAccessPrompt';
+import { NowCard } from '../../components/execution/NowCard';
+import { RecoveryCard } from '../../components/execution/RecoveryCard';
+import { DayPlanCard } from '../../components/execution/DayPlanCard';
+import { WorkSessionModal } from '../../components/execution/WorkSessionModal';
+import { useExecutionStore } from '../../store/useExecutionStore';
+import type { SessionLaunch } from '../../types/execution';
 
 export default function HomeScreen() {
   const { data, loading, error, fetchToday, completeBetterItem, acceptBetterItem, editBetterItem, rejectBetterItem, submitAIInput } = useTodayStore();
   const { checkStatus, startListening } = useNotificationStore();
+  const {
+    now,
+    dayPlan,
+    loading: nowLoading,
+    fetchNow,
+    fetchProfile,
+    rejectNow,
+    askStuck,
+    planToday,
+    applyPlan,
+    recover,
+    stuck,
+    useStuck,
+    clearStuck,
+  } = useExecutionStore();
   const [refreshing, setRefreshing] = useState(false);
+  const [sessionOpen, setSessionOpen] = useState(false);
+  const [pendingStart, setPendingStart] = useState<SessionLaunch | null>(null);
 
   useEffect(() => {
     fetchToday();
-    // Check notification access status
     checkStatus();
-  }, [fetchToday, checkStatus]);
+    void fetchProfile();
+    void fetchNow();
+  }, [fetchToday, checkStatus, fetchProfile, fetchNow]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchToday();
+    await Promise.all([fetchToday(), fetchNow()]);
     setRefreshing(false);
   };
 
@@ -97,6 +121,71 @@ export default function HomeScreen() {
           }
         >
           <TodayHeader date={data.day.date} />
+
+          {now?.recovery && !now.activeSession ? (
+            <RecoveryCard
+              card={now.recovery}
+              onShorter={() => {
+                setPendingStart({
+                  taskId: now.recovery?.taskId ?? undefined,
+                  blockId: now.recovery?.blockId,
+                  title: now.recovery?.title,
+                  currentAction: now.recovery?.nextAction,
+                  minutes: now.recovery?.suggestedStartMinutes ?? 5,
+                });
+                setSessionOpen(true);
+              }}
+              onMove={() => void recover('move')}
+              onLeave={() => void recover('leave')}
+              onReplan={() => void recover('replan')}
+            />
+          ) : null}
+
+          {dayPlan?.status === 'draft' ? (
+            <DayPlanCard
+              plan={dayPlan}
+              onUse={() => void applyPlan('all')}
+              onFirstOnly={() => void applyPlan('first')}
+              onDiscard={() => void applyPlan('discard')}
+            />
+          ) : null}
+
+          {stuck ? (
+            <View style={styles.stuckCard}>
+              <Text style={styles.stuckTitle}>{stuck.suggestedAction}</Text>
+              <Text style={styles.stuckBody}>{stuck.explanation}</Text>
+              <TouchableOpacity onPress={() => void useStuck()}>
+                <Text style={styles.stuckLink}>Use this</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => clearStuck()}>
+                <Text style={styles.stuckLink}>Leave for now</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
+          <NowCard
+            recommendation={now}
+            loading={nowLoading}
+            onStart={() => {
+              if (now?.activeSession) {
+                setPendingStart(null);
+                setSessionOpen(true);
+                return;
+              }
+              setPendingStart({
+                taskId: now?.taskId ?? undefined,
+                title: now?.taskTitle ?? undefined,
+                currentAction: now?.nextAction,
+                minutes: now?.suggestedStartMinutes,
+              });
+              setSessionOpen(true);
+            }}
+            onMakeSmaller={() => void askStuck({ taskId: now?.taskId ?? undefined, makeSmaller: true })}
+            onChooseSomethingElse={() => void rejectNow()}
+            onCapacity={(capacity) => void fetchNow({ capacity })}
+            onEasier={() => void fetchNow({ easier: true, refresh: true })}
+            onPlanToday={() => void planToday('today')}
+          />
           
           <NotificationAccessPrompt
             onEnabled={() => {
@@ -128,6 +217,14 @@ export default function HomeScreen() {
             <DeadlineWarningBanner warning={data.deadlineWarning} />
           )}
         </ScrollView>
+        <WorkSessionModal
+          visible={sessionOpen}
+          pendingStart={pendingStart}
+          onClose={() => {
+            setSessionOpen(false);
+            setPendingStart(null);
+          }}
+        />
       </SafeAreaView>
     </LinearGradient>
   );
@@ -166,5 +263,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textSecondary,
     textAlign: 'center',
+  },
+  stuckCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 16,
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+  },
+  stuckTitle: {
+    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  stuckBody: {
+    color: colors.textSecondary,
+    marginTop: 6,
+  },
+  stuckLink: {
+    color: colors.category.stability,
+    marginTop: 8,
+    textDecorationLine: 'underline',
   },
 });

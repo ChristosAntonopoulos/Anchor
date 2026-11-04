@@ -20,6 +20,7 @@ using POS.Application.Services.AIInput;
 using POS.Application.Services.Category;
 using POS.Application.Services.CBT;
 using POS.Application.Services.Notifications;
+using POS.Application.Services.Execution;
 using POS.Application.Validators.BetterToday;
 using POS.Application.Validators.Deadlines;
 using POS.Application.Validators.Money;
@@ -93,6 +94,17 @@ builder.Services.AddSingleton<ActivityCatalogService>();
 builder.Services.AddScoped<CheckInService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<POS.Application.Services.PhoneUnlock.PhoneUnlockService>();
+builder.Services.Configure<OpenAiOptions>(options =>
+{
+    builder.Configuration.GetSection(OpenAiOptions.SectionName).Bind(options);
+    if (string.IsNullOrWhiteSpace(options.ApiKey))
+    {
+        options.ApiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY")
+            ?? Environment.GetEnvironmentVariable("OpenAI__ApiKey");
+    }
+});
+builder.Services.AddHttpClient<ILanguageModelClient, OpenAiCompatibleClient>();
+builder.Services.AddScoped<ExecutionService>();
 builder.Services.AddSingleton<POS.Api.Services.AppReleaseService>();
 
 // Register database seeder

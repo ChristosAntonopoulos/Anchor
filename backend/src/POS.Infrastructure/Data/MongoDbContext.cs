@@ -11,6 +11,7 @@ using POS.Core.Entities.WeeklyReview;
 using POS.Core.Entities.AIInput;
 using POS.Core.Entities.CBT;
 using POS.Core.Entities.Notifications;
+using POS.Core.Entities.Execution;
 
 namespace POS.Infrastructure.Data;
 
@@ -106,4 +107,13 @@ public class MongoDbContext
     // Phone Unlock collection
     public IMongoCollection<PhoneUnlockEntry> PhoneUnlockEntries => 
         _database.GetCollection<PhoneUnlockEntry>("phoneUnlockEntries");
+
+    public IMongoCollection<ExecutionProfile> ExecutionProfiles =>
+        _database.GetCollection<ExecutionProfile>("executionProfiles");
+
+    public IMongoCollection<WorkSession> WorkSessions =>
+        _database.GetCollection<WorkSession>("workSessions");
+
+    public IMongoCollection<DayPlanDraft> DayPlanDrafts =>
+        _database.GetCollection<DayPlanDraft>("dayPlanDrafts");
 }

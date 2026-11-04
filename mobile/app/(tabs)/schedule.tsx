@@ -6,15 +6,24 @@ import { colors, gradients } from '../../constants/designTokens';
 import { useScheduleStore } from '../../store/useScheduleStore';
 import { useTodayStore } from '../../store/useTodayStore';
 import { ScheduleTimeline } from '../../components/schedule/ScheduleTimeline';
+import { WorkSessionModal } from '../../components/execution/WorkSessionModal';
+import { useExecutionStore } from '../../store/useExecutionStore';
+import type { SessionLaunch } from '../../types/execution';
 
 export default function ScheduleScreen() {
   const { blocks, loading, fetchSchedule, updateBlock, completeChecklistItem } = useScheduleStore();
   const { data: todayData, fetchToday } = useTodayStore();
   const [refreshing, setRefreshing] = useState(false);
+  const [sessionOpen, setSessionOpen] = useState(false);
+  const [pendingStart, setPendingStart] = useState<SessionLaunch | null>(null);
+  const profile = useExecutionStore((s) => s.profile);
+  const fetchProfile = useExecutionStore((s) => s.fetchProfile);
+  const setRoutineVersion = useExecutionStore((s) => s.setRoutineVersion);
+  const skipRoutine = useExecutionStore((s) => s.skipRoutine);
 
   useEffect(() => {
-    void Promise.all([fetchSchedule(), fetchToday()]);
-  }, [fetchSchedule, fetchToday]);
+    void Promise.all([fetchSchedule(), fetchToday(), fetchProfile()]);
+  }, [fetchSchedule, fetchToday, fetchProfile]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -56,6 +65,26 @@ export default function ScheduleScreen() {
           onRefresh={onRefresh}
           onUpdateBlock={updateBlock}
           onItemComplete={completeChecklistItem}
+          onStartBlock={(block) => {
+            setPendingStart({
+              taskId: block.taskId ?? undefined,
+              blockId: block.id,
+              title: block.taskTitle ?? block.title,
+              currentAction: block.entryAction ?? block.taskTitle ?? block.title,
+              minutes: block.startMinutes ?? profile?.lastExplicitDurationMinutes ?? 5,
+            });
+            setSessionOpen(true);
+          }}
+          onRoutineVersion={(block, version) => void setRoutineVersion(block.id, version).then(() => fetchSchedule())}
+          onSkipRoutine={(block) => void skipRoutine(block.id).then(() => fetchSchedule())}
+        />
+        <WorkSessionModal
+          visible={sessionOpen}
+          pendingStart={pendingStart}
+          onClose={() => {
+            setSessionOpen(false);
+            setPendingStart(null);
+          }}
         />
       </SafeAreaView>
     </LinearGradient>

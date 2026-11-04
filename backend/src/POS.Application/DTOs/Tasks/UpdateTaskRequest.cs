@@ -92,4 +92,9 @@ public class UpdateTaskRequest
     public DateTime? PlannedDate { get; set; }
 
     public DateTime? SnoozedUntil { get; set; }
+
+    public string? NextActionText { get; set; }
+    public string? ReturnPoint { get; set; }
+    public string? DefinitionOfDone { get; set; }
+    public bool? AcceptPendingSuggestion { get; set; }
 }

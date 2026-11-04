@@ -18,11 +18,15 @@ interface ScheduleBlockItemProps {
   isCurrent?: boolean;
   onUpdate?: (updates: { title?: string; startTime?: string; endTime?: string }) => void;
   onItemComplete?: (blockId: string, itemId: string) => Promise<void>;
+  onStartBlock?: () => void;
+  onRoutineVersion?: (version: 'regular' | 'shorter') => void;
+  onSkipRoutine?: () => void;
 }
 
-export function ScheduleBlockItem({ block, isCurrent, onUpdate, onItemComplete }: ScheduleBlockItemProps) {
+export function ScheduleBlockItem({ block, isCurrent, onUpdate, onItemComplete, onStartBlock, onRoutineVersion, onSkipRoutine }: ScheduleBlockItemProps) {
   const [editVisible, setEditVisible] = useState(false);
   const [timerVisible, setTimerVisible] = useState(false);
+  const [sequenceOpen, setSequenceOpen] = useState(false);
   const [TimerModal, setTimerModal] = useState<ComponentType<BlockTimerModalProps> | null>(null);
 
   const openTimer = async () => {
@@ -74,36 +78,90 @@ export function ScheduleBlockItem({ block, isCurrent, onUpdate, onItemComplete }
 
           {items.length > 0 && (
             <View style={styles.checklistContainer}>
-              {items.slice(0, 3).map((item) => (
-                <View key={item.id} style={styles.checklistRow}>
-                  <AppIcon
-                    name={item.completed ? 'checkmark-circle' : 'ellipse-outline'}
-                    size={14}
-                    color={item.completed ? colors.category.work : colors.textSecondary}
-                  />
-                  <Text
-                    style={[
-                      styles.checklistText,
-                      item.completed && styles.checklistTextDone,
-                      isCurrent && styles.currentChecklistText,
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {item.title}
-                  </Text>
-                  <Text style={styles.durationBadge}>{item.durationMinutes ?? '—'}m</Text>
-                </View>
-              ))}
-              {items.length > 3 && (
-                <Text style={styles.moreItems}>+{items.length - 3} more steps</Text>
-              )}
+              {(() => {
+                const currentItem = items.find((item) => !item.completed);
+                const shown = sequenceOpen ? items : currentItem ? [currentItem] : items.slice(0, 1);
+                return shown.map((item) => (
+                  <View key={item.id} style={styles.checklistRow}>
+                    <AppIcon
+                      name={item.completed ? 'checkmark-circle' : 'ellipse-outline'}
+                      size={item === currentItem ? 16 : 14}
+                      color={item.completed ? colors.category.work : colors.textSecondary}
+                    />
+                    <Text
+                      style={[
+                        styles.checklistText,
+                        item.completed && styles.checklistTextDone,
+                        isCurrent && styles.currentChecklistText,
+                        item === currentItem && styles.currentAction,
+                      ]}
+                      numberOfLines={2}
+                    >
+                      {item.title}
+                    </Text>
+                    <Text style={styles.durationBadge}>{item.durationMinutes ?? '—'}m</Text>
+                  </View>
+                ));
+              })()}
+              {items.length > 1 ? (
+                <TouchableOpacity onPress={() => setSequenceOpen((value) => !value)}>
+                  <Text style={styles.moreItems}>{sequenceOpen ? 'Hide sequence' : `Show sequence (${items.length})`}</Text>
+                </TouchableOpacity>
+              ) : null}
               <Text style={styles.checklistProgress}>
                 {completedCount}/{items.length} done
               </Text>
             </View>
           )}
 
-          {items.length > 0 && !allDone && onItemComplete && (
+          {block.taskTitle || block.entryAction ? (
+            <Text style={styles.taskLine} numberOfLines={2}>
+              {block.taskTitle ? `${block.taskTitle}. ` : ''}{block.entryAction ?? ''}
+            </Text>
+          ) : null}
+          {block.manualCue ? (
+            <Text style={styles.taskLine}>Cue: {block.manualCue}</Text>
+          ) : null}
+
+          {block.skipped ? (
+            <Text style={styles.skipped}>Left for today</Text>
+          ) : null}
+
+          {block.isRoutine && !block.skipped ? (
+            <View style={styles.routineRow}>
+              {onRoutineVersion ? (
+                <>
+                  <TouchableOpacity style={[styles.routineChip, block.routineVersion !== 'shorter' && styles.routineChipOn]} onPress={() => onRoutineVersion('regular')}>
+                    <Text style={styles.routineChipText}>Regular</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.routineChip, block.routineVersion === 'shorter' && styles.routineChipOn]} onPress={() => onRoutineVersion('shorter')}>
+                    <Text style={styles.routineChipText}>Shorter</Text>
+                  </TouchableOpacity>
+                </>
+              ) : null}
+              {onSkipRoutine ? (
+                <TouchableOpacity style={styles.routineChip} onPress={onSkipRoutine}>
+                  <Text style={styles.routineChipText}>Skip</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          ) : null}
+
+          {onStartBlock && !allDone && !block.skipped ? (
+            <TouchableOpacity
+              style={[styles.startButton, isCurrent && styles.startButtonCurrent]}
+              onPress={(e) => {
+                e.stopPropagation?.();
+                onStartBlock();
+              }}
+              activeOpacity={0.85}
+            >
+              <AppIcon name="play-circle" size={20} color={colors.background} />
+              <Text style={styles.startButtonText}>
+                Start {block.startMinutes ? `${block.startMinutes} min` : ''}
+              </Text>
+            </TouchableOpacity>
+          ) : items.length > 0 && !allDone && onItemComplete ? (
             <TouchableOpacity
               style={[styles.startButton, isCurrent && styles.startButtonCurrent]}
               onPress={(e) => {
@@ -117,12 +175,14 @@ export function ScheduleBlockItem({ block, isCurrent, onUpdate, onItemComplete }
                 {isCurrent ? 'Start block timer' : 'Start block'}
               </Text>
             </TouchableOpacity>
-          )}
+          ) : null}
 
           {allDone && (
             <View style={styles.doneBadge}>
               <AppIcon name="checkmark-done" size={16} color={colors.category.work} />
-              <Text style={styles.doneBadgeText}>Completed today</Text>
+              <Text style={styles.doneBadgeText}>
+                {block.routineVersion === 'shorter' ? 'Shorter routine complete.' : 'Completed today'}
+              </Text>
             </View>
           )}
 
@@ -228,6 +288,19 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   currentChecklistText: { color: colors.category.work + 'CC' },
+  currentAction: {
+    color: colors.textPrimary,
+    fontWeight: typography.fontWeight.semibold,
+  },
+  skipped: {
+    color: colors.textSecondary,
+    marginTop: spacing.s,
+    fontSize: typography.fontSize.caption,
+  },
+  routineChipOn: {
+    backgroundColor: '#31443C',
+    borderColor: colors.category.leverage,
+  },
   durationBadge: {
     fontSize: typography.fontSize.small,
     color: colors.textSecondary,
@@ -241,6 +314,27 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.small,
     color: colors.category.work,
     marginTop: spacing.xs,
+  },
+  taskLine: {
+    color: colors.textSecondary,
+    fontSize: typography.fontSize.caption,
+    marginTop: spacing.s,
+  },
+  routineRow: {
+    flexDirection: 'row',
+    gap: spacing.s,
+    marginTop: spacing.s,
+  },
+  routineChip: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    paddingHorizontal: spacing.m,
+    paddingVertical: 4,
+  },
+  routineChipText: {
+    color: colors.textPrimary,
+    fontSize: typography.fontSize.caption,
   },
   startButton: {
     marginTop: spacing.m,

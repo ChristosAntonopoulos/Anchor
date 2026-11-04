@@ -248,6 +248,10 @@ public class TodayService
                 StartTime = currentBlock.StartTime,
                 EndTime = currentBlock.EndTime,
                 RoutineActivities = currentBlock.RoutineActivities,
+                TaskId = currentBlock.TaskId,
+                EntryAction = currentBlock.EntryAction,
+                StartMinutes = currentBlock.StartMinutes,
+                RoutineVersion = currentBlock.RoutineVersion,
                 ChecklistItems = currentBlock.ChecklistItems?
                     .OrderBy(item => item.Order)
                     .Select(item => new ScheduleChecklistItemDto

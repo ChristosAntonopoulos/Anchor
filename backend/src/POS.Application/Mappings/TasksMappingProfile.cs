@@ -1,5 +1,7 @@
 using AutoMapper;
+using POS.Application.DTOs.Execution;
 using POS.Application.DTOs.Tasks;
+using POS.Core.Entities.Execution;
 using POS.Core.Entities.Tasks;
 using TaskEntity = POS.Core.Entities.Tasks.Task;
 
@@ -17,6 +19,9 @@ public class TasksMappingProfile : Profile
         CreateMap<Location, LocationDto>().ReverseMap();
         CreateMap<RecurrencePattern, RecurrencePatternDto>().ReverseMap();
         CreateMap<Reminder, ReminderDto>().ReverseMap();
+        CreateMap<NextAction, NextActionDto>().ReverseMap();
+        CreateMap<UpcomingStep, UpcomingStepDto>().ReverseMap();
+        CreateMap<TaskPlanSuggestion, TaskPlanSuggestionDto>().ReverseMap();
 
         // Task mappings
         CreateMap<TaskEntity, TaskDto>()

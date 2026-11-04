@@ -27,6 +27,17 @@ export type {
   DayOfWeekCount,
 } from './notifications';
 
+export type {
+  ExecutionProfile,
+  WorkSession,
+  NowRecommendation,
+  StuckHelp,
+  DayPlan,
+  RecoveryCard,
+  NextAction,
+  TaskPlanSuggestion,
+} from './execution';
+
 // CBT Types
 export interface AutomaticThought {
   text: string;
@@ -361,6 +372,12 @@ export interface Task {
   reminders?: Reminder[];
   completedAt?: string; // ISO datetime string
   order?: number;
+  nextAction?: import('./execution').NextAction | null;
+  upcomingSteps?: import('./execution').UpcomingStep[] | null;
+  definitionOfDone?: string | null;
+  dependencies?: string[] | null;
+  returnPoint?: string | null;
+  pendingSuggestion?: import('./execution').TaskPlanSuggestion | null;
 }
 
 // DisciplineItemType
@@ -412,8 +429,18 @@ export interface ScheduleBlock {
   title: string;
   startTime: string; // HH:mm format
   endTime: string; // HH:mm format
-  routineActivities?: string[]; // List of activities for routine blocks
+  routineActivities?: string[];
   checklistItems?: ScheduleChecklistItem[];
+  taskId?: string | null;
+  taskTitle?: string | null;
+  entryAction?: string | null;
+  startMinutes?: number | null;
+  windowKind?: 'exact' | 'flexible' | 'cue';
+  manualCue?: string | null;
+  routineVersion?: 'regular' | 'shorter';
+  skipped?: boolean;
+  shorterRoutineActivities?: string[];
+  isRoutine?: boolean;
 }
 
 // Deadline
@@ -547,6 +574,10 @@ export interface UpdateTaskRequest {
   estimatedMinutes?: number;
   reminders?: Reminder[];
   order?: number;
+  nextActionText?: string;
+  returnPoint?: string;
+  definitionOfDone?: string;
+  acceptPendingSuggestion?: boolean;
 }
 
 export interface CompleteTaskRequest {

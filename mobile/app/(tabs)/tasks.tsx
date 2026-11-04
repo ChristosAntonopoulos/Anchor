@@ -10,7 +10,11 @@ import { InboxTaskItem } from '../../components/tasks/InboxTaskItem';
 import { AddTaskButton } from '../../components/tasks/AddTaskButton';
 import { TaskDetailModal } from '../../components/tasks/TaskDetailModal';
 import { MAX_TODAY_FOCUS } from '../../types';
-import type { Task } from '../../types';
+import type { Task, UpdateTaskRequest } from '../../types';
+import { WorkSessionModal } from '../../components/execution/WorkSessionModal';
+import { FirstActionBanner } from '../../components/execution/FirstActionBanner';
+import { useExecutionStore } from '../../store/useExecutionStore';
+import type { SessionLaunch } from '../../types/execution';
 
 export default function TasksScreen() {
   const {
@@ -31,6 +35,27 @@ export default function TasksScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
+  const [sessionOpen, setSessionOpen] = useState(false);
+  const [pendingStart, setPendingStart] = useState<SessionLaunch | null>(null);
+  const [createdTask, setCreatedTask] = useState<Task | null>(null);
+  const acceptPlan = useExecutionStore((s) => s.acceptPlan);
+  const planTask = useExecutionStore((s) => s.planTask);
+  const profile = useExecutionStore((s) => s.profile);
+  const fetchProfile = useExecutionStore((s) => s.fetchProfile);
+
+  useEffect(() => {
+    void fetchProfile();
+  }, [fetchProfile]);
+
+  const openSession = (task: Task) => {
+    setPendingStart({
+      taskId: task.id,
+      title: task.title,
+      currentAction: task.returnPoint ?? task.nextAction?.text ?? task.title,
+      minutes: profile?.lastExplicitDurationMinutes ?? 5,
+    });
+    setSessionOpen(true);
+  };
 
   useEffect(() => {
     fetchTasks();
@@ -111,6 +136,7 @@ export default function TasksScreen() {
             <TaskList
               tasks={todayFocus}
               onToggleTask={completeTask}
+              onStartTask={openSession}
               onTaskPress={(task) => {
                 setSelectedTask(task);
                 setShowTaskModal(true);
@@ -121,7 +147,19 @@ export default function TasksScreen() {
           <AddTaskButton
             label="+ Add to today"
             limitMessage={`Today's focus is full (${MAX_TODAY_FOCUS} tasks). Move one to inbox first.`}
-            onAddTask={(title, category) => createTask(title, category, 'today')}
+            onAddTask={async (title, category) => {
+              await createTask(title, category, 'today');
+              const pick = async () => {
+                await fetchTasks();
+                const latest = [
+                  ...useTaskStore.getState().todayFocus,
+                  ...useTaskStore.getState().inboxItems,
+                ].find((task) => task.title === title);
+                if (latest) setCreatedTask(latest);
+              };
+              await pick();
+              setTimeout(() => { void pick(); }, 1600);
+            }}
             disabled={!canAddFocus}
           />
 
@@ -151,9 +189,44 @@ export default function TasksScreen() {
           </View>
           <AddTaskButton
             label="+ Add to inbox"
-            onAddTask={(title, category) => createTask(title, category, 'inbox')}
+            onAddTask={async (title, category) => {
+              await createTask(title, category, 'inbox');
+              const pick = async () => {
+                await fetchTasks();
+                const latest = [
+                  ...useTaskStore.getState().todayFocus,
+                  ...useTaskStore.getState().inboxItems,
+                ].find((task) => task.title === title);
+                if (latest) setCreatedTask(latest);
+              };
+              await pick();
+              setTimeout(() => { void pick(); }, 1600);
+            }}
           />
+          {createdTask?.pendingSuggestion ? (
+            <FirstActionBanner
+              task={createdTask}
+              onUse={async () => {
+                await acceptPlan(createdTask.id);
+                await fetchTasks();
+                setCreatedTask(null);
+              }}
+              onEdit={async (text) => {
+                await acceptPlan(createdTask.id, text);
+                await fetchTasks();
+                setCreatedTask(null);
+              }}
+            />
+          ) : null}
         </ScrollView>
+        <WorkSessionModal
+          visible={sessionOpen}
+          pendingStart={pendingStart}
+          onClose={() => {
+            setSessionOpen(false);
+            setPendingStart(null);
+          }}
+        />
         <TaskDetailModal
           task={selectedTask}
           visible={showTaskModal}
@@ -163,9 +236,39 @@ export default function TasksScreen() {
           }}
           onSave={async (updates) => {
             if (selectedTask) {
-              await updateTask(selectedTask.id, updates);
+              await updateTask(selectedTask.id, updates as UpdateTaskRequest);
             }
           }}
+          onHelpStart={
+            selectedTask
+              ? async () => {
+                  const planned = await planTask(selectedTask.id);
+                  await fetchTasks();
+                  if (planned) {
+                    setSelectedTask(planned);
+                    setCreatedTask(planned);
+                  }
+                }
+              : undefined
+          }
+          onAcceptSuggestion={
+            selectedTask
+              ? async (text) => {
+                  await acceptPlan(selectedTask.id, text);
+                  await fetchTasks();
+                  const updated = [
+                    ...useTaskStore.getState().todayFocus,
+                    ...useTaskStore.getState().inboxItems,
+                  ].find((task) => task.id === selectedTask.id);
+                  if (updated) setSelectedTask(updated);
+                  setCreatedTask(null);
+                }
+              : undefined
+          }
+          onStartSession={selectedTask ? () => {
+            openSession(selectedTask);
+            setShowTaskModal(false);
+          } : undefined}
           onDemote={
             selectedTask?.status === 'today'
               ? async () => {

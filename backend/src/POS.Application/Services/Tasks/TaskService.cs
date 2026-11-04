@@ -339,6 +339,25 @@ public class TaskService
         if (request.FocusRank.HasValue) updateBuilder = updateBuilder.Set(t => t.FocusRank, request.FocusRank.Value);
         if (request.PlannedDate.HasValue) updateBuilder = updateBuilder.Set(t => t.PlannedDate, request.PlannedDate.Value);
         if (request.SnoozedUntil.HasValue) updateBuilder = updateBuilder.Set(t => t.SnoozedUntil, request.SnoozedUntil.Value);
+        if (request.ReturnPoint != null) updateBuilder = updateBuilder.Set(t => t.ReturnPoint, request.ReturnPoint);
+        if (request.DefinitionOfDone != null) updateBuilder = updateBuilder.Set(t => t.DefinitionOfDone, request.DefinitionOfDone);
+        if (!string.IsNullOrWhiteSpace(request.NextActionText))
+        {
+            existing.NextAction ??= new POS.Core.Entities.Execution.NextAction();
+            existing.NextAction.Text = request.NextActionText;
+            existing.NextAction.Source = "user";
+            updateBuilder = updateBuilder.Set(t => t.NextAction, existing.NextAction);
+        }
+        if (request.AcceptPendingSuggestion == true && existing.PendingSuggestion?.NextAction != null)
+        {
+            var accepted = existing.PendingSuggestion.NextAction;
+            accepted.Source = "accepted_ai";
+            updateBuilder = updateBuilder
+                .Set(t => t.NextAction, accepted)
+                .Set(t => t.UpcomingSteps, existing.PendingSuggestion.UpcomingSteps)
+                .Set(t => t.DefinitionOfDone, existing.PendingSuggestion.DefinitionOfDone)
+                .Set(t => t.PendingSuggestion, null);
+        }
 
         if (request.Status != null)
         {
