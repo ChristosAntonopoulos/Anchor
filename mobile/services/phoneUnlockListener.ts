@@ -182,18 +182,58 @@ export function cacheCurrentBlock(block?: {
   title?: string | null;
   startTime?: string | null;
   endTime?: string | null;
+  checklistItems?: Array<{ title?: string | null; completed?: boolean | null; order?: number | null }> | null;
+  routineActivities?: Array<string | null> | null;
 } | null): void {
   if (!isAndroid || !PhoneUnlockModule || typeof PhoneUnlockModule.setCurrentBlock !== 'function') {
     return;
   }
   try {
+    const items = (block?.checklistItems ?? [])
+      .slice()
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((item) => ({
+        title: item.title?.trim() ?? '',
+        completed: Boolean(item.completed),
+      }))
+      .filter((item) => item.title.length > 0);
+    const fallback = (block?.routineActivities ?? [])
+      .map((title) => ({ title: title?.trim() ?? '', completed: false }))
+      .filter((item) => item.title.length > 0);
     PhoneUnlockModule.setCurrentBlock(
       block?.title ?? null,
       block?.startTime ?? null,
       block?.endTime ?? null,
+      JSON.stringify(items.length > 0 ? items : fallback),
     );
   } catch {
     // Cached for the native overlay; failure is non-critical.
+  }
+}
+
+export async function getUnlockStats(): Promise<{
+  todayCount: number;
+  totalCount: number;
+  averageDurationMs: number | null;
+  todayDurationMs: number | null;
+  mostCommonIntention: string | null;
+} | null> {
+  if (!isAndroid || !PhoneUnlockModule || typeof PhoneUnlockModule.getUnlockStats !== 'function') {
+    return null;
+  }
+  try {
+    const stats = await PhoneUnlockModule.getUnlockStats();
+    return {
+      todayCount: Number(stats?.todayCount ?? 0),
+      totalCount: Number(stats?.totalCount ?? 0),
+      averageDurationMs:
+        stats?.averageDurationMs == null ? null : Number(stats.averageDurationMs),
+      todayDurationMs: stats?.todayDurationMs == null ? null : Number(stats.todayDurationMs),
+      mostCommonIntention:
+        typeof stats?.mostCommonIntention === 'string' ? stats.mostCommonIntention : null,
+    };
+  } catch {
+    return null;
   }
 }
 

@@ -8,7 +8,7 @@ export const INTENTION_CODES = [
   'social_check',
   'pay',
   'automatic_check',
-  'unsure',
+  'spotify',
   'other',
 ] as const;
 
@@ -57,11 +57,54 @@ export function needsUnlockPause(code?: string | null): boolean {
   return code === 'social_check' || code === 'automatic_check';
 }
 
+export type CurrentBlockItemView = {
+  title: string;
+  completed: boolean;
+};
+
+export function currentBlockItems(block?: {
+  checklistItems?: Array<{ title?: string | null; completed?: boolean | null; order?: number | null }> | null;
+  routineActivities?: Array<string | null> | null;
+  items?: Array<{ title?: string | null; completed?: boolean | null } | string | null> | null;
+} | null): CurrentBlockItemView[] {
+  const checklist = (block?.checklistItems ?? [])
+    .slice()
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .map((item) => ({
+      title: item.title?.trim() ?? '',
+      completed: Boolean(item.completed),
+    }))
+    .filter((item) => item.title.length > 0);
+  if (checklist.length > 0) {
+    return checklist;
+  }
+  const cached = (block?.items ?? [])
+    .map((item) => {
+      if (typeof item === 'string') {
+        return { title: item.trim(), completed: false };
+      }
+      return {
+        title: item?.title?.trim() ?? '',
+        completed: Boolean(item?.completed),
+      };
+    })
+    .filter((item) => item.title.length > 0);
+  if (cached.length > 0) {
+    return cached;
+  }
+  return (block?.routineActivities ?? [])
+    .map((title) => ({ title: title?.trim() ?? '', completed: false }))
+    .filter((item) => item.title.length > 0);
+}
+
 export function formatCurrentBlockLine(block?: {
   title?: string | null;
   startTime?: string | null;
   endTime?: string | null;
-} | null): { title: string; time: string | null } | null {
+  checklistItems?: Array<{ title?: string | null; completed?: boolean | null; order?: number | null }> | null;
+  routineActivities?: Array<string | null> | null;
+  items?: Array<{ title?: string | null; completed?: boolean | null } | string | null> | null;
+} | null): { title: string; time: string | null; items: CurrentBlockItemView[] } | null {
   const title = block?.title?.trim();
   if (!title) {
     return null;
@@ -69,7 +112,76 @@ export function formatCurrentBlockLine(block?: {
   const start = block?.startTime?.trim() ?? '';
   const end = block?.endTime?.trim() ?? '';
   const time = start && end ? `${start} – ${end}` : start || end || null;
-  return { title, time };
+  return { title, time, items: currentBlockItems(block) };
+}
+
+export function formatUnlockedDuration(ms?: number | null): string | null {
+  if (ms == null || !Number.isFinite(ms) || ms < 1000) {
+    return null;
+  }
+  const totalSeconds = Math.round(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) {
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  }
+  if (minutes > 0) {
+    return seconds > 0 && minutes < 10 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+  }
+  return `${seconds}s`;
+}
+
+export function summarizeUnlockEntries(
+  entries: Array<{
+    unlockedAt?: string | null;
+    unlockedDurationMs?: number | null;
+    intentionCode?: string | null;
+  }>,
+  now: Date = new Date(),
+) {
+  const todayKey = localDateKey(now);
+  const todayEntries = entries.filter((entry) => localDateKey(entry.unlockedAt) === todayKey);
+  const durations = entries
+    .map((entry) => entry.unlockedDurationMs)
+    .filter((value): value is number => typeof value === 'number' && value > 0);
+  const todayDurations = todayEntries
+    .map((entry) => entry.unlockedDurationMs)
+    .filter((value): value is number => typeof value === 'number' && value > 0);
+  const counts = new Map<string, number>();
+  for (const entry of entries) {
+    if (!entry.intentionCode) {
+      continue;
+    }
+    counts.set(entry.intentionCode, (counts.get(entry.intentionCode) ?? 0) + 1);
+  }
+  let mostCommonIntention: string | null = null;
+  let mostCommonCount = 0;
+  counts.forEach((count, code) => {
+    if (count > mostCommonCount) {
+      mostCommonIntention = code;
+      mostCommonCount = count;
+    }
+  });
+  return {
+    todayCount: todayEntries.length,
+    totalCount: entries.length,
+    averageDurationMs: durations.length === 0 ? null : Math.round(durations.reduce((sum, value) => sum + value, 0) / durations.length),
+    todayDurationMs: todayDurations.length === 0 ? null : todayDurations.reduce((sum, value) => sum + value, 0),
+    mostCommonIntention,
+    mostCommonCount,
+  };
+}
+
+function localDateKey(value?: string | Date | null): string {
+  const date = value instanceof Date ? value : value ? new Date(value) : new Date();
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export const UNLOCK_COPY = {
@@ -77,6 +189,9 @@ export const UNLOCK_COPY = {
   subtitle: 'Take a moment. Choose what fits.',
   putPhoneDown: 'Put phone down',
   now: 'Now',
+  todayCount: (count: number) => (count === 1 ? `Today · ${count} unlock` : `Today · ${count} unlocks`),
+  mostOften: (label: string) => `Most often · ${label}`,
+  mostOftenBadge: 'Most often',
   pauseTitle: 'A short pause',
   pauseCancel: 'Tap here to choose something else',
   pauseSocial: (seconds: number) => `Social check in ${seconds}`,
@@ -118,9 +233,9 @@ export const UNLOCK_COPY = {
       label: 'Automatic check',
       support: 'I reached for it without deciding to',
     },
-    unsure: {
-      label: 'Not sure yet',
-      support: 'I haven’t decided what I need',
+    spotify: {
+      label: 'Spotify',
+      support: 'Music, a podcast, or something playing',
     },
     other: {
       label: 'Something else',
@@ -175,9 +290,9 @@ export const UNLOCK_COPY = {
       label: 'Anything you noticed?',
       placeholder: 'e.g. I picked it up while my code was building',
     },
-    unsure: {
-      label: 'Anything on your mind?',
-      placeholder: 'Optional',
+    spotify: {
+      label: 'What do you want to play?',
+      placeholder: 'e.g. A focus playlist',
     },
     other: {
       label: 'What brought you here?',

@@ -1,6 +1,7 @@
 package com.pos.mobile
 
 import android.content.Context
+import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -17,10 +18,20 @@ object CurrentBlockStore {
             prefs.edit().remove(KEY_BLOCK).apply()
             return
         }
+        val items = JSONArray()
+        snapshot.items.forEach { item ->
+            items.put(
+                JSONObject().apply {
+                    put("title", item.title)
+                    put("completed", item.completed)
+                }
+            )
+        }
         val json = JSONObject().apply {
             put("title", snapshot.title)
             put("startTime", snapshot.startTime ?: "")
             put("endTime", snapshot.endTime ?: "")
+            put("items", items)
             put("cachedOn", localDate())
         }
         prefs.edit().putString(KEY_BLOCK, json.toString()).apply()

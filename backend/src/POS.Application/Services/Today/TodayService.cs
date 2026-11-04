@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using POS.Application.DTOs.Day;
 using POS.Application.DTOs.Discipline;
+using POS.Application.DTOs.Schedule;
 using POS.Application.DTOs.Today;
 using POS.Application.Services.Day;
 using POS.Application.Services.Tasks;
@@ -245,7 +246,19 @@ public class TodayService
                 Id = currentBlock.Id,
                 Title = currentBlock.Title,
                 StartTime = currentBlock.StartTime,
-                EndTime = currentBlock.EndTime
+                EndTime = currentBlock.EndTime,
+                RoutineActivities = currentBlock.RoutineActivities,
+                ChecklistItems = currentBlock.ChecklistItems?
+                    .OrderBy(item => item.Order)
+                    .Select(item => new ScheduleChecklistItemDto
+                    {
+                        Id = item.Id,
+                        Title = item.Title,
+                        DurationMinutes = item.DurationMinutes,
+                        Completed = item.Completed,
+                        Order = item.Order
+                    })
+                    .ToList()
             };
         }
 

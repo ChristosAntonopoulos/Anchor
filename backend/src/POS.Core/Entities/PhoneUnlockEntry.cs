@@ -63,4 +63,11 @@ public class PhoneUnlockEntry : EntityBase
 
     [BsonElement("putDownExecution")]
     public string? PutDownExecution { get; set; }
+
+    [BsonElement("unlockedDurationMs")]
+    public long? UnlockedDurationMs { get; set; }
+
+    [BsonElement("lockedAtUtc")]
+    [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
+    public DateTime? LockedAtUtc { get; set; }
 }

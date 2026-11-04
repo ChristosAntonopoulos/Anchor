@@ -11,7 +11,7 @@ class PhoneUnlockReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         when (intent?.action) {
             Intent.ACTION_SCREEN_OFF -> {
-                PhoneUnlockPresenter.onScreenOff()
+                PhoneUnlockPresenter.onScreenOff(context)
             }
             Intent.ACTION_USER_PRESENT -> {
                 PhoneUnlockPresenter.onPhoneUnlocked(context, System.currentTimeMillis())

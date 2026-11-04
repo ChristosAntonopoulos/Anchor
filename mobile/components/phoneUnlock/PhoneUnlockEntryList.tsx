@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { colors, spacing, typography } from '../../constants/designTokens';
 import { PhoneUnlockEntryItem } from './PhoneUnlockEntryItem';
+import { PhoneUnlockSummary } from './PhoneUnlockSummary';
 import type { PhoneUnlockEntry } from '../../types';
 
 interface PhoneUnlockEntryListProps {
@@ -12,11 +13,20 @@ interface PhoneUnlockEntryListProps {
 export function PhoneUnlockEntryList({ entries, refreshing, onRefresh }: PhoneUnlockEntryListProps) {
   if (entries.length === 0) {
     return (
-      <View style={styles.emptyContainer}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.listContainer}
+        refreshControl={
+          onRefresh ? (
+            <RefreshControl refreshing={refreshing || false} onRefresh={onRefresh} tintColor={colors.category.stability} />
+          ) : undefined
+        }
+      >
+        <PhoneUnlockSummary entries={entries} />
         <Text style={styles.emptyText}>
           No unlock entries yet. Unlock your phone to start tracking your reasons.
         </Text>
-      </View>
+      </ScrollView>
     );
   }
 
@@ -31,6 +41,7 @@ export function PhoneUnlockEntryList({ entries, refreshing, onRefresh }: PhoneUn
       }
     >
       <View style={styles.listContainer}>
+        <PhoneUnlockSummary entries={entries} />
         {entries.map((entry) => (
           <PhoneUnlockEntryItem key={entry.id} entry={entry} />
         ))}

@@ -29,7 +29,7 @@ import {
   type UnlockPutDownExecution,
 } from '../../utils/phoneUnlockMapping';
 import { beginUnlockPrompt, resolveUnlockPrompt } from '../../services/phoneUnlockPrompt';
-import { lockPhone } from '../../services/phoneUnlockListener';
+import { getUnlockStats, lockPhone } from '../../services/phoneUnlockListener';
 import { useTodayStore } from '../../store/useTodayStore';
 import { useRouter } from 'expo-router';
 import { CHECK_IN_COPY } from '../../constants/checkIn';
@@ -47,7 +47,7 @@ const INTENTION_ICONS: Record<IntentionCode, string> = {
   social_check: 'notification',
   pay: 'goals',
   automatic_check: 'habits',
-  unsure: 'search',
+  spotify: 'musical-notes-outline',
   other: 'add',
 };
 
@@ -68,6 +68,10 @@ export function PhoneUnlockReasonModal({
   const pauseTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pendingContinueRef = useRef<null | (() => void)>(null);
   const currentBlock = formatCurrentBlockLine(useTodayStore((state) => state.data?.currentBlock));
+  const [stats, setStats] = useState<{
+    todayCount: number;
+    mostCommonIntention: string | null;
+  } | null>(null);
 
   useEffect(() => {
     if (!visible) {
@@ -79,6 +83,7 @@ export function PhoneUnlockReasonModal({
       setNote('');
       setContextExpanded(false);
       setPauseSeconds(null);
+      setStats(null);
       pendingContinueRef.current = null;
       if (pauseTimerRef.current) {
         clearInterval(pauseTimerRef.current);
@@ -91,6 +96,14 @@ export function PhoneUnlockReasonModal({
     void beginUnlockPrompt(unlockTime).then((id) => {
       if (!cancelled) {
         setPromptId(id);
+      }
+    });
+    void getUnlockStats().then((value) => {
+      if (!cancelled && value) {
+        setStats({
+          todayCount: value.todayCount,
+          mostCommonIntention: value.mostCommonIntention,
+        });
       }
     });
     return () => {
@@ -241,15 +254,51 @@ export function PhoneUnlockReasonModal({
                 </Text>
                 <Text style={styles.subtitle}>{UNLOCK_COPY.subtitle}</Text>
 
+                {stats ? (
+                  <View
+                    style={styles.statsCard}
+                    accessibilityRole="summary"
+                    accessibilityLabel={`${UNLOCK_COPY.todayCount(stats.todayCount)}${
+                      stats.mostCommonIntention && stats.mostCommonIntention in UNLOCK_COPY.intentions
+                        ? `. ${UNLOCK_COPY.mostOften(UNLOCK_COPY.intentions[stats.mostCommonIntention as IntentionCode].label)}`
+                        : ''
+                    }`}
+                  >
+                    <Text style={styles.statsToday}>{UNLOCK_COPY.todayCount(stats.todayCount)}</Text>
+                    {stats.mostCommonIntention && stats.mostCommonIntention in UNLOCK_COPY.intentions ? (
+                      <Text style={styles.statsOften}>
+                        {UNLOCK_COPY.mostOften(
+                          UNLOCK_COPY.intentions[stats.mostCommonIntention as IntentionCode].label,
+                        )}
+                      </Text>
+                    ) : null}
+                  </View>
+                ) : null}
+
                 {currentBlock ? (
                   <View
                     style={styles.blockCard}
                     accessibilityRole="summary"
-                    accessibilityLabel={`${UNLOCK_COPY.now}. ${currentBlock.title}${currentBlock.time ? `. ${currentBlock.time}` : ''}`}
+                    accessibilityLabel={`${UNLOCK_COPY.now}. ${currentBlock.title}${currentBlock.time ? `. ${currentBlock.time}` : ''}${
+                      currentBlock.items.length
+                        ? `. ${currentBlock.items.map((item) => item.title).join('. ')}`
+                        : ''
+                    }`}
                   >
                     <Text style={styles.blockNow}>{UNLOCK_COPY.now}</Text>
                     <Text style={styles.blockTitle}>{currentBlock.title}</Text>
                     {currentBlock.time ? <Text style={styles.blockTime}>{currentBlock.time}</Text> : null}
+                    {currentBlock.items.slice(0, 5).map((item, index) => (
+                      <Text
+                        key={`${item.title}-${index}`}
+                        style={item.completed ? styles.blockItemDone : styles.blockItem}
+                      >
+                        {item.completed ? `✓  ${item.title}` : `○  ${item.title}`}
+                      </Text>
+                    ))}
+                    {currentBlock.items.length > 5 ? (
+                      <Text style={styles.blockItemDone}>+{currentBlock.items.length - 5} more</Text>
+                    ) : null}
                   </View>
                 ) : null}
 
@@ -296,6 +345,9 @@ export function PhoneUnlockReasonModal({
                           <AppIcon name={INTENTION_ICONS[code]} size={18} color={colors.success} />
                           <Text style={styles.intentionLabel}>{copy.label}</Text>
                           <Text style={styles.intentionSupport}>{copy.support}</Text>
+                          {stats?.mostCommonIntention === code ? (
+                            <Text style={styles.mostOftenBadge}>{UNLOCK_COPY.mostOftenBadge}</Text>
+                          ) : null}
                         </Pressable>
                       </View>
                     );
@@ -510,6 +562,23 @@ const styles = StyleSheet.create({
     marginBottom: spacing.m,
     lineHeight: typography.lineHeight.body,
   },
+  statsCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.medium,
+    paddingVertical: spacing.s,
+    paddingHorizontal: spacing.m,
+    marginBottom: spacing.s,
+  },
+  statsToday: {
+    color: '#C7E5CD',
+    fontSize: 13,
+    fontWeight: typography.fontWeight.semibold,
+  },
+  statsOften: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginTop: 2,
+  },
   blockCard: {
     backgroundColor: colors.surfaceElevated,
     borderRadius: borderRadius.medium,
@@ -518,6 +587,21 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.s,
     paddingHorizontal: spacing.m,
     marginBottom: spacing.m,
+  },
+  blockItem: {
+    color: colors.textPrimary,
+    fontSize: 13,
+    marginTop: 4,
+  },
+  blockItemDone: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    marginTop: 4,
+  },
+  mostOftenBadge: {
+    color: '#C7E5CD',
+    fontSize: 11,
+    marginTop: 4,
   },
   blockNow: {
     color: '#C7E5CD',

@@ -21,6 +21,8 @@ data class PhoneUnlockPrompt(
     var submissionPath: String? = null,
     var putDownExecution: String? = null,
     val unlockedAtMs: Long,
+    var unlockedDurationMs: Long? = null,
+    var lockedAtUtc: String? = null,
     var synced: Boolean = false,
 ) {
     fun toJson(): JSONObject {
@@ -41,6 +43,8 @@ data class PhoneUnlockPrompt(
             putNullable("submissionPath", submissionPath)
             putNullable("putDownExecution", putDownExecution)
             put("unlockedAtMs", unlockedAtMs)
+            putNullableLong("unlockedDurationMs", unlockedDurationMs)
+            putNullable("lockedAtUtc", lockedAtUtc)
             put("synced", synced)
         }
     }
@@ -69,7 +73,7 @@ data class PhoneUnlockPrompt(
             "social_check",
             "pay",
             "automatic_check",
-            "unsure",
+            "spotify",
             "other",
         )
         val TRIGGERS = listOf(
@@ -124,6 +128,8 @@ data class PhoneUnlockPrompt(
                 submissionPath = raw.nullableString("submissionPath"),
                 putDownExecution = raw.nullableString("putDownExecution"),
                 unlockedAtMs = raw.optLong("unlockedAtMs"),
+                unlockedDurationMs = raw.nullableLong("unlockedDurationMs"),
+                lockedAtUtc = raw.nullableString("lockedAtUtc"),
                 synced = raw.optBoolean("synced", false),
             )
         }
@@ -138,10 +144,26 @@ private fun JSONObject.putNullable(key: String, value: String?) {
     }
 }
 
+private fun JSONObject.putNullableLong(key: String, value: Long?) {
+    if (value == null) {
+        put(key, JSONObject.NULL)
+    } else {
+        put(key, value)
+    }
+}
+
 private fun JSONObject.nullableString(key: String): String? {
     if (!has(key) || isNull(key)) {
         return null
     }
     val value = optString(key, "")
     return value.ifBlank { null }
+}
+
+private fun JSONObject.nullableLong(key: String): Long? {
+    if (!has(key) || isNull(key)) {
+        return null
+    }
+    val value = optLong(key, -1L)
+    return value.takeIf { it >= 0 }
 }

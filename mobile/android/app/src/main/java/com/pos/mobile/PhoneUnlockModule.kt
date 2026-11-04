@@ -97,17 +97,54 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    fun setCurrentBlock(title: String?, startTime: String?, endTime: String?) {
+    fun setCurrentBlock(title: String?, startTime: String?, endTime: String?, itemsJson: String?) {
         val snapshot = if (title.isNullOrBlank()) {
             null
         } else {
-            CurrentBlockSnapshot(
-                title = title.trim(),
-                startTime = startTime?.trim()?.ifBlank { null },
-                endTime = endTime?.trim()?.ifBlank { null },
-            )
+            val block = org.json.JSONObject().apply {
+                put("title", title.trim())
+                put("startTime", startTime?.trim().orEmpty())
+                put("endTime", endTime?.trim().orEmpty())
+                if (!itemsJson.isNullOrBlank()) {
+                    try {
+                        put("items", org.json.JSONArray(itemsJson))
+                    } catch (_: Exception) {
+                        put("routineActivities", org.json.JSONArray(itemsJson))
+                    }
+                }
+            }
+            CurrentBlockSnapshot.fromBlockJson(block)
         }
         CurrentBlockStore.write(reactApplicationContext, snapshot)
+    }
+
+    @ReactMethod
+    fun getUnlockStats(promise: Promise) {
+        try {
+            val stats = PhoneUnlockStore.summary(reactApplicationContext)
+            val map = Arguments.createMap().apply {
+                putInt("todayCount", stats.todayCount)
+                putInt("totalCount", stats.totalCount)
+                if (stats.averageDurationMs != null) {
+                    putDouble("averageDurationMs", stats.averageDurationMs.toDouble())
+                } else {
+                    putNull("averageDurationMs")
+                }
+                if (stats.todayDurationMs != null) {
+                    putDouble("todayDurationMs", stats.todayDurationMs.toDouble())
+                } else {
+                    putNull("todayDurationMs")
+                }
+                if (stats.mostCommonIntention != null) {
+                    putString("mostCommonIntention", stats.mostCommonIntention)
+                } else {
+                    putNull("mostCommonIntention")
+                }
+            }
+            promise.resolve(map)
+        } catch (error: Exception) {
+            promise.reject("UNLOCK_STATS", "Failed to read unlock stats", error)
+        }
     }
 
     @ReactMethod

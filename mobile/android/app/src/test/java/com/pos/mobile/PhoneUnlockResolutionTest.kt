@@ -40,7 +40,7 @@ class PhoneUnlockResolutionTest {
             "social_check",
             "pay",
             "automatic_check",
-            "unsure",
+            "spotify",
             "other",
         )
         val saved = codes.map { code ->

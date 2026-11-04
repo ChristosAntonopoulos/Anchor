@@ -3,7 +3,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 import type { PhoneUnlockEntry } from '../../types';
-import { displayUnlockHeadline } from '../../utils/phoneUnlockMapping';
+import {
+  UNLOCK_COPY,
+  displayUnlockHeadline,
+  formatUnlockedDuration,
+  type FeelingCode,
+  type TriggerCode,
+} from '../../utils/phoneUnlockMapping';
 
 interface PhoneUnlockEntryItemProps {
   entry: PhoneUnlockEntry;
@@ -41,6 +47,20 @@ export function PhoneUnlockEntryItem({ entry }: PhoneUnlockEntryItemProps) {
         </View>
         <View style={styles.reasonContainer}>
           <Text style={styles.reason}>{displayUnlockHeadline(entry)}</Text>
+          {formatUnlockedDuration(entry.unlockedDurationMs) ? (
+            <Text style={styles.meta}>Unlocked {formatUnlockedDuration(entry.unlockedDurationMs)}</Text>
+          ) : null}
+          {entry.triggerCode && entry.triggerCode in UNLOCK_COPY.triggers ? (
+            <Text style={styles.meta}>
+              {UNLOCK_COPY.triggers[entry.triggerCode as TriggerCode]}
+            </Text>
+          ) : null}
+          {entry.feelingCode && entry.feelingCode in UNLOCK_COPY.feelings ? (
+            <Text style={styles.meta}>
+              {UNLOCK_COPY.feelings[entry.feelingCode as FeelingCode]}
+            </Text>
+          ) : null}
+          {entry.note ? <Text style={styles.meta}>{entry.note}</Text> : null}
         </View>
         {entry.unlockMethod && (
           <View style={styles.methodContainer}>
@@ -91,6 +111,11 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.body,
     color: colors.textPrimary,
     lineHeight: typography.lineHeight.body,
+  },
+  meta: {
+    fontSize: typography.fontSize.caption,
+    color: colors.textSecondary,
+    marginTop: 4,
   },
   methodContainer: {
     marginTop: spacing.xs,

@@ -15,6 +15,15 @@ class CurrentBlockSnapshotTest {
     }
 
     @Test
+    fun prefersChecklistItemsThenRoutineActivities() {
+        val snapshot = CurrentBlockSnapshot.fromTodayJson(
+            """{"success":true,"data":{"currentBlock":{"title":"Morning routine","startTime":"07:00","endTime":"08:00","checklistItems":[{"title":"Drink water","completed":true},{"title":"Brush teeth","completed":false}],"routineActivities":["Ignored"]}}}""",
+        )
+        assertEquals(listOf("Drink water", "Brush teeth"), snapshot?.items?.map { it.title })
+        assertEquals(true, snapshot?.items?.first()?.completed)
+    }
+
+    @Test
     fun emptyTitleIsNotShown() {
         val snapshot = CurrentBlockSnapshot.fromTodayJson(
             """{"success":true,"data":{"currentBlock":{"title":"","startTime":"09:00","endTime":"11:00"}}}""",

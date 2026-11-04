@@ -242,6 +242,8 @@ class HTTPAPIClient implements APIClient {
           title: data.currentBlock.title,
           startTime: data.currentBlock.startTime,
           endTime: data.currentBlock.endTime,
+          routineActivities: data.currentBlock.routineActivities,
+          checklistItems: data.currentBlock.checklistItems,
         } : {
           id: '',
           title: '',

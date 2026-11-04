@@ -44,10 +44,18 @@ public class PhoneUnlockService
             {
                 if (IsFinalized(existing))
                 {
-                    _logger.LogInformation(
-                        "Ignoring duplicate unlock prompt {PromptId} with existing status {Status}",
-                        request.PromptId,
-                        existing.Status);
+                    if (ApplyDuration(existing, request))
+                    {
+                        existing.UpdatedAt = DateTime.UtcNow;
+                        await _context.PhoneUnlockEntries.ReplaceOneAsync(entry => entry.Id == existing.Id, existing);
+                    }
+                    else
+                    {
+                        _logger.LogInformation(
+                            "Ignoring duplicate unlock prompt {PromptId} with existing status {Status}",
+                            request.PromptId,
+                            existing.Status);
+                    }
                     return _mapper.Map<PhoneUnlockEntryDto>(existing);
                 }
 
@@ -151,6 +159,23 @@ public class PhoneUnlockService
         entry.Reason = intention ?? string.Empty;
         entry.UnlockedAt = unlockedAt;
         entry.UnlockMethod = EmptyToNull(request.UnlockMethod);
+        ApplyDuration(entry, request);
+    }
+
+    private static bool ApplyDuration(PhoneUnlockEntry entry, CreatePhoneUnlockEntryRequest request)
+    {
+        var changed = false;
+        if (request.UnlockedDurationMs is > 0)
+        {
+            entry.UnlockedDurationMs = request.UnlockedDurationMs;
+            changed = true;
+        }
+        if (request.LockedAtUtc.HasValue)
+        {
+            entry.LockedAtUtc = request.LockedAtUtc;
+            changed = true;
+        }
+        return changed;
     }
 
     private static string? EmptyToNull(string? value)

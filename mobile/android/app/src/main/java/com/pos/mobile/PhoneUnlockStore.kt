@@ -2,12 +2,26 @@ package com.pos.mobile
 
 import android.content.Context
 import org.json.JSONArray
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+data class UnlockStats(
+    val todayCount: Int,
+    val totalCount: Int,
+    val averageDurationMs: Long?,
+    val todayDurationMs: Long?,
+    val mostCommonIntention: String?,
+)
 
 object PhoneUnlockStore {
     private const val TAG = "PhoneUnlockStore"
     private const val PREFS = "pos_unlock"
     private const val KEY_PROMPTS = "promptRecords"
     private const val KEY_PENDING_CHECK_IN = "pendingCheckInUnlockId"
+    private const val KEY_SESSION_START = "sessionStartMs"
+    private const val MIN_DURATION_MS = 1_000L
+    private const val MAX_DURATION_MS = 12 * 60 * 60 * 1000L
 
     @Synchronized
     fun interruptStalePending(context: Context, exceptId: String? = null) {
@@ -149,6 +163,74 @@ object PhoneUnlockStore {
             prefs.edit().remove(KEY_PENDING_CHECK_IN).apply()
         }
         return value
+    }
+
+    @Synchronized
+    fun openSession(context: Context, unlockTimeMs: Long) {
+        closeSession(context)
+        prefs(context).edit().putLong(KEY_SESSION_START, unlockTimeMs).apply()
+    }
+
+    @Synchronized
+    fun closeSession(context: Context) {
+        val stored = prefs(context)
+        if (!stored.contains(KEY_SESSION_START)) {
+            return
+        }
+        val start = stored.getLong(KEY_SESSION_START, 0L)
+        stored.edit().remove(KEY_SESSION_START).apply()
+        if (start <= 0L) {
+            return
+        }
+        val now = System.currentTimeMillis()
+        val duration = (now - start).coerceIn(MIN_DURATION_MS, MAX_DURATION_MS)
+        attachDuration(context, start, duration, now)
+    }
+
+    @Synchronized
+    fun summary(context: Context): UnlockStats {
+        val records = load(context)
+        val today = localDate()
+        val todayRecords = records.filter { localDate(it.unlockedAtMs) == today }
+        val durations = records.mapNotNull { it.unlockedDurationMs }
+        val todayDurations = todayRecords.mapNotNull { it.unlockedDurationMs }
+        val mostCommon = records
+            .mapNotNull { it.intentionCode }
+            .groupingBy { it }
+            .eachCount()
+            .maxByOrNull { it.value }
+            ?.key
+        return UnlockStats(
+            todayCount = todayRecords.size,
+            totalCount = records.size,
+            averageDurationMs = if (durations.isEmpty()) null else durations.average().toLong(),
+            todayDurationMs = if (todayDurations.isEmpty()) null else todayDurations.sum(),
+            mostCommonIntention = mostCommon,
+        )
+    }
+
+    @Synchronized
+    private fun attachDuration(context: Context, unlockTimeMs: Long, durationMs: Long, lockedAtMs: Long) {
+        val records = load(context)
+        val prompt = records.find { it.unlockedAtMs == unlockTimeMs }
+            ?: records.lastOrNull { it.unlockedAtMs in 1..unlockTimeMs }
+            ?: return
+        prompt.unlockedDurationMs = durationMs
+        prompt.lockedAtUtc = PhoneUnlockApi.isoUtc(lockedAtMs)
+        if (prompt.status != PhoneUnlockPrompt.STATUS_PENDING) {
+            prompt.synced = false
+        }
+        save(context, records)
+        if (prompt.status != PhoneUnlockPrompt.STATUS_PENDING) {
+            PhoneUnlockApi.enqueueSync(context)
+        }
+    }
+
+    private fun prefs(context: Context) =
+        context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+    private fun localDate(atMs: Long = System.currentTimeMillis()): String {
+        return SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(atMs))
     }
 
     @Synchronized

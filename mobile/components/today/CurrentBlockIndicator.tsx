@@ -59,12 +59,31 @@ export function CurrentBlockIndicator({ block }: CurrentBlockIndicatorProps) {
               <Text style={styles.blockTime}>
                 {block.startTime} - {block.endTime}
               </Text>
-              {block.routineActivities && block.routineActivities.length > 0 && (
+              {((block.checklistItems && block.checklistItems.length > 0) ||
+                (block.routineActivities && block.routineActivities.length > 0)) && (
                 <View style={styles.activitiesContainer}>
-                  {block.routineActivities.map((activity, index) => (
-                    <View key={index} style={styles.activityItem}>
-                      <AppIcon name="checkmark-circle-outline" size={14} color={colors.textSecondary} />
-                      <Text style={styles.activityText}>{activity}</Text>
+                  {(block.checklistItems && block.checklistItems.length > 0
+                    ? block.checklistItems
+                        .slice()
+                        .sort((a, b) => a.order - b.order)
+                        .map((item) => ({
+                          key: item.id,
+                          title: item.title,
+                          completed: item.completed,
+                        }))
+                    : (block.routineActivities ?? []).map((activity, index) => ({
+                        key: `${activity}-${index}`,
+                        title: activity,
+                        completed: false,
+                      }))
+                  ).map((item) => (
+                    <View key={item.key} style={styles.activityItem}>
+                      <AppIcon
+                        name={item.completed ? 'checkmark-circle' : 'checkmark-circle-outline'}
+                        size={14}
+                        color={item.completed ? colors.success : colors.textSecondary}
+                      />
+                      <Text style={styles.activityText}>{item.title}</Text>
                     </View>
                   ))}
                 </View>

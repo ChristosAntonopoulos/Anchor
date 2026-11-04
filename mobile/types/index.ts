@@ -604,6 +604,8 @@ export interface PhoneUnlockEntry {
   contextExpanded?: boolean;
   submissionPath?: string | null;
   putDownExecution?: string | null;
+  unlockedDurationMs?: number | null;
+  lockedAtUtc?: string | null;
 }
 
 export interface CreatePhoneUnlockEntryRequest {
@@ -624,4 +626,6 @@ export interface CreatePhoneUnlockEntryRequest {
   contextExpanded?: boolean;
   submissionPath?: string | null;
   putDownExecution?: string | null;
+  unlockedDurationMs?: number | null;
+  lockedAtUtc?: string | null;
 }

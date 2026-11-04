@@ -15,9 +15,10 @@ object PhoneUnlockPresenter {
     @Volatile
     private var screenWasOff = true
 
-    fun onScreenOff() {
+    fun onScreenOff(context: Context) {
         screenWasOff = true
         UnlockReasonOverlay.hideForInterruption()
+        PhoneUnlockStore.closeSession(context.applicationContext)
     }
 
     fun onScreenOnWhileUnlocked(context: Context) {
@@ -41,6 +42,7 @@ object PhoneUnlockPresenter {
         lastUnlockAt = now
         screenWasOff = false
         android.util.Log.d(TAG, "Phone unlock detected: $unlockTime")
+        PhoneUnlockStore.openSession(context.applicationContext, unlockTime)
         PhoneUnlockModule.setPendingUnlockTime(unlockTime)
 
         val shown = UnlockReasonOverlay.show(context.applicationContext, unlockTime)

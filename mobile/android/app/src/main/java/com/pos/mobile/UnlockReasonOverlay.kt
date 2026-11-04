@@ -181,6 +181,11 @@ private class UnlockReasonFormView(
     private val currentBlockCard: LinearLayout
     private val currentBlockTitle: TextView
     private val currentBlockTime: TextView
+    private val currentBlockItems: LinearLayout
+    private val statsCard: LinearLayout
+    private val todayCountView: TextView
+    private val mostOftenView: TextView
+    private var usualIntention: String? = null
     private val pauseBanner: LinearLayout
     private val pauseCount: TextView
     private val pauseCaption: TextView
@@ -214,8 +219,31 @@ private class UnlockReasonFormView(
 
         card.addView(text(R.string.unlock_title, Color.parseColor("#E8EAED"), 22f, true, Gravity.CENTER))
         card.addView(text(R.string.unlock_subtitle, Color.parseColor("#8B95A6"), 15f, false, Gravity.CENTER).apply {
-            setPadding(0, dp(6), 0, dp(12))
+            setPadding(0, dp(6), 0, dp(10))
         })
+
+        todayCountView = TextView(context).apply {
+            setTextColor(Color.parseColor("#C7E5CD"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setTypeface(typeface, Typeface.BOLD)
+        }
+        mostOftenView = TextView(context).apply {
+            setTextColor(Color.parseColor("#8B95A6"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setPadding(0, dp(2), 0, 0)
+            visibility = GONE
+        }
+        statsCard = LinearLayout(context).apply {
+            orientation = VERTICAL
+            background = rounded(Color.parseColor("#252B38"), dp(14))
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+            addView(todayCountView)
+            addView(mostOftenView)
+            val params = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+            params.bottomMargin = dp(10)
+            layoutParams = params
+        }
+        card.addView(statsCard)
 
         currentBlockTitle = TextView(context).apply {
             setTextColor(Color.parseColor("#E8EAED"))
@@ -226,6 +254,11 @@ private class UnlockReasonFormView(
             setTextColor(Color.parseColor("#8B95A6"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
             setPadding(0, dp(2), 0, 0)
+        }
+        currentBlockItems = LinearLayout(context).apply {
+            orientation = VERTICAL
+            setPadding(0, dp(6), 0, 0)
+            visibility = GONE
         }
         currentBlockCard = LinearLayout(context).apply {
             orientation = VERTICAL
@@ -238,6 +271,7 @@ private class UnlockReasonFormView(
             })
             addView(currentBlockTitle)
             addView(currentBlockTime)
+            addView(currentBlockItems)
             val params = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
             params.bottomMargin = dp(14)
             layoutParams = params
@@ -298,6 +332,7 @@ private class UnlockReasonFormView(
             }
             card.addView(row, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         }
+        bindStats(PhoneUnlockStore.summary(context))
 
         addContextButton = actionText(R.string.unlock_add_context, Color.parseColor("#C7E5CD")).apply {
             contentDescription = "${context.getString(R.string.unlock_add_context)}. ${context.getString(R.string.unlock_add_context_helper)}"
@@ -552,6 +587,30 @@ private class UnlockReasonFormView(
         val range = snapshot.timeRange()
         currentBlockTime.text = range ?: ""
         currentBlockTime.visibility = if (range == null) GONE else VISIBLE
+        currentBlockItems.removeAllViews()
+        val visibleItems = snapshot.items.take(5)
+        if (visibleItems.isEmpty()) {
+            currentBlockItems.visibility = GONE
+        } else {
+            currentBlockItems.visibility = VISIBLE
+            visibleItems.forEach { item ->
+                currentBlockItems.addView(TextView(context).apply {
+                    text = if (item.completed) "✓  ${item.title}" else "○  ${item.title}"
+                    setTextColor(if (item.completed) Color.parseColor("#8B95A6") else Color.parseColor("#E8EAED"))
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                    setPadding(0, dp(3), 0, 0)
+                })
+            }
+            val extra = snapshot.items.size - visibleItems.size
+            if (extra > 0) {
+                currentBlockItems.addView(TextView(context).apply {
+                    text = "+$extra more"
+                    setTextColor(Color.parseColor("#8B95A6"))
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+                    setPadding(0, dp(3), 0, 0)
+                })
+            }
+        }
         currentBlockCard.visibility = VISIBLE
         currentBlockCard.contentDescription = buildString {
             append(context.getString(R.string.unlock_now))
@@ -561,7 +620,34 @@ private class UnlockReasonFormView(
                 append(". ")
                 append(range)
             }
+            visibleItems.forEach { item ->
+                append(". ")
+                append(item.title)
+            }
         }
+    }
+
+    private fun bindStats(stats: UnlockStats) {
+        usualIntention = stats.mostCommonIntention
+        val countLabel = if (stats.todayCount == 1) {
+            context.getString(R.string.unlock_today_count_one, stats.todayCount)
+        } else {
+            context.getString(R.string.unlock_today_count_other, stats.todayCount)
+        }
+        todayCountView.text = countLabel
+        val usualLabel = stats.mostCommonIntention?.let { code ->
+            INTENTIONS.find { it.code == code }?.let { context.getString(it.label) }
+        }
+        if (usualLabel == null) {
+            mostOftenView.visibility = GONE
+            statsCard.contentDescription = countLabel
+        } else {
+            val line = context.getString(R.string.unlock_most_often, usualLabel)
+            mostOftenView.text = line
+            mostOftenView.visibility = VISIBLE
+            statsCard.contentDescription = "$countLabel. $line"
+        }
+        refreshIntentionRows()
     }
 
     private fun submit(
@@ -647,6 +733,14 @@ private class UnlockReasonFormView(
             setPadding(0, dp(3), 0, 0)
             setLineSpacing(0f, 1.1f)
         })
+        card.addView(TextView(context).apply {
+            text = context.getString(R.string.unlock_most_often_badge)
+            setTextColor(Color.parseColor("#C7E5CD"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+            setPadding(0, dp(4), 0, 0)
+            visibility = GONE
+            tag = "usual"
+        })
         return card
     }
 
@@ -658,10 +752,16 @@ private class UnlockReasonFormView(
                 if (selected) Color.parseColor("#31443C") else Color.parseColor("#252B38"),
                 dp(14)
             )
+            val usual = item.code == usualIntention
+            (row.findViewWithTag<TextView>("usual"))?.visibility = if (usual) VISIBLE else GONE
             row.contentDescription = buildString {
                 append(context.getString(item.label))
                 append(". ")
                 append(context.getString(item.support))
+                if (usual) {
+                    append(". ")
+                    append(context.getString(R.string.unlock_most_often_badge))
+                }
                 if (selected) {
                     append(". ")
                     append(context.getString(R.string.unlock_selected))
@@ -678,7 +778,7 @@ private class UnlockReasonFormView(
             "social_check" -> R.string.unlock_note_label_social_check to R.string.unlock_note_placeholder_social_check
             "pay" -> R.string.unlock_note_label_pay to R.string.unlock_note_placeholder_pay
             "automatic_check" -> R.string.unlock_note_label_automatic_check to R.string.unlock_note_placeholder_automatic_check
-            "unsure" -> R.string.unlock_note_label_unsure to R.string.unlock_note_placeholder_optional
+            "spotify" -> R.string.unlock_note_label_spotify to R.string.unlock_note_placeholder_spotify
             "other" -> R.string.unlock_note_label_other to R.string.unlock_note_placeholder_optional
             else -> R.string.unlock_note_label_none to R.string.unlock_note_placeholder_optional
         }
@@ -876,7 +976,7 @@ private class UnlockReasonFormView(
             IntentionItem("social_check", R.string.unlock_intention_social_check, R.string.unlock_intention_social_check_support, "☰"),
             IntentionItem("pay", R.string.unlock_intention_pay, R.string.unlock_intention_pay_support, "€"),
             IntentionItem("automatic_check", R.string.unlock_intention_automatic_check, R.string.unlock_intention_automatic_check_support, "↻"),
-            IntentionItem("unsure", R.string.unlock_intention_unsure, R.string.unlock_intention_unsure_support, "?"),
+            IntentionItem("spotify", R.string.unlock_intention_spotify, R.string.unlock_intention_spotify_support, "♫"),
             IntentionItem("other", R.string.unlock_intention_other, R.string.unlock_intention_other_support, "+"),
         )
         private val TRIGGERS = listOf(

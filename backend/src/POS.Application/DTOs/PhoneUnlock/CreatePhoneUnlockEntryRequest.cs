@@ -42,4 +42,8 @@ public class CreatePhoneUnlockEntryRequest
     public string? SubmissionPath { get; set; }
 
     public string? PutDownExecution { get; set; }
+
+    public long? UnlockedDurationMs { get; set; }
+
+    public DateTime? LockedAtUtc { get; set; }
 }

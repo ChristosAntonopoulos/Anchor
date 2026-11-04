@@ -1,3 +1,5 @@
+using POS.Application.DTOs.Schedule;
+
 namespace POS.Application.DTOs.Today;
 
 /// <summary>
@@ -9,4 +11,6 @@ public class ScheduleBlockDto
     public string Title { get; set; } = string.Empty;
     public string StartTime { get; set; } = string.Empty; // HH:mm format
     public string EndTime { get; set; } = string.Empty; // HH:mm format
+    public List<string>? RoutineActivities { get; set; }
+    public List<ScheduleChecklistItemDto>? ChecklistItems { get; set; }
 }

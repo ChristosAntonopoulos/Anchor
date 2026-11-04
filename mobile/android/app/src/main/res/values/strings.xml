@@ -18,8 +18,8 @@
   <string name="unlock_intention_pay_support">A purchase, transfer, or bill</string>
   <string name="unlock_intention_automatic_check">Automatic check</string>
   <string name="unlock_intention_automatic_check_support">I reached for it without deciding to</string>
-  <string name="unlock_intention_unsure">Not sure yet</string>
-  <string name="unlock_intention_unsure_support">I haven’t decided what I need</string>
+  <string name="unlock_intention_spotify">Spotify</string>
+  <string name="unlock_intention_spotify_support">Music, a podcast, or something playing</string>
   <string name="unlock_intention_other">Something else</string>
   <string name="unlock_intention_other_support">A different reason</string>
 
@@ -66,13 +66,18 @@
   <string name="unlock_note_placeholder_pay">e.g. Pay the electricity bill</string>
   <string name="unlock_note_label_automatic_check">Anything you noticed?</string>
   <string name="unlock_note_placeholder_automatic_check">e.g. I picked it up while my code was building</string>
-  <string name="unlock_note_label_unsure">Anything on your mind?</string>
+  <string name="unlock_note_label_spotify">What do you want to play?</string>
+  <string name="unlock_note_placeholder_spotify">e.g. A focus playlist</string>
   <string name="unlock_note_placeholder_optional">Optional</string>
   <string name="unlock_note_label_other">What brought you here?</string>
   <string name="unlock_note_label_none">Anything you want to remember?</string>
 
   <string name="unlock_selected">Selected</string>
   <string name="unlock_now">Now</string>
+  <string name="unlock_today_count_one">Today · %d unlock</string>
+  <string name="unlock_today_count_other">Today · %d unlocks</string>
+  <string name="unlock_most_often">Most often · %s</string>
+  <string name="unlock_most_often_badge">Most often</string>
   <string name="unlock_pause_title">A short pause</string>
   <string name="unlock_pause_social">Social check in %d</string>
   <string name="unlock_pause_automatic">Automatic check in %d</string>

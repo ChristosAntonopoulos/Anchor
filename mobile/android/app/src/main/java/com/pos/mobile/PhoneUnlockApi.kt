@@ -116,6 +116,10 @@ object PhoneUnlockApi {
             putNullable("submissionPath", prompt.submissionPath)
             putNullable("putDownExecution", prompt.putDownExecution)
             put("unlockedAt", prompt.shownAtUtc)
+            if (prompt.unlockedDurationMs != null) {
+                put("unlockedDurationMs", prompt.unlockedDurationMs)
+            }
+            putNullable("lockedAtUtc", prompt.lockedAtUtc)
         }
         val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"

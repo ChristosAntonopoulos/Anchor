@@ -5,7 +5,9 @@ import {
   displayUnlockHeadline,
   fieldsForUnlockChoice,
   formatCurrentBlockLine,
+  formatUnlockedDuration,
   needsUnlockPause,
+  summarizeUnlockEntries,
   noteCopyForIntention,
   sanitizeUnlockNote,
 } from './phoneUnlockMapping.ts';
@@ -40,7 +42,7 @@ test('all eight intention codes stay distinct', () => {
     'social_check',
     'pay',
     'automatic_check',
-    'unsure',
+    'spotify',
     'other',
   ];
   for (const code of codes) {
@@ -64,7 +66,7 @@ test('all eight intention codes stay distinct', () => {
       skip: false,
       keepContext: false,
       contextExpanded: false,
-      intention: 'unsure',
+      intention: 'spotify',
       trigger: null,
       feeling: null,
       note: null,
@@ -225,6 +227,50 @@ test('current block line keeps title and time and hides empty blocks', () => {
   assert.deepEqual(formatCurrentBlockLine({ title: 'Deep work', startTime: '09:00', endTime: '11:00' }), {
     title: 'Deep work',
     time: '09:00 – 11:00',
+    items: [],
   });
   assert.equal(formatCurrentBlockLine({ title: '   ' }), null);
+});
+
+test('current block line prefers checklist items then routine activities', () => {
+  assert.deepEqual(
+    formatCurrentBlockLine({
+      title: 'Morning routine',
+      startTime: '07:00',
+      endTime: '08:00',
+      checklistItems: [
+        { title: 'Drink water', completed: true, order: 1 },
+        { title: 'Brush teeth', completed: false, order: 2 },
+      ],
+      routineActivities: ['Ignored'],
+    })?.items,
+    [
+      { title: 'Drink water', completed: true },
+      { title: 'Brush teeth', completed: false },
+    ],
+  );
+  assert.deepEqual(
+    formatCurrentBlockLine({
+      title: 'Evening',
+      routineActivities: ['Read a book', 'Brush teeth'],
+    })?.items.map((item) => item.title),
+    ['Read a book', 'Brush teeth'],
+  );
+});
+
+test('unlock duration formats compactly and summary uses the most common intention', () => {
+  assert.equal(formatUnlockedDuration(12_000), '12s');
+  assert.equal(formatUnlockedDuration(4 * 60 * 1000), '4m');
+  assert.equal(formatUnlockedDuration(75 * 60 * 1000), '1h 15m');
+  const summary = summarizeUnlockEntries(
+    [
+      { unlockedAt: '2026-11-04T08:00:00.000Z', unlockedDurationMs: 60_000, intentionCode: 'spotify' },
+      { unlockedAt: '2026-11-04T09:00:00.000Z', unlockedDurationMs: 180_000, intentionCode: 'spotify' },
+      { unlockedAt: '2026-11-04T10:00:00.000Z', unlockedDurationMs: 120_000, intentionCode: 'social_check' },
+    ],
+    new Date('2026-11-04T12:00:00.000Z'),
+  );
+  assert.equal(summary.todayCount, 3);
+  assert.equal(summary.mostCommonIntention, 'spotify');
+  assert.equal(summary.averageDurationMs, 120_000);
 });
