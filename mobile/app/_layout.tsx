@@ -16,6 +16,7 @@ export default function RootLayout() {
   const { fetchCategories } = useCategoryStore();
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [showOverlayPrompt, setShowOverlayPrompt] = useState(false);
+  const [overlayPromptPaused, setOverlayPromptPaused] = useState(false);
   const [unlockTime, setUnlockTime] = useState<number>(Date.now());
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const lastUnlockTimeRef = useRef<number>(0);
@@ -199,6 +200,7 @@ export default function RootLayout() {
         setTimeout(() => {
           void checkPendingUnlock();
         }, 400);
+        setOverlayPromptPaused(false);
         Promise.all([
           overlayPermission.isOverlayPermissionGranted(),
           isLockAdminActive(),
@@ -281,13 +283,23 @@ export default function RootLayout() {
         />
       </ErrorBoundary>
       <Modal
-        visible={showOverlayPrompt}
+        visible={showOverlayPrompt && !overlayPromptPaused}
         transparent
         animationType="fade"
         onRequestClose={() => undefined}
       >
         <View style={styles.overlayPromptBackdrop}>
-          <UnlockSetupPrompt onReady={() => setShowOverlayPrompt(false)} />
+          <UnlockSetupPrompt
+            onReady={() => setShowOverlayPrompt(false)}
+            onOpenExternal={() => {
+              setOverlayPromptPaused(true);
+              setTimeout(() => {
+                if (AppState.currentState === 'active') {
+                  setOverlayPromptPaused(false);
+                }
+              }, 1200);
+            }}
+          />
         </View>
       </Modal>
     </ErrorBoundary>

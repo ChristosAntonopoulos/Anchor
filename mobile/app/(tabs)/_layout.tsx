@@ -131,6 +131,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="unlocks"
           options={{
+            title: 'Unlocks',
             href: null, // Hide from tab bar - accessible through menu
           }}
         />

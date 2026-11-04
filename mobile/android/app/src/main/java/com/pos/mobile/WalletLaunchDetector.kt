@@ -1,5 +1,6 @@
 package com.pos.mobile
 
+import android.app.Activity
 import android.app.AppOpsManager
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
@@ -33,15 +34,29 @@ object WalletLaunchDetector {
     }
 
     fun requestUsageAccess(context: Context) {
-        val flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        val activity = context as? Activity
+        val list = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
         val targeted = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).apply {
             data = Uri.parse("package:${context.packageName}")
-            addFlags(flags)
         }
         try {
-            context.startActivity(targeted)
-        } catch (_: Exception) {
-            context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).addFlags(flags))
+            if (activity != null) {
+                try {
+                    activity.startActivity(targeted)
+                } catch (_: Exception) {
+                    activity.startActivity(list)
+                }
+            } else {
+                targeted.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                try {
+                    context.startActivity(targeted)
+                } catch (_: Exception) {
+                    list.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(list)
+                }
+            }
+        } catch (error: Exception) {
+            android.util.Log.e(TAG, "Could not open usage access settings", error)
         }
     }
 

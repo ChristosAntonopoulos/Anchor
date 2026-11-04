@@ -153,8 +153,17 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    fun requestLockAdmin() {
-        PhoneLock.requestAdmin(reactApplicationContext)
+    fun requestLockAdmin(promise: Promise) {
+        reactApplicationContext.runOnUiQueueThread {
+            try {
+                val host = currentActivity ?: reactApplicationContext
+                PhoneLock.requestAdmin(host)
+                promise.resolve(true)
+            } catch (error: Exception) {
+                android.util.Log.e(TAG, "Could not open device admin prompt", error)
+                promise.reject("LOCK_ADMIN", "Failed to open screen lock permission", error)
+            }
+        }
     }
 
     @ReactMethod
@@ -168,8 +177,17 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    fun requestUsageAccess() {
-        WalletLaunchDetector.requestUsageAccess(reactApplicationContext)
+    fun requestUsageAccess(promise: Promise) {
+        reactApplicationContext.runOnUiQueueThread {
+            try {
+                val host = currentActivity ?: reactApplicationContext
+                WalletLaunchDetector.requestUsageAccess(host)
+                promise.resolve(true)
+            } catch (error: Exception) {
+                android.util.Log.e(TAG, "Could not open usage access settings", error)
+                promise.reject("USAGE_ACCESS", "Failed to open app usage settings", error)
+            }
+        }
     }
 
     @ReactMethod

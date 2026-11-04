@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, gradients } from '../../constants/designTokens';
 import { apiClient } from '../../services/api';
-import { PhoneUnlockEntryList } from '../../components/phoneUnlock/PhoneUnlockEntryList';
+import { PhoneUnlockInsights } from '../../components/phoneUnlock/PhoneUnlockInsights';
 import type { PhoneUnlockEntry } from '../../types';
 
 export default function UnlocksScreen() {
@@ -16,11 +16,14 @@ export default function UnlocksScreen() {
   const fetchEntries = async () => {
     try {
       setError(null);
-      const data = await apiClient.getPhoneUnlockEntries();
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      start.setDate(start.getDate() - 6);
+      const data = await apiClient.getPhoneUnlockEntries(start.toISOString());
       setEntries(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to fetch phone unlock entries:', err);
-      setError(err?.message || 'Failed to load unlock entries');
+      setError(err instanceof Error ? err.message : 'Failed to load unlock entries');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -28,7 +31,7 @@ export default function UnlocksScreen() {
   };
 
   useEffect(() => {
-    fetchEntries();
+    void fetchEntries();
   }, []);
 
   const onRefresh = async () => {
@@ -78,7 +81,7 @@ export default function UnlocksScreen() {
       style={styles.container}
     >
       <SafeAreaView style={styles.container} edges={['top']}>
-        <PhoneUnlockEntryList
+        <PhoneUnlockInsights
           entries={entries}
           refreshing={refreshing}
           onRefresh={onRefresh}

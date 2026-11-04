@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, AppState } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
@@ -13,16 +13,20 @@ import {
 
 interface UnlockSetupPromptProps {
   onReady?: () => void;
+  onOpenExternal?: () => void;
 }
 
 type SetupStep = 'overlay' | 'usage' | 'lock';
 
-export function UnlockSetupPrompt({ onReady }: UnlockSetupPromptProps) {
+let usageSkippedSession = false;
+let lockSkippedSession = false;
+
+export function UnlockSetupPrompt({ onReady, onOpenExternal }: UnlockSetupPromptProps) {
   const [overlayOn, setOverlayOn] = useState(false);
   const [usageOn, setUsageOn] = useState(false);
   const [lockOn, setLockOn] = useState(false);
-  const [usageSkipped, setUsageSkipped] = useState(false);
-  const [lockSkipped, setLockSkipped] = useState(false);
+  const [usageSkipped, setUsageSkipped] = useState(usageSkippedSession);
+  const [lockSkipped, setLockSkipped] = useState(lockSkippedSession);
 
   const ready = overlayOn && (usageOn || usageSkipped) && (lockOn || lockSkipped);
 
@@ -49,6 +53,15 @@ export function UnlockSetupPrompt({ onReady }: UnlockSetupPromptProps) {
 
   useEffect(() => {
     void check();
+  }, [check]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') {
+        void check();
+      }
+    });
+    return () => sub.remove();
   }, [check]);
 
   if (Platform.OS !== 'android' || ready) {
@@ -79,6 +92,15 @@ export function UnlockSetupPrompt({ onReady }: UnlockSetupPromptProps) {
             button: 'Allow screen lock',
           };
 
+  const openExternal = (open: () => Promise<unknown> | void) => {
+    // Device-admin and settings screens are dialogs. Hide this React Native
+    // Modal first or they open underneath it and look like a dead button.
+    onOpenExternal?.();
+    setTimeout(() => {
+      void open();
+    }, 280);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.content}>
@@ -89,16 +111,18 @@ export function UnlockSetupPrompt({ onReady }: UnlockSetupPromptProps) {
         <Text style={styles.description}>{copy.description}</Text>
         <TouchableOpacity
           style={styles.button}
+          accessibilityRole="button"
+          accessibilityLabel={copy.button}
           onPress={() => {
             if (step === 'usage') {
-              requestUsageAccess();
+              openExternal(() => requestUsageAccess());
               return;
             }
             if (step === 'lock') {
-              requestLockAdmin();
+              openExternal(() => requestLockAdmin());
               return;
             }
-            void overlayPermission.requestOverlayPermission();
+            openExternal(() => overlayPermission.requestOverlayPermission());
           }}
         >
           <LinearGradient
@@ -118,12 +142,14 @@ export function UnlockSetupPrompt({ onReady }: UnlockSetupPromptProps) {
             style={styles.checkButton}
             onPress={() => {
               if (step === 'usage') {
+                usageSkippedSession = true;
                 setUsageSkipped(true);
                 if (overlayOn && (lockOn || lockSkipped)) {
                   onReady?.();
                 }
                 return;
               }
+              lockSkippedSession = true;
               setLockSkipped(true);
               onReady?.();
             }}

@@ -1,7 +1,7 @@
 // Phone Unlock Listener Service for Android
 // Bridges native PhoneUnlockModule to React Native
 
-import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
+import { Linking, NativeModules, NativeEventEmitter, Platform } from 'react-native';
 import { hasPhoneUnlockModule, isExpoGo } from '../utils/nativeModuleSupport';
 
 const { PhoneUnlockModule } = NativeModules;
@@ -248,11 +248,29 @@ export async function isLockAdminActive(): Promise<boolean> {
   }
 }
 
-export function requestLockAdmin(): void {
-  if (!isAndroid || !PhoneUnlockModule || typeof PhoneUnlockModule.requestLockAdmin !== 'function') {
-    return;
+export async function requestLockAdmin(): Promise<boolean> {
+  if (!isAndroid) {
+    return false;
   }
-  PhoneUnlockModule.requestLockAdmin();
+  try {
+    if (PhoneUnlockModule && typeof PhoneUnlockModule.requestLockAdmin === 'function') {
+      await PhoneUnlockModule.requestLockAdmin();
+      return true;
+    }
+  } catch (error) {
+    console.warn('[PhoneUnlockListener] Native lock admin request failed', error);
+  }
+  try {
+    await Linking.sendIntent('android.settings.SECURITY_SETTINGS');
+    return true;
+  } catch {
+    try {
+      await Linking.openSettings();
+    } catch {
+      // Native and settings fallbacks both failed.
+    }
+    return false;
+  }
 }
 
 export async function isUsageAccessGranted(): Promise<boolean> {
@@ -266,11 +284,24 @@ export async function isUsageAccessGranted(): Promise<boolean> {
   }
 }
 
-export function requestUsageAccess(): void {
-  if (!isAndroid || !PhoneUnlockModule || typeof PhoneUnlockModule.requestUsageAccess !== 'function') {
-    return;
+export async function requestUsageAccess(): Promise<boolean> {
+  if (!isAndroid) {
+    return false;
   }
-  PhoneUnlockModule.requestUsageAccess();
+  try {
+    if (PhoneUnlockModule && typeof PhoneUnlockModule.requestUsageAccess === 'function') {
+      await PhoneUnlockModule.requestUsageAccess();
+      return true;
+    }
+  } catch (error) {
+    console.warn('[PhoneUnlockListener] Native usage access request failed', error);
+  }
+  try {
+    await Linking.sendIntent('android.settings.USAGE_ACCESS_SETTINGS');
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function lockPhone(): Promise<'lock_requested' | 'overlay_dismissed' | 'failed'> {
