@@ -182,6 +182,7 @@ private class UnlockReasonFormView(
     private val currentBlockTitle: TextView
     private val currentBlockTime: TextView
     private val currentBlockItems: LinearLayout
+    private val currentBlockHint: TextView
     private val statsCard: LinearLayout
     private val todayCountView: TextView
     private val mostOftenView: TextView
@@ -260,18 +261,28 @@ private class UnlockReasonFormView(
             setPadding(0, dp(6), 0, 0)
             visibility = GONE
         }
+        currentBlockHint = TextView(context).apply {
+            text = context.getString(R.string.unlock_open_block)
+            setTextColor(Color.parseColor("#A4CDBB"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setPadding(0, dp(8), 0, 0)
+        }
         currentBlockCard = LinearLayout(context).apply {
             orientation = VERTICAL
             background = roundedStroke(Color.parseColor("#26332D"), Color.parseColor("#A4CDBB"), dp(14))
             setPadding(dp(12), dp(10), dp(12), dp(10))
             visibility = GONE
+            isClickable = true
+            isFocusable = true
             importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
+            setOnClickListener { openScheduledWork() }
             addView(text(R.string.unlock_now, Color.parseColor("#A4CDBB"), 11f, true, Gravity.START).apply {
                 letterSpacing = 0.08f
             })
             addView(currentBlockTitle)
             addView(currentBlockTime)
             addView(currentBlockItems)
+            addView(currentBlockHint)
             val params = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
             params.bottomMargin = dp(14)
             layoutParams = params
@@ -504,14 +515,55 @@ private class UnlockReasonFormView(
         putDownExecution: String? = null,
         openCheckIn: Boolean = false,
         lockAfter: Boolean = false,
+        openWork: Boolean = false,
     ) {
-        if (action == PhoneUnlockPrompt.ACTION_CONTINUE && PhoneUnlockResolution.needsPause(intention)) {
+        if (
+            !openWork &&
+            action == PhoneUnlockPrompt.ACTION_CONTINUE &&
+            PhoneUnlockResolution.needsPause(intention)
+        ) {
             startPause {
-                submit(status, action, path, keepContext, putDownExecution, openCheckIn, lockAfter)
+                submit(status, action, path, keepContext, putDownExecution, openCheckIn, lockAfter, openWork)
             }
             return
         }
-        submit(status, action, path, keepContext, putDownExecution, openCheckIn, lockAfter)
+        submit(status, action, path, keepContext, putDownExecution, openCheckIn, lockAfter, openWork)
+    }
+
+    private fun openScheduledWork() {
+        cancelPause()
+        intention = "specific_task"
+        refreshIntentionRows()
+        beginOrSubmit(
+            status = PhoneUnlockPrompt.STATUS_ANSWERED,
+            action = PhoneUnlockPrompt.ACTION_CONTINUE,
+            path = PhoneUnlockPrompt.PATH_QUICK,
+            keepContext = false,
+            openWork = true,
+        )
+    }
+
+    private fun launchWork(blockId: String) {
+        val encoded = android.net.Uri.encode(blockId)
+        val viewIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("pos:///work/$encoded")).apply {
+            setPackage(context.packageName)
+            addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP
+            )
+        }
+        try {
+            context.startActivity(viewIntent)
+            return
+        } catch (error: Exception) {
+            android.util.Log.w("UnlockReasonOverlay", "Could not open work deep link", error)
+        }
+        val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
+        if (launch != null) {
+            launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            context.startActivity(launch)
+        }
     }
 
     private fun startPause(then: () -> Unit) {
@@ -624,6 +676,8 @@ private class UnlockReasonFormView(
                 append(". ")
                 append(item.title)
             }
+            append(". ")
+            append(context.getString(R.string.unlock_open_block))
         }
     }
 
@@ -662,6 +716,7 @@ private class UnlockReasonFormView(
         putDownExecution: String? = null,
         openCheckIn: Boolean = false,
         lockAfter: Boolean = false,
+        openWork: Boolean = false,
     ) {
         cancelPause(clearIntention = false)
         if (!submitting.compareAndSet(false, true)) {
@@ -701,6 +756,12 @@ private class UnlockReasonFormView(
                 launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 context.startActivity(launch)
             }
+        }
+        if (openWork) {
+            val snapshot = CurrentBlockStore.read(context)
+            val blockId = snapshot?.id?.trim().orEmpty().ifEmpty { "current" }
+            PhoneUnlockStore.setPendingWorkBlock(context, blockId)
+            launchWork(blockId)
         }
         dismiss()
         if (lockAfter) {

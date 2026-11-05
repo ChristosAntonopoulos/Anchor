@@ -8,10 +8,15 @@ class CurrentBlockSnapshotTest {
     @Test
     fun parsesTodayPayloadAndFormatsTimeRange() {
         val snapshot = CurrentBlockSnapshot.fromTodayJson(
-            """{"success":true,"data":{"currentBlock":{"title":"Deep work","startTime":"09:00","endTime":"11:00"}}}""",
+            """{"success":true,"data":{"currentBlock":{"id":"block-1","title":"Deep work","startTime":"09:00","endTime":"11:00","taskId":"task-9","entryAction":"Draft the outline","startMinutes":25,"isRoutine":false}}}""",
         )
         assertEquals("Deep work", snapshot?.title)
         assertEquals("09:00 – 11:00", snapshot?.timeRange())
+        assertEquals("block-1", snapshot?.id)
+        assertEquals("task-9", snapshot?.taskId)
+        assertEquals("Draft the outline", snapshot?.entryAction)
+        assertEquals(25, snapshot?.startMinutes)
+        assertEquals(false, snapshot?.isRoutine)
     }
 
     @Test

@@ -13,6 +13,12 @@ data class CurrentBlockSnapshot(
     val startTime: String?,
     val endTime: String?,
     val items: List<CurrentBlockItem> = emptyList(),
+    val id: String? = null,
+    val taskId: String? = null,
+    val taskTitle: String? = null,
+    val entryAction: String? = null,
+    val startMinutes: Int? = null,
+    val isRoutine: Boolean = false,
 ) {
     fun timeRange(): String? {
         val start = startTime?.trim().orEmpty()
@@ -53,6 +59,16 @@ data class CurrentBlockSnapshot(
                 startTime = block.optString("startTime").trim().ifEmpty { null },
                 endTime = block.optString("endTime").trim().ifEmpty { null },
                 items = itemsFrom(block),
+                id = block.optString("id").trim().ifEmpty { null },
+                taskId = block.optString("taskId").trim().ifEmpty { null },
+                taskTitle = block.optString("taskTitle").trim().ifEmpty { null },
+                entryAction = block.optString("entryAction").trim().ifEmpty { null },
+                startMinutes = if (block.has("startMinutes") && !block.isNull("startMinutes")) {
+                    block.optInt("startMinutes").takeIf { it > 0 }
+                } else {
+                    null
+                },
+                isRoutine = block.optBoolean("isRoutine", false),
             )
         }
 

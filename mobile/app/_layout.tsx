@@ -1,11 +1,12 @@
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Platform, AppState, Modal, View, StyleSheet } from 'react-native';
 import { AppUpdatePrompt } from '../components/shared/AppUpdatePrompt';
 import { ErrorBoundary } from '../components/shared/ErrorBoundary';
 import { useCategoryStore } from '../store/useCategoryStore';
-import { isLockAdminActive, isUsageAccessGranted, phoneUnlockListener } from '../services/phoneUnlockListener';
+import { consumePendingWorkBlock, isLockAdminActive, isUsageAccessGranted, phoneUnlockListener } from '../services/phoneUnlockListener';
+import { workPath } from '../utils/workBlock';
 import { PhoneUnlockReasonModal } from '../components/phoneUnlock/PhoneUnlockReasonModal';
 import { UnlockSetupPrompt } from '../components/phoneUnlock/UnlockSetupPrompt';
 import { hasPhoneUnlockModule, isExpoGo } from '../utils/nativeModuleSupport';
@@ -172,6 +173,17 @@ export default function RootLayout() {
     };
   }, []); // Empty dependency array - only run on mount/unmount
 
+  const openPendingWork = useCallback(async () => {
+    try {
+      const blockId = await consumePendingWorkBlock();
+      if (blockId) {
+        router.push(workPath(blockId));
+      }
+    } catch (error) {
+      console.error('[RootLayout] Error opening pending work block:', error);
+    }
+  }, []);
+
   const checkPendingUnlock = useCallback(async () => {
     try {
       if (isShowingModalRef.current || showUnlockModal) {
@@ -199,6 +211,7 @@ export default function RootLayout() {
       if (nextAppState === 'active') {
         setTimeout(() => {
           void checkPendingUnlock();
+          void openPendingWork();
         }, 400);
         setOverlayPromptPaused(false);
         Promise.all([
@@ -218,13 +231,14 @@ export default function RootLayout() {
     if (AppState.currentState === 'active') {
       setTimeout(() => {
         void checkPendingUnlock();
+        void openPendingWork();
       }, 800);
     }
 
     return () => {
       subscription.remove();
     };
-  }, [checkPendingUnlock]);
+  }, [checkPendingUnlock, openPendingWork]);
 
   const handleUnlockModalClose = useCallback(() => {
     try {
@@ -271,6 +285,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="more" />
         <Stack.Screen name="check-in" />
+        <Stack.Screen name="work" />
       </Stack>
       <ErrorBoundary>
         <AppUpdatePrompt />

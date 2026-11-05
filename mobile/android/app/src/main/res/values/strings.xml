@@ -74,6 +74,7 @@
 
   <string name="unlock_selected">Selected</string>
   <string name="unlock_now">Now</string>
+  <string name="unlock_open_block">Open this</string>
   <string name="unlock_today_count_one">Today · %d unlock</string>
   <string name="unlock_today_count_other">Today · %d unlocks</string>
   <string name="unlock_most_often">Most often · %s</string>

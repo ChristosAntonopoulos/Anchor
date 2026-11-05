@@ -86,6 +86,15 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
+    fun consumePendingWorkBlock(promise: Promise) {
+        try {
+            promise.resolve(PhoneUnlockStore.consumePendingWorkBlock(reactApplicationContext))
+        } catch (error: Exception) {
+            promise.reject("UNLOCK_PROMPT", "Failed to read pending work block", error)
+        }
+    }
+
+    @ReactMethod
     fun clearPendingUnlockTime() {
         resetPendingUnlockTime()
         android.util.Log.d(TAG, "Cleared pending unlock time")
@@ -97,7 +106,13 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    fun setCurrentBlock(title: String?, startTime: String?, endTime: String?, itemsJson: String?) {
+    fun setCurrentBlock(
+        title: String?,
+        startTime: String?,
+        endTime: String?,
+        itemsJson: String?,
+        extrasJson: String?,
+    ) {
         val snapshot = if (title.isNullOrBlank()) {
             null
         } else {
@@ -110,6 +125,18 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
                         put("items", org.json.JSONArray(itemsJson))
                     } catch (_: Exception) {
                         put("routineActivities", org.json.JSONArray(itemsJson))
+                    }
+                }
+                if (!extrasJson.isNullOrBlank()) {
+                    try {
+                        val extras = org.json.JSONObject(extrasJson)
+                        extras.keys().forEach { key ->
+                            if (!extras.isNull(key)) {
+                                put(key, extras.get(key))
+                            }
+                        }
+                    } catch (_: Exception) {
+                        // Extras are optional cache fields for the work screen.
                     }
                 }
             }

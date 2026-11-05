@@ -19,6 +19,7 @@ object PhoneUnlockStore {
     private const val PREFS = "pos_unlock"
     private const val KEY_PROMPTS = "promptRecords"
     private const val KEY_PENDING_CHECK_IN = "pendingCheckInUnlockId"
+    private const val KEY_PENDING_WORK = "pendingWorkBlockId"
     private const val KEY_SESSION_START = "sessionStartMs"
     private const val MIN_DURATION_MS = 1_000L
     private const val MAX_DURATION_MS = 12 * 60 * 60 * 1000L
@@ -181,6 +182,26 @@ object PhoneUnlockStore {
             prefs.edit().remove(KEY_PENDING_CHECK_IN).apply()
         }
         return value
+    }
+
+    @Synchronized
+    fun setPendingWorkBlock(context: Context, blockId: String) {
+        val id = blockId.trim()
+        if (id.isEmpty()) {
+            return
+        }
+        prefs(context).edit().putString(KEY_PENDING_WORK, id).apply()
+    }
+
+    @Synchronized
+    fun consumePendingWorkBlock(context: Context): String? {
+        val stored = prefs(context)
+        val value = stored.getString(KEY_PENDING_WORK, null)?.trim().orEmpty()
+        if (value.isNotEmpty()) {
+            stored.edit().remove(KEY_PENDING_WORK).apply()
+            return value
+        }
+        return null
     }
 
     @Synchronized

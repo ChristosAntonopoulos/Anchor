@@ -1,8 +1,10 @@
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, gradients } from '../../constants/designTokens';
+import { workPath } from '../../utils/workBlock';
 import { useTodayStore } from '../../store/useTodayStore';
 import { useNotificationStore } from '../../store/useNotificationStore';
 import { TodayHeader } from '../../components/today/TodayHeader';
@@ -20,6 +22,7 @@ import { useExecutionStore } from '../../store/useExecutionStore';
 import type { SessionLaunch } from '../../types/execution';
 
 export default function HomeScreen() {
+  const router = useRouter();
   const { data, loading, error, fetchToday, completeBetterItem, acceptBetterItem, editBetterItem, rejectBetterItem, submitAIInput } = useTodayStore();
   const { checkStatus, startListening } = useNotificationStore();
   const {
@@ -207,7 +210,10 @@ export default function HomeScreen() {
             onRejectItem={rejectBetterItem}
           />
 
-          <CurrentBlockIndicator block={data.currentBlock} />
+          <CurrentBlockIndicator
+            block={data.currentBlock}
+            onOpen={data.currentBlock?.title ? () => router.push(workPath(data.currentBlock?.id)) : undefined}
+          />
 
           <DisciplineQuickToggle
             discipline={data.discipline}

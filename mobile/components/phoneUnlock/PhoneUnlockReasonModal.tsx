@@ -34,6 +34,7 @@ import { getUnlockStats, lockPhone } from '../../services/phoneUnlockListener';
 import { useTodayStore } from '../../store/useTodayStore';
 import { useRouter } from 'expo-router';
 import { CHECK_IN_COPY } from '../../constants/checkIn';
+import { workPath } from '../../utils/workBlock';
 
 interface PhoneUnlockReasonModalProps {
   visible: boolean;
@@ -67,7 +68,8 @@ export function PhoneUnlockReasonModal({
   const submittingRef = useRef(false);
   const pauseTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pendingContinueRef = useRef<null | (() => void)>(null);
-  const currentBlock = formatCurrentBlockLine(useTodayStore((state) => state.data?.currentBlock));
+  const currentBlockData = useTodayStore((state) => state.data?.currentBlock);
+  const currentBlock = formatCurrentBlockLine(currentBlockData);
   const [stats, setStats] = useState<{
     todayCount: number;
     mostCommonIntention: string | null;
@@ -274,14 +276,27 @@ export function PhoneUnlockReasonModal({
                 ) : null}
 
                 {currentBlock ? (
-                  <View
-                    style={styles.blockCard}
-                    accessibilityRole="summary"
+                  <Pressable
+                    style={({ pressed }) => [styles.blockCard, pressed ? styles.pressed : null]}
+                    accessibilityRole="button"
                     accessibilityLabel={`${UNLOCK_COPY.now}. ${currentBlock.title}${currentBlock.time ? `. ${currentBlock.time}` : ''}${
                       currentBlock.items.length
                         ? `. ${currentBlock.items.map((item) => item.title).join('. ')}`
                         : ''
-                    }`}
+                    }. ${UNLOCK_COPY.openThisBlock}`}
+                    onPress={() => {
+                      cancelPause();
+                      void submit({
+                        skip: false,
+                        keepContext: false,
+                        action: 'continue',
+                        status: 'answered',
+                        path: 'quick_choice',
+                        nextIntention: 'specific_task',
+                      }).then(() => {
+                        router.push(workPath(currentBlockData?.id));
+                      });
+                    }}
                   >
                     <Text style={styles.blockNow}>{UNLOCK_COPY.now}</Text>
                     <Text style={styles.blockTitle}>{currentBlock.title}</Text>
@@ -297,7 +312,8 @@ export function PhoneUnlockReasonModal({
                     {currentBlock.items.length > 5 ? (
                       <Text style={styles.blockItemDone}>+{currentBlock.items.length - 5} more</Text>
                     ) : null}
-                  </View>
+                    <Text style={styles.blockOpen}>{UNLOCK_COPY.openThisBlock}</Text>
+                  </Pressable>
                 ) : null}
 
                 {pauseSeconds != null ? (
@@ -618,6 +634,12 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: typography.fontSize.caption,
     marginTop: 2,
+  },
+  blockOpen: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: typography.fontWeight.semibold,
+    marginTop: spacing.s,
   },
   pauseBanner: {
     backgroundColor: colors.primaryContainer,

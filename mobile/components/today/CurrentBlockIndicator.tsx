@@ -1,14 +1,16 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
+import { WORK_COPY } from '../../constants/work';
 import type { ScheduleBlock } from '../../types';
 
 interface CurrentBlockIndicatorProps {
   block: ScheduleBlock | null | undefined;
+  onOpen?: () => void;
 }
 
-export function CurrentBlockIndicator({ block }: CurrentBlockIndicatorProps) {
+export function CurrentBlockIndicator({ block, onOpen }: CurrentBlockIndicatorProps) {
   // Show breathing quote when no current block
   if (!block || !block.title) {
     return (
@@ -54,7 +56,17 @@ export function CurrentBlockIndicator({ block }: CurrentBlockIndicatorProps) {
             end={{ x: 1, y: 1 }}
             style={styles.card}
           >
-            <View style={styles.content}>
+            <Pressable
+              onPress={onOpen}
+              disabled={!onOpen}
+              accessibilityRole={onOpen ? 'button' : 'summary'}
+              accessibilityLabel={
+                onOpen
+                  ? `${block.title}. ${block.startTime} - ${block.endTime}. ${WORK_COPY.openBlock}`
+                  : `${block.title}. ${block.startTime} - ${block.endTime}`
+              }
+              style={styles.content}
+            >
               <Text style={styles.blockTitle}>{block.title}</Text>
               <Text style={styles.blockTime}>
                 {block.startTime} - {block.endTime}
@@ -88,7 +100,8 @@ export function CurrentBlockIndicator({ block }: CurrentBlockIndicatorProps) {
                   ))}
                 </View>
               )}
-            </View>
+              {onOpen ? <Text style={styles.openHint}>{WORK_COPY.openBlock}</Text> : null}
+            </Pressable>
             <View style={styles.glowIndicator} />
           </LinearGradient>
         </View>
@@ -173,5 +186,11 @@ const styles = StyleSheet.create({
   activityText: {
     fontSize: typography.fontSize.caption,
     color: colors.textSecondary,
+  },
+  openHint: {
+    fontSize: typography.fontSize.caption,
+    color: colors.primary,
+    fontWeight: typography.fontWeight.semibold,
+    marginTop: spacing.s,
   },
 });

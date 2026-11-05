@@ -188,6 +188,7 @@ export const UNLOCK_COPY = {
   subtitle: 'Take a moment. Choose what fits.',
   putPhoneDown: 'Put phone down',
   now: 'Now',
+  openThisBlock: 'Open this',
   todayCount: (count: number) => (count === 1 ? `Today · ${count} unlock` : `Today · ${count} unlocks`),
   mostOften: (label: string) => `Most often · ${label}`,
   mostOftenBadge: 'Most often',

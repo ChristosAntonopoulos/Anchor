@@ -33,6 +33,12 @@ object CurrentBlockStore {
             put("endTime", snapshot.endTime ?: "")
             put("items", items)
             put("cachedOn", localDate())
+            snapshot.id?.let { put("id", it) }
+            snapshot.taskId?.let { put("taskId", it) }
+            snapshot.taskTitle?.let { put("taskTitle", it) }
+            snapshot.entryAction?.let { put("entryAction", it) }
+            snapshot.startMinutes?.let { put("startMinutes", it) }
+            put("isRoutine", snapshot.isRoutine)
         }
         prefs.edit().putString(KEY_BLOCK, json.toString()).apply()
     }

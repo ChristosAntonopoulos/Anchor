@@ -179,9 +179,15 @@ class PhoneUnlockListenerServiceImpl implements PhoneUnlockListenerService {
 export const phoneUnlockListener: PhoneUnlockListenerService = new PhoneUnlockListenerServiceImpl();
 
 export function cacheCurrentBlock(block?: {
+  id?: string | null;
   title?: string | null;
   startTime?: string | null;
   endTime?: string | null;
+  taskId?: string | null;
+  taskTitle?: string | null;
+  entryAction?: string | null;
+  startMinutes?: number | null;
+  isRoutine?: boolean | null;
   checklistItems?: Array<{ title?: string | null; completed?: boolean | null; order?: number | null }> | null;
   routineActivities?: Array<string | null> | null;
 } | null): void {
@@ -200,11 +206,19 @@ export function cacheCurrentBlock(block?: {
     const fallback = (block?.routineActivities ?? [])
       .map((title) => ({ title: title?.trim() ?? '', completed: false }))
       .filter((item) => item.title.length > 0);
+    const extras: Record<string, string | number | boolean> = {};
+    if (block?.id) extras.id = block.id;
+    if (block?.taskId) extras.taskId = block.taskId;
+    if (block?.taskTitle) extras.taskTitle = block.taskTitle;
+    if (block?.entryAction) extras.entryAction = block.entryAction;
+    if (block?.startMinutes && block.startMinutes > 0) extras.startMinutes = block.startMinutes;
+    extras.isRoutine = Boolean(block?.isRoutine);
     PhoneUnlockModule.setCurrentBlock(
       block?.title ?? null,
       block?.startTime ?? null,
       block?.endTime ?? null,
       JSON.stringify(items.length > 0 ? items : fallback),
+      JSON.stringify(extras),
     );
   } catch {
     // Cached for the native overlay; failure is non-critical.
@@ -325,6 +339,18 @@ export async function consumePendingCheckInOffer(): Promise<string | null> {
   }
   try {
     const value = await PhoneUnlockModule.consumePendingCheckInOffer();
+    return typeof value === 'string' && value.length > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function consumePendingWorkBlock(): Promise<string | null> {
+  if (!isAndroid || !PhoneUnlockModule || typeof PhoneUnlockModule.consumePendingWorkBlock !== 'function') {
+    return null;
+  }
+  try {
+    const value = await PhoneUnlockModule.consumePendingWorkBlock();
     return typeof value === 'string' && value.length > 0 ? value : null;
   } catch {
     return null;
