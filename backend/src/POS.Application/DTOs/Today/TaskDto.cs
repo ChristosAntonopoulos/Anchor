@@ -9,4 +9,5 @@ public class TaskDto
     public string Title { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty; // work|leverage|health|stability
     public bool Completed { get; set; }
+    public string? Why { get; set; }
 }

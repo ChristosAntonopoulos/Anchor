@@ -24,6 +24,8 @@ import {
   unwrapResponse,
   transformScheduleBlock,
   transformTask,
+  transformBetterItem,
+  transformDay,
   transformDisciplineEntry,
   transformDietEntry,
   transformWeeklyReview,
@@ -104,8 +106,8 @@ class HTTPAPIClient implements APIClient {
       
       // Transform response to match frontend types
       return {
-        day: data.day,
-        betterItems: data.betterItems || [],
+        day: transformDay(data.day || {}),
+        betterItems: (data.betterItems || []).map(transformBetterItem),
         tasks: (data.tasks || []).map(transformTask),
         discipline: transformDisciplineEntry(data.discipline || {}),
         diet: transformDietEntry(data.diet || {}),

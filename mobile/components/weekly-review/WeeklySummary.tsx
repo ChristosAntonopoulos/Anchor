@@ -4,9 +4,12 @@ import { colors, spacing, typography, borderRadius, shadows } from '../../consta
 
 interface WeeklySummaryProps {
   summary: string;
+  report?: string;
+  adjustment?: string;
+  adjustmentWhy?: string;
 }
 
-export function WeeklySummary({ summary }: WeeklySummaryProps) {
+export function WeeklySummary({ summary, report, adjustment, adjustmentWhy }: WeeklySummaryProps) {
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -18,6 +21,27 @@ export function WeeklySummary({ summary }: WeeklySummaryProps) {
         <Text style={styles.label}>AI Summary</Text>
         <View style={styles.divider} />
         <Text style={styles.summary}>{summary}</Text>
+
+        {!!report && (
+          <>
+            <Text style={styles.subLabel}>Report</Text>
+            <Text style={styles.detail}>{report}</Text>
+          </>
+        )}
+
+        {!!adjustment && (
+          <>
+            <Text style={styles.subLabel}>Adjustment</Text>
+            <Text style={styles.detail}>{adjustment}</Text>
+          </>
+        )}
+
+        {!!adjustmentWhy && (
+          <>
+            <Text style={styles.subLabel}>Why</Text>
+            <Text style={styles.detail}>{adjustmentWhy}</Text>
+          </>
+        )}
       </LinearGradient>
     </View>
   );
@@ -49,6 +73,19 @@ const styles = StyleSheet.create({
     marginBottom: spacing.m,
   },
   summary: {
+    fontSize: typography.fontSize.body,
+    color: colors.textPrimary,
+    lineHeight: typography.lineHeight.body,
+  },
+  subLabel: {
+    marginTop: spacing.m,
+    fontSize: typography.fontSize.caption,
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: spacing.xs,
+  },
+  detail: {
     fontSize: typography.fontSize.body,
     color: colors.textPrimary,
     lineHeight: typography.lineHeight.body,

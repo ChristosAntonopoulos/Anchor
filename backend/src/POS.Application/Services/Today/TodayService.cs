@@ -57,6 +57,7 @@ public class TodayService
             await _context.Days.InsertOneAsync(day);
         }
         todayResponse.Day.Date = day.Date.ToString("yyyy-MM-dd");
+        todayResponse.Day.AiReport = day.AiReport;
 
         // Get Better Items for today
         var betterItemsFilter = Builders<BetterItem>.Filter.And(
@@ -69,7 +70,8 @@ public class TodayService
             Id = bi.Id,
             Title = bi.Title,
             Category = bi.Category,
-            Completed = bi.Completed
+            Completed = bi.Completed,
+            Why = bi.Why
         }).ToList();
 
         // Get Tasks for today
@@ -83,7 +85,8 @@ public class TodayService
             Id = t.Id,
             Title = t.Title,
             Category = t.Category,
-            Completed = t.Completed
+            Completed = t.Completed,
+            Why = t.Why
         }).ToList();
 
         // Get Discipline Entry for today

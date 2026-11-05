@@ -40,6 +40,8 @@ public class DaySeeder
         {
             UserId = userId,
             Date = today,
+            FocusCategory = "work",
+            AiReport = "Platform X is due in 2 days. Yesterday had limited completions. Priority: deadline work, then leverage, then health.",
             CreatedAt = DateTime.UtcNow
         };
 

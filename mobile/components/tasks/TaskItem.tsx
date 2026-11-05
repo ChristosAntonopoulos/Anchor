@@ -71,6 +71,9 @@ export function TaskItem({ task, onToggle }: TaskItemProps) {
           <Text style={[styles.title, task.completed && styles.completedText]}>
             {task.title}
           </Text>
+          {!!task.why && (
+            <Text style={styles.whyText}>{task.why}</Text>
+          )}
           <View style={[styles.categoryTag, { backgroundColor: glowColor }]}>
             <Text style={[styles.categoryText, { color: categoryColor }]}>
               {task.category}
@@ -124,6 +127,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.fontSize.body,
     color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  whyText: {
+    fontSize: typography.fontSize.caption,
+    color: colors.textSecondary,
+    lineHeight: typography.lineHeight.caption,
     marginBottom: spacing.xs,
   },
   completedText: {

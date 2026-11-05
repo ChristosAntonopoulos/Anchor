@@ -7,13 +7,14 @@ import type { BetterItem } from '../../types';
 
 interface BetterTodayListProps {
   items: BetterItem[];
+  aiReport?: string;
   onToggleItem: (id: string) => void;
   onAcceptItem: (id: string) => void;
   onEditItem: (id: string, title: string) => void;
   onRejectItem: (id: string) => void;
 }
 
-export function BetterTodayList({ items, onToggleItem, onAcceptItem, onEditItem, onRejectItem }: BetterTodayListProps) {
+export function BetterTodayList({ items, aiReport, onToggleItem, onAcceptItem, onEditItem, onRejectItem }: BetterTodayListProps) {
   if (items.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -32,6 +33,9 @@ export function BetterTodayList({ items, onToggleItem, onAcceptItem, onEditItem,
         style={styles.frame}
       >
         <Text style={styles.sectionTitle}>What Makes Me Better Today</Text>
+        {!!aiReport && (
+          <Text style={styles.reportText}>{aiReport}</Text>
+        )}
         <View style={styles.itemsContainer}>
           {items.map((item) => (
         <BetterTodayItem
@@ -65,6 +69,12 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
     color: colors.textPrimary,
+    marginBottom: spacing.s,
+  },
+  reportText: {
+    fontSize: typography.fontSize.caption,
+    color: colors.textSecondary,
+    lineHeight: typography.lineHeight.caption,
     marginBottom: spacing.m,
   },
   itemsContainer: {

@@ -94,6 +94,7 @@ export default function HomeScreen() {
           
           <BetterTodayList
             items={data.betterItems}
+            aiReport={data.day.aiReport}
             onToggleItem={completeBetterItem}
             onAcceptItem={acceptBetterItem}
             onEditItem={editBetterItem}

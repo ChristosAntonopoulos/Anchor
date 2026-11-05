@@ -66,6 +66,30 @@ export function transformTask(dto: any): any {
     title: dto.title,
     category: dto.category,
     completed: dto.completed,
+    why: dto.why,
+  };
+}
+
+/**
+ * Transforms BetterItemDto to BetterItem
+ */
+export function transformBetterItem(dto: any): any {
+  return {
+    id: dto.id,
+    title: dto.title,
+    category: dto.category,
+    completed: dto.completed,
+    why: dto.why,
+  };
+}
+
+/**
+ * Transforms DayDto to Day
+ */
+export function transformDay(dto: any): any {
+  return {
+    date: dto.date,
+    aiReport: dto.aiReport,
   };
 }
 
@@ -103,6 +127,9 @@ export function transformDietEntry(dto: any): any {
 export function transformWeeklyReview(dto: any): any {
   return {
     aiSummary: dto.aiSummary || '',
+    aiReport: dto.aiReport,
+    aiAdjustment: dto.aiAdjustment,
+    aiAdjustmentWhy: dto.aiAdjustmentWhy,
     completed: dto.completed || false,
   };
 }

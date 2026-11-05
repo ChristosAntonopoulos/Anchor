@@ -47,6 +47,7 @@ public class TaskSeeder
                 Category = "work",
                 Completed = true,
                 Source = "user",
+                Why = null,
                 CreatedAt = DateTime.UtcNow
             },
             new TaskEntity
@@ -56,7 +57,8 @@ public class TaskSeeder
                 Title = "Update project documentation",
                 Category = "work",
                 Completed = false,
-                Source = "user",
+                Source = "ai",
+                Why = "Supports today's deep-work Better item; no supporting task existed yet.",
                 CreatedAt = DateTime.UtcNow
             },
             new TaskEntity
@@ -66,7 +68,8 @@ public class TaskSeeder
                 Title = "Follow up with potential client",
                 Category = "leverage",
                 Completed = false,
-                Source = "user",
+                Source = "ai",
+                Why = "Supports outreach Better item; leverage completion was low this week.",
                 CreatedAt = DateTime.UtcNow
             },
             new TaskEntity
@@ -77,6 +80,7 @@ public class TaskSeeder
                 Category = "health",
                 Completed = false,
                 Source = "user",
+                Why = null,
                 CreatedAt = DateTime.UtcNow
             },
             new TaskEntity
@@ -87,6 +91,7 @@ public class TaskSeeder
                 Category = "stability",
                 Completed = true,
                 Source = "user",
+                Why = null,
                 CreatedAt = DateTime.UtcNow
             }
         };

@@ -98,28 +98,34 @@ The AI service can optionally call Data API endpoints if needed:
 - **Schedule**: Every day at 08:00 UTC
 - **Cron**: `0 8 * * *`
 - **Job Type**: `better-today-generation`
+- **Prompt Version**: `better-today-v2`
 
 **Read Operations**:
-1. Get active deadlines (not completed, due date >= today)
+1. Get active deadlines (not completed, due date >= today) including importance
 2. Get yesterday's completion data:
-   - Count completed Better Items
-   - Count completed Tasks
-   - Calculate discipline score (0-6 from DisciplineEntry)
+   - Count completed Better Items + titles
+   - Count completed Tasks + titles
+   - Calculate discipline score (0-6 from DisciplineEntry) + flags
 3. Get last 7 days data:
    - Count leverage days (Better Items with category "leverage")
    - Calculate health consistency % (DisciplineEntry compliance)
+   - Better/task completion totals and missed days
 
-**AI Prompt**: Use **PROMPT 1** (see section 4.1)
+**AI Prompt**: Use **PROMPT 1** (see section 4.1) — must return factual **why** per item and a **detailed report**
 
 **Write Operations**:
 1. Create 1-3 new `BetterItem` entities:
    - `userId` - From job context
    - `date` - Today's date
-   - `title` - From AI response items array
+   - `title` - From AI response items[].title
+   - `why` - From AI response items[].why
    - `category` - From AI response focusCategory
    - `completed` - false
    - `source` - "ai"
-2. Create `AIJobRun` entry with execution details
+2. Update today's `Day`:
+   - `focusCategory` - From AI response focusCategory
+   - `aiReport` - Flattened detailed report text (deadlinePressure + yesterdaySignal + weekSignal + priorityLogic)
+3. Create `AIJobRun` entry with execution details (store full report object in `output`)
 
 **Notification**: Trigger "Here's what makes you better today" at 08:30
 
@@ -155,21 +161,51 @@ The AI service can optionally call Data API endpoints if needed:
 
 #### Job 3: Task Suggestions (Optional)
 - **Schedule**: Every day at 09:30 UTC
-- **Cron**: `0 9,30 * * *`
+- **Cron**: `30 9 * * *`
 - **Job Type**: `task-suggestions`
+- **Prompt Version**: `task-suggestions-v1`
 - **Condition**: Only if user has < 3 tasks today
 
 **Read Operations**:
-1. Get today's Better Items
+1. Get today's Better Items (title, category, completed, why)
 2. Get active deadlines
+3. Get existing tasks today
 
-**AI Prompt**: Custom prompt asking "What concrete task would move today's focus forward?"
+**AI Prompt**: Use **PROMPT 1b** (see section 4.1b) — must return factual **why** per task and a short **task report**
 
 **Write Operations**:
-1. Create 1-2 suggested `Task` entities (source: "ai")
-2. Create `AIJobRun` entry
+1. Create 1-2 suggested `Task` entities:
+   - `title`, `category`, `why` from AI response
+   - `completed` - false
+   - `source` - "ai"
+2. Create `AIJobRun` entry (store report in `output`)
 
 **Notification**: None (optional feature)
+
+---
+
+#### Job 3b: Daily Task Report (End of Day)
+- **Schedule**: Every day at 20:30 UTC
+- **Cron**: `30 20 * * *`
+- **Job Type**: `daily-task-report`
+- **Prompt Version**: `daily-task-report-v1`
+- **Scope**: Daily tasks management / review only (not money, diet, or schedule)
+
+**Read Operations**:
+1. Get today's Better Items (including why)
+2. Get today's Tasks (including why)
+3. Get today's DisciplineEntry score
+4. Get active deadlines with status
+
+**AI Prompt**: Use **PROMPT 1c** (see section 4.1c) — detailed execution report + adjustment **why**
+
+**Write Operations**:
+1. Create `AIJobRun` entry with full report in `output`
+2. Optionally append evening summary onto `Day.aiReport` (keep morning report; append a clear "Evening:" section) — or leave Day unchanged and rely on `AIJobRun`
+
+**Notification**: None (report is for system/audit and next-morning context)
+
+**Deduplication**: Check if job already ran today for this user
 
 ---
 
@@ -263,20 +299,26 @@ The AI service can optionally call Data API endpoints if needed:
 - **Schedule**: Every Sunday at 20:00 UTC
 - **Cron**: `0 20 * * 0`
 - **Job Type**: `weekly-review-summary`
+- **Prompt Version**: `weekly-review-v2`
 
 **Read Operations**:
 1. Get week's completion data:
-   - Count completed Better Items
-   - Count completed Tasks
+   - Count completed Better Items (overall + by category)
+   - Count completed Tasks (overall + by category)
    - Count missed days (days with no activity)
-   - Calculate discipline consistency %
+   - Calculate discipline consistency % and weakest habits
+   - Deadline outcomes and leverage days
 2. Get current week's `WeeklyReview` entity (or create if doesn't exist)
 
-**AI Prompt**: Use **PROMPT 5** (see section 4.5)
+**AI Prompt**: Use **PROMPT 5** (see section 4.5) — detailed **report** + adjustment **why**
 
 **Write Operations**:
-1. Update `WeeklyReview.AiSummary` field with AI-generated summary
-2. Create `AIJobRun` entry
+1. Update `WeeklyReview`:
+   - `AiSummary` - short summary
+   - `AiReport` - flattened detailed report text
+   - `AiAdjustment` - one adjustment
+   - `AiAdjustmentWhy` - factual why for that adjustment
+2. Create `AIJobRun` entry (store structured report object in `output`)
 
 **Notification**: Sunday 18:00 reminder if review not completed
 
@@ -284,17 +326,22 @@ The AI service can optionally call Data API endpoints if needed:
 
 ## 4. AI Prompt Templates
 
-All prompts must return **JSON only**. No markdown, no explanations.
+All prompts must return **JSON only**. No markdown outside JSON.
+
+**Scope**: PROMPT 1 / 1b / 1c / 5 require factual **why** + **detailed report**. PROMPT 2–4 stay brief (out of daily-task/review reporting scope).
 
 ### 4.1 PROMPT 1: Daily "Better Today" Generation
 
 **When**: Every morning (08:00)
+**Prompt Version**: `better-today-v2`
 
 **System Prompt**:
 ```
 You are a strict personal operating system.
 You suggest concrete, observable actions.
-No motivation, no philosophy, no explanations.
+For every action, give a factual why grounded only in the provided data.
+Also produce a detailed report of what you observed and how you ranked priorities.
+No motivation, no philosophy, no encouragement.
 ```
 
 **User Prompt Template**:
@@ -303,24 +350,35 @@ Date: {{date}}
 
 Active deadlines:
 {{#each deadlines}}
-- {{title}} ({{daysLeft}} days left)
+- {{title}} ({{daysLeft}} days left, importance {{importance}})
 {{/each}}
 
 Yesterday:
 - Better items completed: {{yesterday.betterCompleted}}
+- Better item titles: {{yesterday.betterTitles}}
 - Tasks completed: {{yesterday.tasksCompleted}}
+- Task titles: {{yesterday.taskTitles}}
 - Discipline score (0–6): {{yesterday.disciplineScore}}
+- Discipline flags: {{yesterday.disciplineFlags}}
 
 Last 7 days:
 - Leverage days: {{last7.leverageDays}}
 - Health consistency (%): {{last7.healthConsistency}}
+- Better items completed (total): {{last7.betterCompleted}}
+- Tasks completed (total): {{last7.tasksCompleted}}
+- Missed / empty days: {{last7.missedDays}}
 
 Task:
-Propose 1–3 concrete actions for today that would clearly make me better.
+1. Write a detailed report of today's situation (deadline pressure, yesterday signal, week signal, priority logic).
+2. Propose 1–3 concrete actions for today that would clearly make me better.
+3. For each action, explain why it ranks at that position using only the data above.
+
 Rules:
 - Actions must be observable and finishable today
 - Prefer deadlines first, then leverage, then health
-- Max 8 words per action
+- Max 8 words per action title
+- why must cite specific numbers, deadlines, or patterns from the input
+- report must be 4–8 sentences worth of factual content across the report fields
 
 Return JSON only.
 ```
@@ -329,18 +387,171 @@ Return JSON only.
 ```json
 {
   "focusCategory": "work",
+  "report": {
+    "deadlinePressure": "Platform X is due in 2 days; no other deadline is inside 7 days.",
+    "yesterdaySignal": "0 better items and 1 task completed; discipline score 2/6.",
+    "weekSignal": "1 leverage day in 7; health consistency 43%; 2 missed days.",
+    "priorityLogic": "Deadline work first, then one leverage action, then a finishable health action."
+  },
   "items": [
-    "Finish deadline API endpoint",
-    "Send 5 outreach messages",
-    "Train legs"
+    {
+      "title": "Finish deadline API endpoint",
+      "why": "Platform X is due in 2 days and yesterday had 0 better items completed."
+    },
+    {
+      "title": "Send 5 outreach messages",
+      "why": "Only 1 leverage day in the last 7 days; outreach is the next finishable leverage move."
+    },
+    {
+      "title": "Train legs",
+      "why": "Health consistency is 43% over 7 days; a single gym session is finishable today."
+    }
   ]
 }
 ```
 
 **Validation**:
 - `focusCategory` must be one of: "work", "leverage", "health", "stability"
-- `items` must be array of 1-3 strings
-- Each item must be max 8 words
+- `report` must include deadlinePressure, yesterdaySignal, weekSignal, priorityLogic (non-empty strings)
+- `items` must be array of 1-3 objects with `title` and `why`
+- Each title must be max 8 words
+- Each why must be a non-empty string grounded in input data
+
+---
+
+### 4.1b PROMPT 1b: Daily Task Suggestions
+
+**When**: Daily if user has < 3 tasks (09:30)
+**Prompt Version**: `task-suggestions-v1`
+
+**System Prompt**:
+```
+You are a strict personal operating system.
+Suggest concrete execution tasks only.
+Every task needs a factual why grounded in today's Better items and deadlines.
+Include a short task report.
+No motivation. No philosophy.
+```
+
+**User Prompt Template**:
+```
+Date: {{date}}
+
+Today's Better items:
+{{#each betterItems}}
+- {{title}} ({{category}}, completed={{completed}})
+{{/each}}
+
+Active deadlines:
+{{#each deadlines}}
+- {{title}} ({{daysLeft}} days left)
+{{/each}}
+
+Existing tasks today:
+{{#each existingTasks}}
+- {{title}} ({{category}}, completed={{completed}})
+{{/each}}
+
+Task:
+1. Write a short report of today's task picture (gaps vs Better items / deadlines).
+2. Propose 1–2 concrete tasks that move today's focus forward.
+3. For each task, explain why it is needed using only the data above.
+
+Rules:
+- Tasks must be observable and finishable today
+- Do not duplicate existing task titles
+- Max 8 words per task title
+- Prefer tasks that unblock or complete a Better item or deadline
+
+Return JSON only.
+```
+
+**Expected Output**:
+```json
+{
+  "report": {
+    "focusGap": "Better item 'Finish deadline API endpoint' has no supporting task yet.",
+    "deadlineGap": "Platform X is due in 2 days; no task mentions it.",
+    "existingLoad": "1 open task today; room for 1–2 more."
+  },
+  "tasks": [
+    {
+      "title": "Ship Platform X auth fix",
+      "category": "work",
+      "why": "Supports Better item 'Finish deadline API endpoint' and Platform X is due in 2 days."
+    }
+  ]
+}
+```
+
+**Validation**:
+- `report` fields non-empty
+- `tasks` array of 1-2 objects with title, category, why
+- category in work|leverage|health|stability
+
+---
+
+### 4.1c PROMPT 1c: Daily Task Report (End of Day)
+
+**When**: Every evening (20:30)
+**Prompt Version**: `daily-task-report-v1`
+
+**System Prompt**:
+```
+You write an honest end-of-day execution report for tasks and Better items.
+Be factual. Cite counts and titles from the data.
+Explain why the day landed where it did.
+No motivation. No shaming.
+```
+
+**User Prompt Template**:
+```
+Date: {{date}}
+
+Better items today:
+{{#each betterItems}}
+- {{title}} ({{category}}, completed={{completed}}, why={{why}})
+{{/each}}
+
+Tasks today:
+{{#each tasks}}
+- {{title}} ({{category}}, completed={{completed}}, why={{why}})
+{{/each}}
+
+Discipline score (0–6): {{disciplineScore}}
+Active deadlines still open:
+{{#each deadlines}}
+- {{title}} ({{daysLeft}} days left, status={{status}})
+{{/each}}
+
+Task:
+Produce a detailed daily execution report covering:
+1. What finished vs what stayed open
+2. Whether work matched the morning priority logic
+3. The main gap and why it matters given deadlines / Better items
+4. One concrete adjustment for tomorrow and why
+
+Return JSON only.
+```
+
+**Expected Output**:
+```json
+{
+  "report": {
+    "completed": "Finished 1/3 Better items and 2/4 tasks.",
+    "open": "Still open: Finish deadline API endpoint; Draft 5 outreach messages.",
+    "alignment": "Morning focus was work/deadline; deadline Better item stayed incomplete.",
+    "gap": "Platform X work did not move despite 2 days left.",
+    "disciplineNote": "Discipline score 3/6; health Better item completed."
+  },
+  "adjustment": "Put Platform X work in the first deep-work block tomorrow.",
+  "why": "Deadline Better item stayed open while Platform X is due in 2 days; morning priority was work and it was not executed."
+}
+```
+
+**Validation**:
+- `report` object with completed, open, alignment, gap, disciplineNote
+- `adjustment` and `why` non-empty strings
 
 ---
 
@@ -457,22 +668,42 @@ Return JSON only.
 ### 4.5 PROMPT 5: Weekly Review Summary
 
 **When**: Weekly (Sunday 20:00)
+**Prompt Version**: `weekly-review-v2`
 
 **System Prompt**:
 ```
-You provide an honest weekly summary.
-No sugarcoating. No shaming.
+You provide an honest weekly summary and a detailed report.
+No sugarcoating. No shaming. No motivation.
+Every adjustment must include a factual why grounded in the week’s numbers.
 ```
 
 **User Prompt Template**:
 ```
+Week: {{weekId}}
+
 Completed better items: {{completedBetter}}
+Better item completion by category:
+{{betterByCategory}}
+
 Completed tasks: {{completedTasks}}
+Tasks completion by category:
+{{tasksByCategory}}
+
 Missed days: {{missedDays}}
 Discipline consistency (%): {{disciplineConsistency}}
+Discipline weakest habits: {{weakestHabits}}
+
+Deadline outcomes this week:
+{{#each deadlines}}
+- {{title}}: status={{status}}, daysLeft={{daysLeft}}
+{{/each}}
+
+Leverage days: {{leverageDays}}
 
 Task:
-Summarize the week in 3 short sentences and suggest one adjustment.
+1. Write a short summary (max 3 sentences).
+2. Write a detailed report covering strengths, gaps, deadline posture, and execution pattern.
+3. Suggest one adjustment for next week and explain why using only the data above.
 
 Return JSON only.
 ```
@@ -480,14 +711,23 @@ Return JSON only.
 **Expected Output**:
 ```json
 {
-  "summary": "You showed up most days but avoided leverage tasks.",
-  "adjustment": "Schedule leverage work earlier in the day."
+  "summary": "You showed up most days but avoided leverage tasks. Deadline work stayed reactive. Discipline was uneven midweek.",
+  "report": {
+    "strengths": "Completed 9/12 Better items; no fully empty days after Tuesday.",
+    "gaps": "Only 1 leverage Better item completed; outreach stayed open 4 days.",
+    "deadlinePosture": "Platform X stayed behind; 2 work tasks completed against it late in the week.",
+    "executionPattern": "Morning deep work happened; afternoon leverage blocks were skipped.",
+    "discipline": "Consistency 57%; meditation and walk were the weakest habits."
+  },
+  "adjustment": "Schedule leverage work earlier in the day.",
+  "why": "Leverage days were 1/7 and afternoon leverage blocks were the skipped pattern; moving leverage earlier targets the actual gap."
 }
 ```
 
 **Validation**:
 - `summary` must be a string (3 sentences max)
-- `adjustment` must be a string
+- `report` must include strengths, gaps, deadlinePosture, executionPattern, discipline
+- `adjustment` and `why` must be non-empty strings
 
 ---
 
@@ -545,6 +785,7 @@ public class BetterItem : DayAnchoredEntity
     public string Category { get; set; } // work|leverage|health|stability
     public bool Completed { get; set; }
     public string Source { get; set; } // ai|user
+    public string? Why { get; set; } // factual AI rationale (daily tasks scope)
     // Inherited: UserId, Date, Id, CreatedAt, UpdatedAt
 }
 ```
@@ -569,6 +810,7 @@ public class Task : DayAnchoredEntity
     public string Category { get; set; }
     public bool Completed { get; set; }
     public string Source { get; set; } // ai|user
+    public string? Why { get; set; } // factual AI rationale (daily tasks scope)
     // Inherited: UserId, Date, Id, CreatedAt, UpdatedAt
 }
 ```
@@ -620,12 +862,24 @@ public class ScheduleBlockInstance : DayAnchoredEntity
 }
 ```
 
+#### Day
+```csharp
+public class Day : DayAnchoredEntity
+{
+    public string? FocusCategory { get; set; } // work|leverage|health|stability
+    public string? AiReport { get; set; } // morning Better Today detailed report (flattened)
+}
+```
+
 #### WeeklyReview
 ```csharp
 public class WeeklyReview : EntityBase
 {
     public string WeekId { get; set; } // YYYY-WW format
     public string AiSummary { get; set; }
+    public string? AiReport { get; set; } // detailed weekly report
+    public string? AiAdjustment { get; set; }
+    public string? AiAdjustmentWhy { get; set; }
     public string? Shipped { get; set; }
     public string? Improved { get; set; }
     public string? Avoided { get; set; }
@@ -642,7 +896,8 @@ public class WeeklyReview : EntityBase
 - Set `source` = "ai"
 - Set `completed` = false
 - Set `category` from AI response
-- Set `title` from AI response items array
+- Set `title` from AI response items[].title
+- Set `why` from AI response items[].why
 
 #### HabitInsight (Create/Update)
 ```csharp
@@ -757,7 +1012,8 @@ OpenAI__MaxTokens=500
 # Job Scheduling
 Jobs__BetterTodayGeneration__Cron=0 8 * * *
 Jobs__DeadlineCheck__Cron=0 9 * * *
-Jobs__TaskSuggestions__Cron=0 9,30 * * *
+Jobs__TaskSuggestions__Cron=30 9 * * *
+Jobs__DailyTaskReport__Cron=30 20 * * *
 Jobs__HabitAnalysis__Cron=0 9 * * 1
 Jobs__MoneyMomentum__Cron=0 10 * * 1
 Jobs__DietAnalysis__Cron=0 10,30 * * 1
@@ -775,11 +1031,13 @@ Logging__Level=Information
 ### 8.2 Prompt Versioning
 
 **Current Prompt Versions**:
-- `better-today-v1` - PROMPT 1
+- `better-today-v2` - PROMPT 1 (why + detailed report)
+- `task-suggestions-v1` - PROMPT 1b (why + task report)
+- `daily-task-report-v1` - PROMPT 1c (end-of-day report + why)
 - `deadline-check-v1` - PROMPT 2
 - `habit-analysis-v1` - PROMPT 3
 - `money-momentum-v1` - PROMPT 4
-- `weekly-review-v1` - PROMPT 5
+- `weekly-review-v2` - PROMPT 5 (detailed report + adjustment why)
 
 Store version in `AIJobRun.PromptVersion` for audit trail.
 
@@ -801,9 +1059,10 @@ Store version in `AIJobRun.PromptVersion` for audit trail.
 - [ ] Implement `AIJobRun` logging
 
 ### Phase 2: Daily Jobs
-- [ ] Implement Better Today Generation job
+- [ ] Implement Better Today Generation job (why + report → BetterItem.Why, Day.AiReport)
 - [ ] Implement Deadline Alignment Check job
-- [ ] Implement Task Suggestions job (optional)
+- [ ] Implement Task Suggestions job (optional; why → Task.Why)
+- [ ] Implement Daily Task Report job (evening)
 - [ ] Test with sample data
 
 ### Phase 3: Weekly Jobs

@@ -18,4 +18,10 @@ public class BetterItem : DayAnchoredEntity
 
     [BsonElement("source")]
     public string Source { get; set; } = "ai"; // ai|user
+
+    /// <summary>
+    /// Factual AI rationale for why this item was suggested (daily tasks / review scope).
+    /// </summary>
+    [BsonElement("why")]
+    public string? Why { get; set; }
 }

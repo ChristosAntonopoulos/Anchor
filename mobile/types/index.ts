@@ -7,6 +7,7 @@ export type DeadlineStatus = 'on track' | 'behind';
 // Day
 export interface Day {
   date: string; // ISO date string (YYYY-MM-DD)
+  aiReport?: string;
 }
 
 // BetterItem
@@ -15,6 +16,7 @@ export interface BetterItem {
   title: string;
   category: Category;
   completed: boolean;
+  why?: string;
 }
 
 // Task
@@ -23,6 +25,7 @@ export interface Task {
   title: string;
   category: Category;
   completed: boolean;
+  why?: string;
 }
 
 // DisciplineEntry
@@ -85,6 +88,9 @@ export interface MoneySummary {
 // WeeklyReview
 export interface WeeklyReview {
   aiSummary: string;
+  aiReport?: string;
+  aiAdjustment?: string;
+  aiAdjustmentWhy?: string;
   completed: boolean;
 }
 

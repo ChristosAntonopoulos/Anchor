@@ -9,6 +9,9 @@ public class WeeklyReviewDto : ResponseDto
 {
     public string WeekId { get; set; } = string.Empty; // YYYY-WW format
     public string AiSummary { get; set; } = string.Empty;
+    public string? AiReport { get; set; }
+    public string? AiAdjustment { get; set; }
+    public string? AiAdjustmentWhy { get; set; }
     public string? Shipped { get; set; }
     public string? Improved { get; set; }
     public string? Avoided { get; set; }

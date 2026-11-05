@@ -18,4 +18,10 @@ public class Task : DayAnchoredEntity
 
     [BsonElement("source")]
     public string Source { get; set; } = "user"; // ai|user
+
+    /// <summary>
+    /// Factual AI rationale for why this task was suggested (daily tasks / review scope).
+    /// </summary>
+    [BsonElement("why")]
+    public string? Why { get; set; }
 }

@@ -13,6 +13,18 @@ public class WeeklyReview : EntityBase
     [BsonElement("aiSummary")]
     public string AiSummary { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Detailed AI weekly report (strengths, gaps, deadline posture, execution pattern).
+    /// </summary>
+    [BsonElement("aiReport")]
+    public string? AiReport { get; set; }
+
+    [BsonElement("aiAdjustment")]
+    public string? AiAdjustment { get; set; }
+
+    [BsonElement("aiAdjustmentWhy")]
+    public string? AiAdjustmentWhy { get; set; }
+
     [BsonElement("shipped")]
     public string? Shipped { get; set; }
 

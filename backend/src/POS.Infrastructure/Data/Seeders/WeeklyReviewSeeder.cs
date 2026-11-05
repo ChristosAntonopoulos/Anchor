@@ -46,7 +46,10 @@ public class WeeklyReviewSeeder
         {
             UserId = userId,
             WeekId = weekId,
-            AiSummary = "You showed up most days but avoided leverage tasks.",
+            AiSummary = "You showed up most days but avoided leverage tasks. Deadline work stayed reactive. Discipline was uneven midweek.",
+            AiReport = "Strengths: completed most Better items on work days. Gaps: only 1 leverage day. Deadline posture: Platform X stayed behind. Execution: morning deep work happened; afternoon leverage was skipped. Discipline consistency around 57%.",
+            AiAdjustment = "Schedule leverage work earlier in the day.",
+            AiAdjustmentWhy = "Leverage days were low and afternoon leverage blocks were the skipped pattern.",
             Completed = false,
             CreatedAt = DateTime.UtcNow
         };

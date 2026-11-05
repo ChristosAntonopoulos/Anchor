@@ -6,4 +6,5 @@ namespace POS.Application.DTOs.Today;
 public class DayDto
 {
     public string Date { get; set; } = string.Empty; // YYYY-MM-DD format
+    public string? AiReport { get; set; }
 }

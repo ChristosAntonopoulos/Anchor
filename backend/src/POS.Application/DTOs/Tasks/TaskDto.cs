@@ -11,4 +11,5 @@ public class TaskDto : ResponseDto
     public string Category { get; set; } = string.Empty; // work|leverage|health|stability
     public bool Completed { get; set; }
     public DateTime Date { get; set; }
+    public string? Why { get; set; }
 }

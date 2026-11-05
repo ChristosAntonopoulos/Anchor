@@ -85,7 +85,12 @@ export default function WeeklyReviewScreen() {
     >
       <SafeAreaView style={styles.container} edges={['top']}>
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          <WeeklySummary summary={data.aiSummary} />
+          <WeeklySummary
+            summary={data.aiSummary}
+            report={data.aiReport}
+            adjustment={data.aiAdjustment}
+            adjustmentWhy={data.aiAdjustmentWhy}
+          />
           
           <View style={styles.questionsContainer}>
             <ReviewQuestionInput

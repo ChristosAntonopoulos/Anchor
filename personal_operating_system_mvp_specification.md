@@ -34,6 +34,12 @@ User responsibilities:
 - Confirm / reject
 - Execute
 
+### AI why + report rule (daily tasks & review only)
+For **Better Today**, **daily Tasks**, **daily task reporting**, and **Weekly Review** only:
+- Every AI suggestion must include a factual **why** grounded in the input data (deadlines, completions, habits). Not motivational language.
+- Every AI job for these features must return a **detailed report** summarizing what the model observed and how it chose priorities.
+- Money, diet, habit-insight, and schedule-optimization prompts stay brief and are out of scope for this rule.
+
 ---
 
 # PAGE & FEATURE BREAKDOWN
@@ -57,11 +63,12 @@ Central execution dashboard for the day.
 **Generated once per day (morning)**
 
 AI proposes:
-- 1–3 “Better Today” items
+- 1–3 “Better Today” items (each with a factual **why**)
 - Suggested focus category (Work / Leverage / Health / Stability)
+- A **detailed morning report** explaining deadline pressure, yesterday’s signal, and priority logic
 
 ### What AI is asked
-"Based on my active projects, deadlines, habits, and recent behavior, what 1–3 concrete actions today would make me better?"
+"Based on my active projects, deadlines, habits, and recent behavior, what 1–3 concrete actions today would make me better — and why each one, with a short report of how you ranked priorities?"
 
 ### Data required by AI
 - Active projects
@@ -103,10 +110,11 @@ Holds concrete execution tasks for the day.
 
 ### AI-generated data
 Optional daily suggestion:
-- 1–2 tasks derived from deadlines or Better items
+- 1–2 tasks derived from deadlines or Better items (each with a factual **why**)
+- A short **task report** tying suggestions to today’s Better items / deadlines
 
 ### What AI is asked
-"What concrete task would move today’s focus forward?"
+"What concrete task would move today’s focus forward — why that task, and what does today’s task picture look like?"
 
 ---
 
@@ -344,20 +352,25 @@ Weekly summary:
 
 ## AI PROMPT TEMPLATES (COPY–PASTE READY)
 
-All prompts are **system-controlled**, deterministic, short, and action-oriented.
+All prompts are **system-controlled**, deterministic, and action-oriented.
 Tone: calm, honest, non-motivational.
+
+**Scope note:** PROMPT 1, PROMPT 1b (tasks), PROMPT 1c (daily task report), and PROMPT 5 require a factual **why** per recommendation and a **detailed report**. Other prompts stay brief.
 
 ---
 
 ## PROMPT 1: DAILY "BETTER TODAY" GENERATION
 
 **When:** Every morning (once)
+**Prompt version:** `better-today-v2`
 
 **SYSTEM PROMPT**
 ```
 You are a strict personal operating system.
 You suggest concrete, observable actions.
-No motivation, no philosophy, no explanations.
+For every action, give a factual why grounded only in the provided data.
+Also produce a detailed report of what you observed and how you ranked priorities.
+No motivation, no philosophy, no encouragement.
 ```
 
 **USER PROMPT**
@@ -366,24 +379,35 @@ Date: {{date}}
 
 Active deadlines:
 {{#each deadlines}}
-- {{title}} ({{daysLeft}} days left)
+- {{title}} ({{daysLeft}} days left, importance {{importance}})
 {{/each}}
 
 Yesterday:
 - Better items completed: {{yesterday.betterCompleted}}
+- Better item titles: {{yesterday.betterTitles}}
 - Tasks completed: {{yesterday.tasksCompleted}}
+- Task titles: {{yesterday.taskTitles}}
 - Discipline score (0–6): {{yesterday.disciplineScore}}
+- Discipline flags: {{yesterday.disciplineFlags}}
 
 Last 7 days:
 - Leverage days: {{last7.leverageDays}}
 - Health consistency (%): {{last7.healthConsistency}}
+- Better items completed (total): {{last7.betterCompleted}}
+- Tasks completed (total): {{last7.tasksCompleted}}
+- Missed / empty days: {{last7.missedDays}}
 
 Task:
-Propose 1–3 concrete actions for today that would clearly make me better.
+1. Write a detailed report of today's situation (deadline pressure, yesterday signal, week signal, priority logic).
+2. Propose 1–3 concrete actions for today that would clearly make me better.
+3. For each action, explain why it ranks at that position using only the data above.
+
 Rules:
 - Actions must be observable and finishable today
 - Prefer deadlines first, then leverage, then health
-- Max 8 words per action
+- Max 8 words per action title
+- why must cite specific numbers, deadlines, or patterns from the input
+- report must be 4–8 sentences, factual, no fluff
 
 Return JSON only.
 ```
@@ -392,11 +416,158 @@ Return JSON only.
 ```
 {
   "focusCategory": "work",
+  "report": {
+    "deadlinePressure": "Platform X is due in 2 days; no other deadline is inside 7 days.",
+    "yesterdaySignal": "0 better items and 1 task completed; discipline score 2/6.",
+    "weekSignal": "1 leverage day in 7; health consistency 43%; 2 missed days.",
+    "priorityLogic": "Deadline work first, then one leverage action, then a finishable health action."
+  },
   "items": [
-    "Finish deadline API endpoint",
-    "Send 5 outreach messages",
-    "Train legs"
+    {
+      "title": "Finish deadline API endpoint",
+      "why": "Platform X is due in 2 days and yesterday had 0 better items completed."
+    },
+    {
+      "title": "Send 5 outreach messages",
+      "why": "Only 1 leverage day in the last 7 days; outreach is the next finishable leverage move."
+    },
+    {
+      "title": "Train legs",
+      "why": "Health consistency is 43% over 7 days; a single gym session is finishable today."
+    }
   ]
+}
+```
+
+---
+
+## PROMPT 1b: DAILY TASK SUGGESTIONS
+
+**When:** Daily if user has fewer than 3 tasks (optional)
+**Prompt version:** `task-suggestions-v1`
+
+**SYSTEM PROMPT**
+```
+You are a strict personal operating system.
+Suggest concrete execution tasks only.
+Every task needs a factual why grounded in today's Better items and deadlines.
+Include a short task report.
+No motivation. No philosophy.
+```
+
+**USER PROMPT**
+```
+Date: {{date}}
+
+Today's Better items:
+{{#each betterItems}}
+- {{title}} ({{category}}, completed={{completed}})
+{{/each}}
+
+Active deadlines:
+{{#each deadlines}}
+- {{title}} ({{daysLeft}} days left)
+{{/each}}
+
+Existing tasks today:
+{{#each existingTasks}}
+- {{title}} ({{category}}, completed={{completed}})
+{{/each}}
+
+Task:
+1. Write a short report of today's task picture (gaps vs Better items / deadlines).
+2. Propose 1–2 concrete tasks that move today's focus forward.
+3. For each task, explain why it is needed using only the data above.
+
+Rules:
+- Tasks must be observable and finishable today
+- Do not duplicate existing task titles
+- Max 8 words per task title
+- Prefer tasks that unblock or complete a Better item or deadline
+
+Return JSON only.
+```
+
+**EXPECTED OUTPUT**
+```
+{
+  "report": {
+    "focusGap": "Better item 'Finish deadline API endpoint' has no supporting task yet.",
+    "deadlineGap": "Platform X is due in 2 days; no task mentions it.",
+    "existingLoad": "1 open task today; room for 1–2 more."
+  },
+  "tasks": [
+    {
+      "title": "Ship Platform X auth fix",
+      "category": "work",
+      "why": "Supports Better item 'Finish deadline API endpoint' and Platform X is due in 2 days."
+    },
+    {
+      "title": "Draft 5 outreach messages",
+      "category": "leverage",
+      "why": "Supports Better item 'Send 5 outreach messages'; no leverage task exists yet."
+    }
+  ]
+}
+```
+
+---
+
+## PROMPT 1c: DAILY TASK REPORT (END OF DAY)
+
+**When:** Every evening (once)
+**Prompt version:** `daily-task-report-v1`
+
+**SYSTEM PROMPT**
+```
+You write an honest end-of-day execution report for tasks and Better items.
+Be factual. Cite counts and titles from the data.
+Explain why the day landed where it did.
+No motivation. No shaming.
+```
+
+**USER PROMPT**
+```
+Date: {{date}}
+
+Better items today:
+{{#each betterItems}}
+- {{title}} ({{category}}, completed={{completed}}, why={{why}})
+{{/each}}
+
+Tasks today:
+{{#each tasks}}
+- {{title}} ({{category}}, completed={{completed}}, why={{why}})
+{{/each}}
+
+Discipline score (0–6): {{disciplineScore}}
+Active deadlines still open:
+{{#each deadlines}}
+- {{title}} ({{daysLeft}} days left, status={{status}})
+{{/each}}
+
+Task:
+Produce a detailed daily execution report covering:
+1. What finished vs what stayed open
+2. Whether work matched the morning priority logic
+3. The main gap and why it matters given deadlines / Better items
+4. One concrete adjustment for tomorrow and why
+
+Return JSON only.
+```
+
+**EXPECTED OUTPUT**
+```
+{
+  "report": {
+    "completed": "Finished 1/3 Better items and 2/4 tasks.",
+    "open": "Still open: Finish deadline API endpoint; Draft 5 outreach messages.",
+    "alignment": "Morning focus was work/deadline; deadline Better item stayed incomplete.",
+    "gap": "Platform X work did not move despite 2 days left.",
+    "disciplineNote": "Discipline score 3/6; health Better item completed."
+  },
+  "adjustment": "Put Platform X work in the first deep-work block tomorrow.",
+  "why": "Deadline Better item stayed open while Platform X is due in 2 days; morning priority was work and it was not executed."
 }
 ```
 
@@ -503,22 +674,42 @@ Return JSON only.
 ## PROMPT 5: WEEKLY REVIEW SUMMARY
 
 **When:** Weekly (before review unlocks)
+**Prompt version:** `weekly-review-v2`
 
 **SYSTEM PROMPT**
 ```
-You provide an honest weekly summary.
-No sugarcoating. No shaming.
+You provide an honest weekly summary and a detailed report.
+No sugarcoating. No shaming. No motivation.
+Every adjustment must include a factual why grounded in the week’s numbers.
 ```
 
 **USER PROMPT**
 ```
+Week: {{weekId}}
+
 Completed better items: {{completedBetter}}
+Better item completion by category:
+{{betterByCategory}}
+
 Completed tasks: {{completedTasks}}
+Tasks completion by category:
+{{tasksByCategory}}
+
 Missed days: {{missedDays}}
 Discipline consistency (%): {{disciplineConsistency}}
+Discipline weakest habits: {{weakestHabits}}
+
+Deadline outcomes this week:
+{{#each deadlines}}
+- {{title}}: status={{status}}, daysLeft={{daysLeft}}
+{{/each}}
+
+Leverage days: {{leverageDays}}
 
 Task:
-Summarize the week in 3 short sentences and suggest one adjustment.
+1. Write a short summary (max 3 sentences).
+2. Write a detailed report covering strengths, gaps, deadline posture, and execution pattern.
+3. Suggest one adjustment for next week and explain why using only the data above.
 
 Return JSON only.
 ```
@@ -526,8 +717,16 @@ Return JSON only.
 **EXPECTED OUTPUT**
 ```
 {
-  "summary": "You showed up most days but avoided leverage tasks.",
-  "adjustment": "Schedule leverage work earlier in the day." 
+  "summary": "You showed up most days but avoided leverage tasks. Deadline work stayed reactive. Discipline was uneven midweek.",
+  "report": {
+    "strengths": "Completed 9/12 Better items; no fully empty days after Tuesday.",
+    "gaps": "Only 1 leverage Better item completed; outreach stayed open 4 days.",
+    "deadlinePosture": "Platform X stayed behind; 2 work tasks completed against it late in the week.",
+    "executionPattern": "Morning deep work happened; afternoon leverage blocks were skipped.",
+    "discipline": "Consistency 57%; meditation and walk were the weakest habits."
+  },
+  "adjustment": "Schedule leverage work earlier in the day.",
+  "why": "Leverage days were 1/7 and afternoon leverage blocks were the skipped pattern; moving leverage earlier targets the actual gap."
 }
 ```
 
@@ -797,6 +996,7 @@ More contains:
 
 ### Layout
 - AI-generated summary (read-only)
+- AI detailed report + adjustment + why (read-only)
 - 4 short input fields
 - Submit button
 
@@ -806,6 +1006,9 @@ More contains:
 
 ### Reads
 - WeeklyReview.aiSummary
+- WeeklyReview.aiReport
+- WeeklyReview.aiAdjustment
+- WeeklyReview.aiAdjustmentWhy
 
 ### Writes
 - WeeklyReview.submit
@@ -1074,13 +1277,16 @@ These examples are **authoritative**. Cursor should mirror them exactly.
 ### GET /api/today
 ```
 {
-  "day": { "date": "2026-02-05" },
+  "day": {
+    "date": "2026-02-05",
+    "aiReport": "Platform X is due in 2 days. Yesterday had 0 better items completed. Priority: deadline work, then leverage, then health."
+  },
   "betterItems": [
-    { "id": "b1", "title": "Finish deadline API endpoint", "category": "work", "completed": false },
-    { "id": "b2", "title": "Send 5 outreach messages", "category": "leverage", "completed": false }
+    { "id": "b1", "title": "Finish deadline API endpoint", "category": "work", "completed": false, "why": "Platform X is due in 2 days and yesterday had 0 better items completed." },
+    { "id": "b2", "title": "Send 5 outreach messages", "category": "leverage", "completed": false, "why": "Only 1 leverage day in the last 7 days; outreach is finishable today." }
   ],
   "tasks": [
-    { "id": "t1", "title": "Fix auth bug", "category": "work", "completed": false }
+    { "id": "t1", "title": "Fix auth bug", "category": "work", "completed": false, "why": "Supports Better item 'Finish deadline API endpoint' and Platform X is due in 2 days." }
   ],
   "discipline": { "gym": false, "walk": true, "cooked": false, "diet": true, "meditation": false, "water": true },
   "diet": { "compliant": true },
@@ -1127,7 +1333,10 @@ These examples are **authoritative**. Cursor should mirror them exactly.
 ### GET /api/weekly-review
 ```
 {
-  "aiSummary": "You showed up most days but avoided leverage tasks.",
+  "aiSummary": "You showed up most days but avoided leverage tasks. Deadline work stayed reactive. Discipline was uneven midweek.",
+  "aiReport": "Strengths: completed 9/12 Better items. Gaps: only 1 leverage day. Deadline posture: Platform X stayed behind. Execution: morning deep work happened; afternoon leverage was skipped. Discipline consistency 57%.",
+  "aiAdjustment": "Schedule leverage work earlier in the day.",
+  "aiAdjustmentWhy": "Leverage days were 1/7 and afternoon leverage blocks were the skipped pattern.",
   "completed": false
 }
 ```

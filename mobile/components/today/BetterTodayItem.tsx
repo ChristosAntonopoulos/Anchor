@@ -90,9 +90,14 @@ export function BetterTodayItem({ item, onToggle, onAccept, onEdit, onReject }: 
           >
             <View style={[styles.categoryDot, { backgroundColor: categoryColor }]} />
             <View style={[styles.glowDot, { backgroundColor: glowColor }]} />
-            <Text style={[styles.title, item.completed && styles.completedText]}>
-              {item.title}
-            </Text>
+            <View style={styles.textBlock}>
+              <Text style={[styles.title, item.completed && styles.completedText]}>
+                {item.title}
+              </Text>
+              {!!item.why && (
+                <Text style={styles.whyText}>{item.why}</Text>
+              )}
+            </View>
             <View style={[styles.checkbox, item.completed && styles.checkboxChecked, item.completed && { backgroundColor: categoryColor }]}>
               {item.completed && <Text style={styles.checkmark}>✓</Text>}
             </View>
@@ -151,11 +156,19 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     zIndex: 1,
   },
-  title: {
+  textBlock: {
     flex: 1,
+  },
+  title: {
     fontSize: typography.fontSize.body,
     color: colors.textPrimary,
     fontWeight: typography.fontWeight.regular,
+  },
+  whyText: {
+    marginTop: spacing.xs,
+    fontSize: typography.fontSize.caption,
+    color: colors.textSecondary,
+    lineHeight: typography.lineHeight.caption,
   },
   completedText: {
     textDecorationLine: 'line-through',

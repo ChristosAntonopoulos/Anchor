@@ -45,7 +45,8 @@ public class BetterItemSeeder
                 Title = "Complete morning deep work block",
                 Category = "work",
                 Completed = false,
-                Source = "user",
+                Source = "ai",
+                Why = "Active deadline pressure is highest on work; yesterday left deep work unfinished.",
                 CreatedAt = DateTime.UtcNow
             },
             new BetterItem
@@ -55,7 +56,8 @@ public class BetterItemSeeder
                 Title = "Send 3 client outreach emails",
                 Category = "leverage",
                 Completed = false,
-                Source = "user",
+                Source = "ai",
+                Why = "Leverage days were low over the last 7 days; outreach is finishable today.",
                 CreatedAt = DateTime.UtcNow
             },
             new BetterItem
@@ -65,7 +67,8 @@ public class BetterItemSeeder
                 Title = "20 minute meditation session",
                 Category = "health",
                 Completed = true,
-                Source = "user",
+                Source = "ai",
+                Why = "Health consistency was uneven this week; a single meditation block is finishable today.",
                 CreatedAt = DateTime.UtcNow
             },
             new BetterItem
@@ -76,6 +79,7 @@ public class BetterItemSeeder
                 Category = "stability",
                 Completed = false,
                 Source = "user",
+                Why = null,
                 CreatedAt = DateTime.UtcNow
             }
         };
