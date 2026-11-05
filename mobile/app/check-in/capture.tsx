@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   example: {
-    color: colors.category.work,
+    color: colors.textSecondary,
     fontSize: typography.fontSize.caption,
     minHeight: 32,
   },
@@ -296,8 +296,8 @@ const styles = StyleSheet.create({
   },
   scaleActive: {
     borderWidth: 2,
-    borderColor: colors.category.health,
-    backgroundColor: colors.category.health + '24',
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryContainer,
   },
   scaleText: {
     color: colors.textPrimary,

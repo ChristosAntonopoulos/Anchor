@@ -31,14 +31,14 @@ export function PhoneUnlockEntryItem({ entry }: PhoneUnlockEntryItemProps) {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#1E2530', '#252B38']}
+        colors={[colors.surface, colors.surface]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
         <View style={styles.header}>
           <View style={styles.iconContainer}>
-            <AppIcon name="lock-open-outline" size={20} color={colors.category.stability} />
+            <AppIcon name="lock-open-outline" size={20} color={colors.primary} />
           </View>
           <View style={styles.dateContainer}>
             <Text style={styles.date}>{formattedDate}</Text>

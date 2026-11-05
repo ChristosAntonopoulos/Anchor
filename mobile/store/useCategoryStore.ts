@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { apiClient } from '../services/api';
+import { colors } from '../constants/designTokens';
 import type { Category } from '../types';
 
 interface CategoryStore {
@@ -32,38 +33,7 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
     return get().categories.find(c => c.name === name);
   },
 
-  getCategoryColor: (name: string) => {
-    const category = get().getCategoryByName(name);
-    if (category) {
-      return category.color;
-    }
-    // Fallback to hardcoded colors during migration
-    const fallbackColors: Record<string, string> = {
-      work: '#00D9FF',
-      leverage: '#10D9A0',
-      health: '#FFB84D',
-      stability: '#A78BFA',
-    };
-    return fallbackColors[name] || '#8B95A6';
-  },
+  getCategoryColor: (_name: string) => colors.textSecondary,
 
-  getCategoryGlow: (name: string) => {
-    const category = get().getCategoryByName(name);
-    if (category) {
-      // Convert hex color to rgba with 25% opacity
-      const hex = category.color.replace('#', '');
-      const r = parseInt(hex.substring(0, 2), 16);
-      const g = parseInt(hex.substring(2, 4), 16);
-      const b = parseInt(hex.substring(4, 6), 16);
-      return `rgba(${r}, ${g}, ${b}, 0.25)`;
-    }
-    // Fallback to hardcoded glows during migration
-    const fallbackGlows: Record<string, string> = {
-      work: '#00D9FF40',
-      leverage: '#10D9A040',
-      health: '#FFB84D40',
-      stability: '#A78BFA40',
-    };
-    return fallbackGlows[name] || 'rgba(167, 139, 250, 0.2)';
-  },
+  getCategoryGlow: (_name: string) => 'transparent',
 }));

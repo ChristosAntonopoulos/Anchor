@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { colors, spacing, typography } from '../../constants/designTokens';
+import { colors, spacing, typography, borderRadius } from '../../constants/designTokens';
 
 interface ErrorBannerProps {
   message: string;
@@ -8,11 +8,14 @@ interface ErrorBannerProps {
 
 export function ErrorBanner({ message, onDismiss }: ErrorBannerProps) {
   return (
-    <View style={styles.container}>
-      <Text style={styles.message}>{message}</Text>
+    <View style={styles.container} accessibilityRole="alert">
+      <View style={styles.copy}>
+        <Text style={styles.label}>Could not save</Text>
+        <Text style={styles.message}>{message}</Text>
+      </View>
       {onDismiss && (
-        <TouchableOpacity onPress={onDismiss} style={styles.dismissButton}>
-          <Text style={styles.dismissText}>×</Text>
+        <TouchableOpacity onPress={onDismiss} style={styles.dismissButton} accessibilityLabel="Dismiss">
+          <Text style={styles.dismissText}>Dismiss</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -21,27 +24,37 @@ export function ErrorBanner({ message, onDismiss }: ErrorBannerProps) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.dangerContainer,
     padding: spacing.m,
     marginHorizontal: spacing.l,
     marginTop: spacing.m,
-    borderRadius: 8,
+    borderRadius: borderRadius.medium,
+    borderWidth: 1,
+    borderColor: colors.danger,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: spacing.s,
+  },
+  copy: {
+    flex: 1,
+    gap: 2,
+  },
+  label: {
+    fontSize: typography.fontSize.caption,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.danger,
   },
   message: {
-    flex: 1,
     fontSize: typography.fontSize.body,
-    color: '#991B1B',
+    color: colors.textPrimary,
   },
   dismissButton: {
-    marginLeft: spacing.s,
     padding: spacing.xs,
   },
   dismissText: {
-    fontSize: 20,
-    color: '#991B1B',
-    fontWeight: 'bold',
+    fontSize: typography.fontSize.caption,
+    color: colors.textSecondary,
+    textDecorationLine: 'underline',
   },
 });

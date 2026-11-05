@@ -1,5 +1,4 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 import type { NowRecommendation } from '../../types';
 import type { CapacityChoice } from '../../types/execution';
@@ -32,10 +31,13 @@ export function NowCard({
   onEasier,
   onPlanToday,
 }: NowCardProps) {
+  const canStart = Boolean(recommendation?.activeSession || recommendation?.taskId || recommendation?.nextAction);
+
   return (
     <View style={styles.wrap}>
-      <LinearGradient colors={['#1E2530', '#252B38']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.card}>
-        <Text style={styles.kicker}>What helps me now?</Text>
+      <View style={styles.card}>
+        <View style={styles.marker} />
+        <Text style={styles.kicker}>Next action</Text>
         {recommendation?.taskTitle ? (
           <Text style={styles.title}>{recommendation.taskTitle}</Text>
         ) : (
@@ -46,19 +48,22 @@ export function NowCard({
         ) : null}
         {recommendation?.reason ? <Text style={styles.reason}>{recommendation.reason}</Text> : null}
 
-        <TouchableOpacity style={styles.start} onPress={onStart} disabled={!recommendation?.activeSession && !recommendation?.taskId && !recommendation?.nextAction}>
-          <LinearGradient
-            colors={[colors.category.work, colors.category.work + 'CC']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.startGradient}
-          >
-            <Text style={styles.startText}>
-              {recommendation?.activeSession
-                ? 'Continue session'
-                : `Start for ${recommendation?.suggestedStartMinutes ?? 5} minutes`}
-            </Text>
-          </LinearGradient>
+        <TouchableOpacity
+          style={[styles.start, !canStart && styles.startDisabled]}
+          onPress={onStart}
+          disabled={!canStart}
+          accessibilityRole="button"
+          accessibilityLabel={
+            recommendation?.activeSession
+              ? 'Continue session'
+              : `Start for ${recommendation?.suggestedStartMinutes ?? 5} minutes`
+          }
+        >
+          <Text style={styles.startText}>
+            {recommendation?.activeSession
+              ? 'Continue session'
+              : `Start for ${recommendation?.suggestedStartMinutes ?? 5} minutes`}
+          </Text>
         </TouchableOpacity>
 
         <View style={styles.row}>
@@ -78,13 +83,13 @@ export function NowCard({
             </TouchableOpacity>
           ))}
         </View>
-        <TouchableOpacity onPress={onEasier}>
+        <TouchableOpacity onPress={onEasier} accessibilityRole="button">
           <Text style={styles.link}>Need an easier start?</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={onPlanToday}>
+        <TouchableOpacity onPress={onPlanToday} accessibilityRole="button">
           <Text style={styles.link}>Help me plan today</Text>
         </TouchableOpacity>
-      </LinearGradient>
+      </View>
     </View>
   );
 }
@@ -92,17 +97,29 @@ export function NowCard({
 const styles = StyleSheet.create({
   wrap: { marginHorizontal: spacing.l, marginBottom: spacing.m },
   card: {
+    backgroundColor: colors.surface,
     borderRadius: borderRadius.large,
     padding: spacing.m,
+    paddingLeft: spacing.m + 6,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.primary,
     ...shadows.small,
+    overflow: 'hidden',
+  },
+  marker: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    backgroundColor: colors.primary,
   },
   kicker: {
-    color: colors.category.work,
+    color: colors.textSecondary,
     fontSize: typography.fontSize.caption,
     fontWeight: typography.fontWeight.semibold,
     marginBottom: spacing.s,
+    letterSpacing: 0.4,
   },
   title: {
     color: colors.textPrimary,
@@ -110,19 +127,28 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.bold,
   },
   action: {
-    color: colors.textPrimary,
+    color: colors.textSecondary,
     fontSize: typography.fontSize.body,
     marginTop: spacing.s,
+    lineHeight: typography.lineHeight.body,
   },
   reason: {
-    color: colors.textSecondary,
+    color: colors.textMuted,
     fontSize: typography.fontSize.caption,
     marginTop: spacing.s,
   },
-  start: { marginTop: spacing.m, borderRadius: borderRadius.medium, overflow: 'hidden' },
-  startGradient: { padding: spacing.m, alignItems: 'center' },
+  start: {
+    marginTop: spacing.m,
+    borderRadius: borderRadius.medium,
+    backgroundColor: colors.primary,
+    padding: spacing.m,
+    alignItems: 'center',
+  },
+  startDisabled: {
+    backgroundColor: colors.primaryPressed,
+  },
   startText: {
-    color: colors.background,
+    color: colors.onPrimary,
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
   },
@@ -132,8 +158,9 @@ const styles = StyleSheet.create({
     padding: spacing.s,
     alignItems: 'center',
     borderRadius: borderRadius.medium,
+    backgroundColor: colors.surfaceRaised,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderControl,
   },
   ghostText: { color: colors.textPrimary, fontSize: typography.fontSize.caption },
   subtle: { color: colors.textSecondary, fontSize: typography.fontSize.caption, marginTop: spacing.m },
@@ -142,11 +169,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.m,
     paddingVertical: spacing.xs,
     borderRadius: 16,
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.surfaceRaised,
   },
   chipText: { color: colors.textPrimary, fontSize: typography.fontSize.caption },
   link: {
-    color: colors.category.stability,
+    color: colors.textSecondary,
     fontSize: typography.fontSize.caption,
     marginTop: spacing.s,
     textDecorationLine: 'underline',

@@ -39,7 +39,7 @@ export function PhoneUnlockInsights({ entries, refreshing, onRefresh }: PhoneUnl
       contentContainerStyle={styles.content}
       refreshControl={
         onRefresh ? (
-          <RefreshControl refreshing={refreshing || false} onRefresh={onRefresh} tintColor={colors.category.stability} />
+          <RefreshControl refreshing={refreshing || false} onRefresh={onRefresh} tintColor={colors.primary} />
         ) : undefined
       }
     >
@@ -172,7 +172,7 @@ function DayMixChart({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke="#252B38"
+          stroke={colors.surfaceRaised}
           strokeWidth={stroke}
           fill="none"
         />
@@ -234,7 +234,7 @@ function WeekBars({
           });
           return (
             <G key={day.key}>
-              <Rect x={x} y={8} width={barWidth} height={height - 8} rx={8} fill="#252B38" />
+              <Rect x={x} y={8} width={barWidth} height={height - 8} rx={8} fill={colors.surfaceRaised} />
               {stacks.map((stack) => (
                 <Rect
                   key={stack.id}
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   periodChipOn: {
-    backgroundColor: '#31443C',
+    backgroundColor: colors.primaryContainer,
   },
   periodText: {
     color: colors.textSecondary,

@@ -107,8 +107,8 @@ const styles = StyleSheet.create({
     // Additional styling if needed
   },
   incrementButton: {
-    backgroundColor: colors.category.health + '20',
-    borderColor: colors.category.health + '60',
+    backgroundColor: colors.primaryContainer,
+    borderColor: colors.borderControl,
   },
   buttonDisabled: {
     opacity: 0.5,

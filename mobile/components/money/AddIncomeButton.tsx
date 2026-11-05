@@ -39,7 +39,7 @@ export function AddIncomeButton({ onAddIncome }: AddIncomeButtonProps) {
     return (
       <View style={styles.inputContainer}>
         <LinearGradient
-          colors={['#1E2530', '#252B38']}
+          colors={[colors.surface, colors.surface]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.inputWrapper}
@@ -54,7 +54,7 @@ export function AddIncomeButton({ onAddIncome }: AddIncomeButtonProps) {
           />
         </LinearGradient>
         <LinearGradient
-          colors={['#1E2530', '#252B38']}
+          colors={[colors.surface, colors.surface]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.inputWrapper}
@@ -78,7 +78,7 @@ export function AddIncomeButton({ onAddIncome }: AddIncomeButtonProps) {
             disabled={!source.trim() || !amount}
           >
             <LinearGradient
-              colors={(!source.trim() || !amount) ? [colors.border, colors.border] : [colors.category.leverage, colors.category.leverage + 'CC']}
+              colors={(!source.trim() || !amount) ? [colors.border, colors.border] : [colors.primary, colors.primary]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.submitGradient}
@@ -94,7 +94,7 @@ export function AddIncomeButton({ onAddIncome }: AddIncomeButtonProps) {
   return (
     <TouchableOpacity style={styles.button} onPress={handlePress}>
       <LinearGradient
-        colors={[colors.category.leverage, colors.category.leverage + 'CC']}
+        colors={[colors.primary, colors.primary]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.buttonGradient}
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
   inputContainer: {
     paddingHorizontal: spacing.l,
@@ -171,6 +171,6 @@ const styles = StyleSheet.create({
   submitText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
 });

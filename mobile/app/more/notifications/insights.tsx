@@ -27,7 +27,7 @@ export default function NotificationInsightsScreen() {
       >
         <SafeAreaView style={styles.container}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.category.work} />
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
         </SafeAreaView>
       </LinearGradient>
@@ -65,11 +65,11 @@ export default function NotificationInsightsScreen() {
           </View>
 
           <View style={styles.statsContainer}>
-            <LG colors={['#1E2530', '#252B38']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.statCard}>
+            <LG colors={[colors.surface, colors.surface]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.statCard}>
               <Text style={styles.statValue}>{insights.totalNotifications}</Text>
               <Text style={styles.statLabel}>Total Notifications</Text>
             </LG>
-            <LG colors={['#1E2530', '#252B38']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.statCard}>
+            <LG colors={[colors.surface, colors.surface]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.statCard}>
               <Text style={styles.statValue}>{insights.taskRelevantCount}</Text>
               <Text style={styles.statLabel}>Task-Relevant</Text>
             </LG>
@@ -80,7 +80,7 @@ export default function NotificationInsightsScreen() {
             {insights.mostActiveApps.slice(0, 10).map((app, index) => (
               <LG
                 key={app.packageName}
-                colors={['#1E2530', '#252B38']}
+                colors={[colors.surface, colors.surface]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.appCard}
@@ -113,7 +113,7 @@ export default function NotificationInsightsScreen() {
             {insights.notificationsByDay.map((day) => (
               <LG
                 key={day.dayOfWeek}
-                colors={['#1E2530', '#252B38']}
+                colors={[colors.surface, colors.surface]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.dayCard}
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
   },
   bar: {
     width: 20,
-    backgroundColor: colors.category.work,
+    backgroundColor: colors.primary,
     borderRadius: borderRadius.small,
     marginBottom: spacing.xs,
   },

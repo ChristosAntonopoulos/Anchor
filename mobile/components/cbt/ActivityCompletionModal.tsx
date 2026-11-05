@@ -106,7 +106,7 @@ export function ActivityCompletionModal({
     >
       <View style={styles.overlay}>
         <LinearGradient
-          colors={['#1E2530', '#252B38']}
+          colors={[colors.surface, colors.surface]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.modal}
@@ -170,7 +170,7 @@ export function ActivityCompletionModal({
               disabled={loading}
             >
               <LinearGradient
-                colors={loading ? [colors.border, colors.border] : [colors.category.health, colors.category.health + 'CC']}
+                colors={loading ? [colors.border, colors.border] : [colors.primary, colors.primary]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.submitGradient}
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   },
   sliderFill: {
     height: '100%',
-    backgroundColor: colors.category.health,
+    backgroundColor: colors.primary,
     borderRadius: 4,
   },
   sliderButtons: {
@@ -266,20 +266,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sliderButtonActive: {
-    backgroundColor: colors.category.health + '20',
-    borderColor: colors.category.health,
+    backgroundColor: colors.primaryContainer,
+    borderColor: colors.primary,
   },
   sliderButtonText: {
     fontSize: typography.fontSize.caption,
     color: colors.textSecondary,
   },
   sliderButtonTextActive: {
-    color: colors.category.health,
+    color: colors.textPrimary,
     fontWeight: typography.fontWeight.semibold,
   },
   ratingValue: {
     fontSize: typography.fontSize.caption,
-    color: colors.category.health,
+    color: colors.textPrimary,
     fontWeight: typography.fontWeight.semibold,
     textAlign: 'right',
   },
@@ -340,6 +340,6 @@ const styles = StyleSheet.create({
   submitText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
 });

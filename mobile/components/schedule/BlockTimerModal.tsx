@@ -72,7 +72,7 @@ export function BlockTimerModal({ block, visible, onClose, onItemComplete }: Blo
 
           {timer.finished ? (
             <View style={styles.finishedContainer}>
-              <AppIcon name="checkmark-circle" size={72} color={colors.category.work} />
+              <AppIcon name="checkmark-circle" size={72} color={colors.primary} />
               <Text style={styles.finishedTitle}>Block complete</Text>
               <Text style={styles.finishedSubtitle}>Nice work — you finished every step.</Text>
               <TouchableOpacity style={styles.primaryBtnBlock} onPress={onClose}>
@@ -81,7 +81,7 @@ export function BlockTimerModal({ block, visible, onClose, onItemComplete }: Blo
             </View>
           ) : !timer.started ? (
             <View style={styles.finishedContainer}>
-              <AppIcon name="timer-outline" size={64} color={colors.category.work} />
+              <AppIcon name="timer-outline" size={64} color={colors.primary} />
               <Text style={styles.finishedTitle}>Ready to start?</Text>
               <Text style={styles.finishedSubtitle}>
                 {timer.sorted.length} steps · tap Start when you're ready
@@ -145,8 +145,10 @@ export function BlockTimerModal({ block, visible, onClose, onItemComplete }: Blo
                       }
                       size={18}
                       color={
-                        item.completed || idx === timer.activeIndex
-                          ? colors.category.work
+                        item.completed
+                          ? colors.success
+                          : idx === timer.activeIndex
+                            ? colors.primary
                           : colors.textSecondary
                       }
                     />
@@ -193,7 +195,7 @@ const styles = StyleSheet.create({
   },
   progressLabel: {
     fontSize: typography.fontSize.caption,
-    color: colors.category.work,
+    color: colors.primary,
     fontWeight: typography.fontWeight.bold,
     minWidth: 36,
     textAlign: 'right',
@@ -206,7 +208,7 @@ const styles = StyleSheet.create({
   },
   stepLabel: {
     fontSize: typography.fontSize.caption,
-    color: colors.category.work,
+    color: colors.textSecondary,
     letterSpacing: 2,
     marginBottom: spacing.s,
   },
@@ -221,7 +223,7 @@ const styles = StyleSheet.create({
   countdown: {
     fontSize: 72,
     fontWeight: typography.fontWeight.bold,
-    color: colors.category.work,
+    color: colors.textPrimary,
   },
   progressTrack: {
     width: '100%',
@@ -233,7 +235,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: colors.category.work,
+    backgroundColor: colors.primary,
     borderRadius: borderRadius.round,
   },
   nextUp: {
@@ -270,7 +272,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.m,
     paddingHorizontal: spacing.xl,
     borderRadius: borderRadius.medium,
-    backgroundColor: colors.category.work,
+    backgroundColor: colors.primary,
     minHeight: 48,
   },
   primaryBtnInline: {
@@ -280,7 +282,7 @@ const styles = StyleSheet.create({
   primaryBtnText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
   checklistPreview: {
     paddingHorizontal: spacing.l,

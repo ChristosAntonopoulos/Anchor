@@ -95,7 +95,7 @@ export default function TasksScreen() {
       >
         <SafeAreaView style={styles.container}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.category.work} />
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
         </SafeAreaView>
       </LinearGradient>
@@ -114,7 +114,7 @@ export default function TasksScreen() {
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.category.work} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
           }
         >
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -129,7 +129,7 @@ export default function TasksScreen() {
 
           {dayStartProcessing && todayFocus.length === 0 ? (
             <View style={styles.focusLoading}>
-              <ActivityIndicator size="small" color={colors.category.work} />
+              <ActivityIndicator size="small" color={colors.primary} />
               <Text style={styles.focusLoadingText}>Loading today's focus…</Text>
             </View>
           ) : (
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.l,
   },
   errorText: {
-    color: colors.category.health,
+    color: colors.danger,
     paddingHorizontal: spacing.l,
     paddingTop: spacing.m,
     fontSize: typography.fontSize.caption,

@@ -125,12 +125,12 @@ export function LocationPicker({ visible, location, onClose, onSave }: LocationP
               disabled={loading}
             >
               <LinearGradient
-                colors={[colors.category.work, colors.category.work + 'CC']}
+                colors={[colors.primary, colors.primary]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.locationButtonGradient}
               >
-                <AppIcon name="location" size={20} color={colors.background} />
+                <AppIcon name="location" size={20} color={colors.onPrimary} />
                 <Text style={styles.locationButtonText}>
                   {loading ? 'Getting location...' : 'Use Current Location'}
                 </Text>
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   locationButtonText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
   hint: {
     fontSize: typography.fontSize.caption,

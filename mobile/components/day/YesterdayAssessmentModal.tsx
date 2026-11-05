@@ -50,7 +50,7 @@ export function YesterdayAssessmentModal({ visible, bootstrap, onDismiss }: Yest
         <ScrollView contentContainerStyle={styles.content}>
           {processing ? (
             <View style={styles.loadingBlock}>
-              <ActivityIndicator size="large" color={colors.category.work} />
+              <ActivityIndicator size="large" color={colors.primary} />
               <Text style={styles.loadingText}>Building today's plan…</Text>
             </View>
           ) : (
@@ -131,16 +131,16 @@ const styles = StyleSheet.create({
   bulletRow: { flexDirection: 'row', gap: spacing.s, alignItems: 'flex-start' },
   bullet: { color: colors.textSecondary, lineHeight: 22 },
   bulletText: { flex: 1, color: colors.textSecondary, fontSize: typography.fontSize.body, lineHeight: 22 },
-  errorText: { color: colors.category.health, fontSize: typography.fontSize.caption },
+  errorText: { color: colors.danger, fontSize: typography.fontSize.caption },
   primaryBtn: {
     margin: spacing.l,
-    backgroundColor: colors.category.work,
+    backgroundColor: colors.primary,
     borderRadius: borderRadius.medium,
     paddingVertical: spacing.m,
     alignItems: 'center',
   },
   primaryBtnText: {
-    color: colors.background,
+    color: colors.onPrimary,
     fontWeight: typography.fontWeight.semibold,
     fontSize: typography.fontSize.body,
   },

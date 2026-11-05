@@ -85,7 +85,7 @@ export function BetterTodayItem({ item, onToggle, onAccept, onEdit, onReject }: 
           activeOpacity={1}
         >
           <LinearGradient
-            colors={item.completed ? ['#1E2530', '#252B38'] : ['#1E2530', '#252B38']}
+            colors={item.completed ? [colors.surface, colors.surface] : [colors.surface, colors.surface]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.gradient}
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   checkmark: {
-    color: colors.background,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: 'bold',
   },

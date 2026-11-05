@@ -177,13 +177,13 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#1E2530', '#252B38']}
+        colors={[colors.surface, colors.surface]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.promptCard}
       >
         <View style={styles.header}>
-          <AppIcon name="notifications-outline" size={32} color={colors.category.work} />
+          <AppIcon name="notifications-outline" size={32} color={colors.primary} />
           <Text style={styles.title}>Enable Notification Access</Text>
         </View>
         
@@ -208,14 +208,14 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
 
         {error && (
           <View style={styles.errorContainer}>
-            <AppIcon name="alert-circle-outline" size={20} color={colors.error || '#FF6B6B'} />
+            <AppIcon name="alert-circle-outline" size={20} color={colors.danger} />
             <Text style={styles.errorText}>{error}</Text>
           </View>
         )}
 
         {moduleAvailable === false && (
           <View style={styles.errorContainer}>
-            <AppIcon name="warning-outline" size={20} color={colors.error || '#FF6B6B'} />
+            <AppIcon name="warning-outline" size={20} color={colors.danger} />
             <Text style={styles.errorText}>
               Native notification module not found. This feature requires a development build with native code. The notification access feature will not be available in this build.
             </Text>
@@ -229,12 +229,12 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={[colors.category.work, colors.category.work + 'CC']}
+              colors={[colors.primary, colors.primary]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.enableButtonGradient}
             >
-              <AppIcon name="settings-outline" size={20} color={colors.background} />
+              <AppIcon name="settings-outline" size={20} color={colors.onPrimary} />
               <Text style={styles.enableButtonText}>Open Settings</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -246,7 +246,7 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
               activeOpacity={0.8}
             >
               <View style={styles.retryButtonContent}>
-                <AppIcon name="refresh-outline" size={20} color={colors.category.work} />
+                <AppIcon name="refresh-outline" size={20} color={colors.primary} />
                 <Text style={styles.retryButtonText}>Check Again</Text>
               </View>
             </TouchableOpacity>
@@ -255,7 +255,7 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
 
         {isNothingPhone && settingsMethod !== 'standard' && (
           <View style={styles.nothingPhoneInstructions}>
-            <AppIcon name="information-circle-outline" size={20} color={colors.category.work} />
+            <AppIcon name="information-circle-outline" size={20} color={colors.primary} />
             <View style={styles.instructionsContent}>
               <Text style={styles.instructionsTitle}>Nothing Phone Instructions:</Text>
               <Text style={styles.instructionsText}>
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: borderRadius.medium,
     borderWidth: 1,
-    borderColor: colors.category.work + '40',
+    borderColor: colors.borderSubtle,
   },
   enabledText: {
     fontSize: typography.fontSize.body,
@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
   enableButtonText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
   hint: {
     fontSize: typography.fontSize.caption,
@@ -394,15 +394,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.s,
     padding: spacing.m,
-    backgroundColor: (colors.error || '#FF6B6B') + '20',
+    backgroundColor: (colors.danger) + '20',
     borderRadius: borderRadius.small,
     marginBottom: spacing.m,
     borderWidth: 1,
-    borderColor: (colors.error || '#FF6B6B') + '40',
+    borderColor: (colors.danger) + '40',
   },
   errorText: {
     fontSize: typography.fontSize.caption,
-    color: colors.error || '#FF6B6B',
+    color: colors.danger,
     flex: 1,
   },
   buttonRow: {
@@ -438,11 +438,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing.s,
     padding: spacing.m,
-    backgroundColor: colors.category.work + '15',
+    backgroundColor: colors.primaryContainer,
     borderRadius: borderRadius.small,
     marginBottom: spacing.m,
     borderWidth: 1,
-    borderColor: colors.category.work + '30',
+    borderColor: colors.borderSubtle,
   },
   instructionsContent: {
     flex: 1,

@@ -1,138 +1,155 @@
-// Design tokens - Calm New Age Gaming Aesthetic
-// Combines calm colors, new-age mystical feel, and subtle gaming aesthetics
+/**
+ * Personal AI — one dark colour system.
+ * Semantic tokens only. No light theme. No mood-based or per-screen palettes.
+ */
 
-export const brand = {
-  cream: '#F6F0E2',
-  deepGreen: '#316F5F',
-  sage: '#C7E5CD',
-  deepTeal: '#132E2A',
-  goldenSun: '#E7C47B',
+export const theme = {
+  background: '#151D1B',
+  surface: '#1E2925',
+  surfaceRaised: '#26332D',
+  surfaceHover: '#2C3C34',
+
+  textPrimary: '#EAF0EB',
+  textSecondary: '#B4C1BA',
+  textMuted: '#9AAEA2',
+
+  borderSubtle: '#3B4C42',
+  borderControl: '#7A9182',
+
+  primary: '#A4CDBB',
+  primaryHover: '#B5DAC9',
+  primaryPressed: '#91BAA7',
+  onPrimary: '#152B23',
+  primaryContainer: '#293F34',
+
+  aiAccent: '#C6B8E2',
+  aiContainer: '#332D40',
+
+  success: '#B4D2A2',
+  successContainer: '#2A3827',
+
+  warning: '#E8C582',
+  warningContainer: '#3D3324',
+
+  danger: '#ECA7A1',
+  dangerContainer: '#422B2A',
+
+  focusRing: '#A4CDBB',
+  focusRingGap: '#151D1B',
+} as const;
+
+export type ThemeToken = keyof typeof theme;
+
+const restrainedShadow = {
+  shadowColor: '#000000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.18,
+  shadowRadius: 4,
+  elevation: 2,
 } as const;
 
 export const colors = {
-  // Base colors (Calm + Dark Gaming)
-  background: '#0F1419', // Deep charcoal - reduces eye strain
-  surface: '#1E2530', // Soft dark gray with subtle transparency
-  surfaceElevated: '#252B38', // Slightly lighter for elevated surfaces
-  textPrimary: '#E8EAED', // Off-white/soft silver
-  textSecondary: '#8B95A6', // Muted gray-blue
-  
-  // Category accents (New Age + Gaming)
+  background: theme.background,
+  surface: theme.surface,
+  surfaceElevated: theme.surfaceRaised,
+  surfaceRaised: theme.surfaceRaised,
+  surfaceHover: theme.surfaceHover,
+
+  textPrimary: theme.textPrimary,
+  textSecondary: theme.textSecondary,
+  textMuted: theme.textMuted,
+
+  border: theme.borderSubtle,
+  borderLight: theme.borderControl,
+  borderSubtle: theme.borderSubtle,
+  borderControl: theme.borderControl,
+
+  primary: theme.primary,
+  primaryHover: theme.primaryHover,
+  primaryPressed: theme.primaryPressed,
+  onPrimary: theme.onPrimary,
+  primaryContainer: theme.primaryContainer,
+
+  aiAccent: theme.aiAccent,
+  aiContainer: theme.aiContainer,
+
+  success: theme.success,
+  successContainer: theme.successContainer,
+  warning: theme.warning,
+  warningContainer: theme.warningContainer,
+  error: theme.danger,
+  danger: theme.danger,
+  dangerContainer: theme.dangerContainer,
+  info: theme.primary,
+  focusRing: theme.focusRing,
+  focusRingGap: theme.focusRingGap,
+
+  // Legacy category keys. Subordinate labels only — never a second primary system.
   category: {
-    work: '#00D9FF', // Soft cyan/teal - calm tech feel
-    leverage: '#10D9A0', // Emerald green - growth energy
-    health: '#FFB84D', // Warm amber - vitality
-    stability: '#A78BFA', // Soft purple/violet - mystical calm
+    work: theme.textSecondary,
+    leverage: theme.textSecondary,
+    health: theme.textSecondary,
+    stability: theme.textSecondary,
   },
-  
-  // Glow variants (subtle neon effects)
+
   glow: {
-    work: '#00D9FF40', // 25% opacity
-    leverage: '#10D9A040',
-    health: '#FFB84D40',
-    stability: '#A78BFA40',
-    default: 'rgba(167, 139, 250, 0.2)', // Soft purple glow
+    work: 'transparent',
+    leverage: 'transparent',
+    health: 'transparent',
+    stability: 'transparent',
+    default: 'transparent',
   },
-  
-  // Borders
-  border: '#2A3441', // Subtle border color
-  borderLight: '#3A4451', // Lighter border for focus states
-  
-  // Status colors
-  success: '#10D9A0',
-  warning: '#FFB84D',
-  error: '#FF6B6B',
-  info: '#00D9FF',
 } as const;
 
-// Gradient definitions
 export const gradients = {
-  // Background gradients
   background: {
-    colors: ['#0F1419', '#1A1F2E', '#0F1419'], // Deep navy to charcoal
+    colors: [theme.background, theme.background, theme.background] as const,
     start: { x: 0, y: 0 },
     end: { x: 1, y: 1 },
   },
-  
-  // Card gradients
   card: {
-    colors: ['#1E2530', '#252B38'],
+    colors: [theme.surface, theme.surface] as const,
     start: { x: 0, y: 0 },
     end: { x: 1, y: 1 },
   },
-  
-  // Category gradients (color to transparent)
-  category: {
-    work: ['#00D9FF', '#00D9FF00'],
-    leverage: ['#10D9A0', '#10D9A000'],
-    health: ['#FFB84D', '#FFB84D00'],
-    stability: ['#A78BFA', '#A78BFA00'],
+  raised: {
+    colors: [theme.surfaceRaised, theme.surfaceRaised] as const,
+    start: { x: 0, y: 0 },
+    end: { x: 1, y: 1 },
   },
-  
-  // Accent gradients
+  category: {
+    work: [theme.surface, theme.surface] as const,
+    leverage: [theme.surface, theme.surface] as const,
+    health: [theme.surface, theme.surface] as const,
+    stability: [theme.surface, theme.surface] as const,
+  },
   accent: {
-    purpleTeal: ['#A78BFA', '#00D9FF'], // New-age mystical
-    tealGreen: ['#00D9FF', '#10D9A0'], // Calm tech
+    purpleTeal: [theme.surface, theme.surface] as const,
+    tealGreen: [theme.surface, theme.surface] as const,
   },
 } as const;
 
-// Shadow/glow presets for gaming aesthetic
 export const shadows = {
-  // Soft shadows with color tints
-  small: {
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  
+  small: restrainedShadow,
   medium: {
     shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  large: {
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.22,
     shadowRadius: 8,
     elevation: 4,
   },
-  
-  large: {
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  
-  // Colored glows for category items
   glow: {
-    work: {
-      shadowColor: '#00D9FF',
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.4,
-      shadowRadius: 8,
-      elevation: 4,
-    },
-    leverage: {
-      shadowColor: '#10D9A0',
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.4,
-      shadowRadius: 8,
-      elevation: 4,
-    },
-    health: {
-      shadowColor: '#FFB84D',
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.4,
-      shadowRadius: 8,
-      elevation: 4,
-    },
-    stability: {
-      shadowColor: '#A78BFA',
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.4,
-      shadowRadius: 8,
-      elevation: 4,
-    },
+    work: restrainedShadow,
+    leverage: restrainedShadow,
+    health: restrainedShadow,
+    stability: restrainedShadow,
   },
 } as const;
 
@@ -146,36 +163,29 @@ export const spacing = {
 } as const;
 
 export const typography = {
-  // Font families - System default (San Francisco / Roboto)
   fontFamily: {
     regular: 'System',
     semibold: 'System',
   },
-  
-  // Font sizes
   fontSize: {
-    title: 22, // 20-22px, semibold
-    body: 16, // 15-16px, regular
-    caption: 13, // 12-13px
-    small: 11,
+    title: 22,
+    body: 16,
+    caption: 13,
+    small: 12,
   },
-  
-  // Font weights
   fontWeight: {
     regular: '400' as const,
+    medium: '500' as const,
     semibold: '600' as const,
     bold: '700' as const,
   },
-  
-  // Line heights
   lineHeight: {
     title: 28,
-    body: 22,
+    body: 24,
     caption: 18,
   },
 } as const;
 
-// Border radius (more pronounced for modern look)
 export const borderRadius = {
   small: 8,
   medium: 12,
@@ -184,7 +194,6 @@ export const borderRadius = {
   round: 9999,
 } as const;
 
-// Animation timing
 export const animations = {
   fast: 150,
   normal: 250,
@@ -192,22 +201,17 @@ export const animations = {
   verySlow: 500,
 } as const;
 
-// Helper function to get category color (fallback for backward compatibility)
-// Components should use useCategoryStore.getCategoryColor() instead
-export const getCategoryColor = (category: string): string => {
-  const categoryKey = category.toLowerCase() as keyof typeof colors.category;
-  return colors.category[categoryKey] || colors.textPrimary;
-};
+export const motionDuration = (duration: number, reduceMotion: boolean): number =>
+  reduceMotion ? 0 : duration;
 
-// Helper function to get category glow (fallback for backward compatibility)
-// Components should use useCategoryStore.getCategoryGlow() instead
-export const getCategoryGlow = (category: string): string => {
-  const categoryKey = category.toLowerCase() as keyof typeof colors.glow;
-  return colors.glow[categoryKey] || colors.glow.default;
-};
+export const focusRingStyle = {
+  borderWidth: 2,
+  borderColor: theme.focusRing,
+  outlineColor: theme.focusRingGap,
+} as const;
 
-// Helper function to get category shadow
-export const getCategoryShadow = (category: string) => {
-  const categoryKey = category.toLowerCase() as keyof typeof shadows.glow;
-  return shadows.glow[categoryKey] || shadows.medium;
-};
+export const getCategoryColor = (_category: string): string => colors.textSecondary;
+
+export const getCategoryGlow = (_category: string): string => 'transparent';
+
+export const getCategoryShadow = (_category: string) => shadows.small;

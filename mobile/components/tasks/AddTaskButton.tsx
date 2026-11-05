@@ -20,7 +20,7 @@ export function AddTaskButton({
   label = '+ Add Task',
   limitMessage = 'Limit reached.',
 }: AddTaskButtonProps) {
-  const { categories, fetchCategories, getCategoryColor } = useCategoryStore();
+  const { categories, fetchCategories } = useCategoryStore();
   const [showInput, setShowInput] = useState(false);
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<CategoryName>('work');
@@ -70,7 +70,7 @@ export function AddTaskButton({
     return (
       <View style={styles.inputContainer}>
         <LinearGradient
-          colors={['#1E2530', '#252B38']}
+          colors={[colors.surface, colors.surface]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.inputWrapper}
@@ -92,22 +92,11 @@ export function AddTaskButton({
                   onPress={() => setCategory(cat.value)}
                   activeOpacity={0.7}
                 >
-                  {category === cat.value ? (
-                    <LinearGradient
-                      colors={[cat.color, cat.color + 'CC']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.categoryChipActive}
-                    >
-                      <Text style={styles.categoryChipTextActive}>{cat.label}</Text>
-                    </LinearGradient>
-                  ) : (
-                    <View style={[styles.categoryChip, { borderColor: cat.color + '40' }]}>
-                      <Text style={[styles.categoryChipText, { color: cat.color }]}>
-                        {cat.label}
-                      </Text>
-                    </View>
-                  )}
+                  <View style={[styles.categoryChip, category === cat.value && styles.categoryChipActive]}>
+                    <Text style={[styles.categoryChipText, category === cat.value && styles.categoryChipTextActive]}>
+                      {cat.label}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               ))}
             </View>
@@ -123,7 +112,7 @@ export function AddTaskButton({
             disabled={!title.trim()}
           >
             <LinearGradient
-              colors={!title.trim() ? [colors.border, colors.border] : [getCategoryColor('work'), getCategoryColor('work') + 'CC']}
+              colors={!title.trim() ? [colors.border, colors.border] : [colors.primary, colors.primary]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.submitGradient}
@@ -143,7 +132,7 @@ export function AddTaskButton({
       disabled={disabled}
     >
       <LinearGradient
-        colors={disabled ? [colors.border, colors.border] : [getCategoryColor('work'), getCategoryColor('work') + 'CC']}
+        colors={disabled ? [colors.border, colors.border] : [colors.primary, colors.primary]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.buttonGradient}
@@ -174,7 +163,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
   buttonTextDisabled: {
     color: colors.textSecondary,
@@ -228,7 +217,7 @@ const styles = StyleSheet.create({
   submitText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
   categoryContainer: {
     marginTop: spacing.m,
@@ -251,20 +240,20 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.round,
     borderWidth: 1,
-    backgroundColor: colors.surface,
+    borderColor: colors.borderControl,
+    backgroundColor: colors.surfaceRaised,
   },
   categoryChipActive: {
-    paddingHorizontal: spacing.m,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.round,
+    backgroundColor: colors.primaryContainer,
+    borderColor: colors.primary,
   },
   categoryChipText: {
     fontSize: typography.fontSize.caption,
     fontWeight: typography.fontWeight.regular,
+    color: colors.textPrimary,
   },
   categoryChipTextActive: {
-    fontSize: typography.fontSize.caption,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.textPrimary,
   },
 });

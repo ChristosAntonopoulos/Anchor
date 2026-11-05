@@ -191,7 +191,14 @@ export function WorkSessionModal({ visible, onClose, pendingStart }: WorkSession
                   </TouchableOpacity>
                 </View>
               ) : session.timerEnabled ? (
-                <Text style={styles.clock}>{clock}</Text>
+                <View>
+                  {session.status === 'running' ? (
+                    <Text style={styles.status}>Running</Text>
+                  ) : session.status === 'paused' ? (
+                    <Text style={styles.statusMuted}>Paused</Text>
+                  ) : null}
+                  <Text style={styles.clock}>{clock}</Text>
+                </View>
               ) : (
                 <Text style={styles.meta}>No timer</Text>
               )}
@@ -295,14 +302,14 @@ export function WorkSessionModal({ visible, onClose, pendingStart }: WorkSession
                   <TouchableOpacity style={styles.ghost} onPress={() => void pause()}><Text style={styles.ghostText}>Pause</Text></TouchableOpacity>
                 ) : null}
                 {!inSetup && session?.status === 'paused' ? (
-                  <TouchableOpacity style={styles.ghost} onPress={() => void resume()}><Text style={styles.ghostText}>Resume</Text></TouchableOpacity>
+                  <TouchableOpacity style={styles.primary} onPress={() => void resume()}><Text style={styles.primaryText}>Resume</Text></TouchableOpacity>
                 ) : null}
                 {!inSetup ? (
                   <TouchableOpacity style={styles.ghost} onPress={() => setShowDistraction(true)}><Text style={styles.ghostText}>Capture distraction</Text></TouchableOpacity>
                 ) : null}
                 <TouchableOpacity style={styles.ghost} onPress={() => setShowStuck(true)}><Text style={styles.ghostText}>I am stuck</Text></TouchableOpacity>
                 {!inSetup ? (
-                  <TouchableOpacity style={styles.primary} onPress={() => setShowFinish(true)}><Text style={styles.primaryText}>Finish</Text></TouchableOpacity>
+                  <TouchableOpacity style={styles.ghost} onPress={() => setShowFinish(true)}><Text style={styles.ghostText}>Finish</Text></TouchableOpacity>
                 ) : null}
               </View>
             ) : null}
@@ -350,7 +357,8 @@ function StuckResult({
   onLeave: () => void;
 }) {
   return (
-    <View style={styles.panel}>
+    <View style={[styles.panel, styles.aiPanel]}>
+      <Text style={styles.aiLabel}>Suggested first step</Text>
       {editing ? (
         <TextInput style={styles.input} value={editText} onChangeText={onChangeEdit} />
       ) : (
@@ -372,19 +380,23 @@ const styles = StyleSheet.create({
   body: { flex: 1, paddingHorizontal: spacing.l },
   label: { color: colors.textSecondary, fontSize: typography.fontSize.caption },
   action: { color: colors.textPrimary, fontSize: 22, fontWeight: typography.fontWeight.bold, marginTop: spacing.s },
-  clock: { color: colors.category.work, fontSize: 48, fontWeight: typography.fontWeight.bold, marginVertical: spacing.l },
+  status: { color: colors.primary, fontSize: typography.fontSize.caption, fontWeight: typography.fontWeight.semibold, marginTop: spacing.m },
+  statusMuted: { color: colors.textSecondary, fontSize: typography.fontSize.caption, fontWeight: typography.fontWeight.semibold, marginTop: spacing.m },
+  clock: { color: colors.textPrimary, fontSize: 48, fontWeight: typography.fontWeight.bold, marginVertical: spacing.s },
   meta: { color: colors.textSecondary, marginTop: spacing.s, fontSize: typography.fontSize.caption },
   panel: { backgroundColor: colors.surface, borderRadius: borderRadius.large, padding: spacing.m, marginTop: spacing.m },
+  aiPanel: { backgroundColor: colors.aiContainer },
+  aiLabel: { color: colors.aiAccent, fontSize: typography.fontSize.caption, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.s },
   title: { color: colors.textPrimary, fontSize: typography.fontSize.title, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.s },
-  input: { color: colors.textPrimary, borderWidth: 1, borderColor: colors.border, borderRadius: borderRadius.medium, padding: spacing.s, marginBottom: spacing.s },
-  primary: { backgroundColor: colors.category.work, borderRadius: borderRadius.medium, padding: spacing.s, alignItems: 'center', marginTop: spacing.s },
-  primaryText: { color: colors.background, fontWeight: typography.fontWeight.semibold },
-  ghost: { borderWidth: 1, borderColor: colors.border, borderRadius: borderRadius.medium, padding: spacing.s, alignItems: 'center', marginTop: spacing.s },
+  input: { color: colors.textPrimary, borderWidth: 1, borderColor: colors.borderControl, borderRadius: borderRadius.medium, padding: spacing.s, marginBottom: spacing.s },
+  primary: { backgroundColor: colors.primary, borderRadius: borderRadius.medium, padding: spacing.s, alignItems: 'center', marginTop: spacing.s },
+  primaryText: { color: colors.onPrimary, fontWeight: typography.fontWeight.semibold },
+  ghost: { borderWidth: 1, borderColor: colors.borderControl, backgroundColor: colors.surfaceRaised, borderRadius: borderRadius.medium, padding: spacing.s, alignItems: 'center', marginTop: spacing.s },
   ghostText: { color: colors.textPrimary },
-  link: { color: colors.category.stability, textDecorationLine: 'underline', marginTop: spacing.s, textAlign: 'center' },
+  link: { color: colors.textSecondary, textDecorationLine: 'underline', marginTop: spacing.s, textAlign: 'center' },
   footer: { padding: spacing.m, gap: 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.s, marginBottom: spacing.s },
-  chip: { paddingHorizontal: spacing.m, paddingVertical: spacing.xs, borderRadius: 16, borderWidth: 1, borderColor: colors.border },
-  chipOn: { backgroundColor: '#31443C', borderColor: colors.category.leverage },
+  chip: { paddingHorizontal: spacing.m, paddingVertical: spacing.xs, borderRadius: 16, borderWidth: 1, borderColor: colors.borderControl },
+  chipOn: { backgroundColor: colors.primaryContainer, borderColor: colors.primary },
   chipText: { color: colors.textPrimary, fontSize: typography.fontSize.caption },
 });

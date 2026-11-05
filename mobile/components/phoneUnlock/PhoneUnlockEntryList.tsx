@@ -18,7 +18,7 @@ export function PhoneUnlockEntryList({ entries, refreshing, onRefresh }: PhoneUn
         contentContainerStyle={styles.listContainer}
         refreshControl={
           onRefresh ? (
-            <RefreshControl refreshing={refreshing || false} onRefresh={onRefresh} tintColor={colors.category.stability} />
+            <RefreshControl refreshing={refreshing || false} onRefresh={onRefresh} tintColor={colors.primary} />
           ) : undefined
         }
       >
@@ -36,7 +36,7 @@ export function PhoneUnlockEntryList({ entries, refreshing, onRefresh }: PhoneUn
       showsVerticalScrollIndicator={false}
       refreshControl={
         onRefresh ? (
-          <RefreshControl refreshing={refreshing || false} onRefresh={onRefresh} tintColor={colors.category.stability} />
+          <RefreshControl refreshing={refreshing || false} onRefresh={onRefresh} tintColor={colors.primary} />
         ) : undefined
       }
     >

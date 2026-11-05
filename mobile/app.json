@@ -5,15 +5,15 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
     "scheme": "pos",
     "splash": {
       "image": "./assets/splash-light.png",
       "resizeMode": "cover",
-      "backgroundColor": "#F6F0E2",
+      "backgroundColor": "#151D1B",
       "dark": {
         "image": "./assets/splash-dark.png",
-        "backgroundColor": "#132E2A"
+        "backgroundColor": "#151D1B"
       }
     },
     "ios": {

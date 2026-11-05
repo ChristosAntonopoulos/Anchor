@@ -31,7 +31,7 @@ export function CheckInChrome({ children, footer, scroll = true }: CheckInChrome
   );
 
   return (
-    <LinearGradient colors={['#0F1419', '#1A1F2E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.flex}>
+    <LinearGradient colors={[colors.background, colors.background]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.flex}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

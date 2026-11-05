@@ -14,7 +14,7 @@ export function CurrentBlockIndicator({ block }: CurrentBlockIndicatorProps) {
     return (
       <View style={styles.container}>
         <LinearGradient
-          colors={['#1E2530', '#252B38']}
+          colors={[colors.surface, colors.surface]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.frame}
@@ -22,13 +22,13 @@ export function CurrentBlockIndicator({ block }: CurrentBlockIndicatorProps) {
           <Text style={styles.label}>Current Block</Text>
           <View style={styles.cardContainer}>
             <LinearGradient
-              colors={['#252B38', '#2A3441']}
+              colors={[colors.surfaceRaised, colors.surfaceRaised]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.card}
             >
               <View style={styles.content}>
-                <AppIcon name="leaf-outline" size={24} color={colors.category.health} style={styles.quoteIcon} />
+                <AppIcon name="leaf-outline" size={24} color={colors.textSecondary} style={styles.quoteIcon} />
                 <Text style={styles.quoteText}>Take a deep breath. This moment is enough.</Text>
               </View>
             </LinearGradient>
@@ -41,7 +41,7 @@ export function CurrentBlockIndicator({ block }: CurrentBlockIndicatorProps) {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#1E2530', '#252B38']}
+        colors={[colors.surface, colors.surface]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.frame}
@@ -49,7 +49,7 @@ export function CurrentBlockIndicator({ block }: CurrentBlockIndicatorProps) {
         <Text style={styles.label}>Current Block</Text>
         <View style={styles.cardContainer}>
           <LinearGradient
-            colors={['#252B38', '#2A3441']}
+            colors={[colors.surfaceRaised, colors.surfaceRaised]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.card}
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 4,
-    backgroundColor: colors.category.work,
+    backgroundColor: colors.primary,
     opacity: 0.6,
   },
   quoteIcon: {

@@ -126,7 +126,7 @@ export function UnlockSetupPrompt({ onReady, onOpenExternal }: UnlockSetupPrompt
           }}
         >
           <LinearGradient
-            colors={[colors.category.stability, colors.category.stability + 'CC']}
+            colors={[colors.primary, colors.primary]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.buttonGradient}
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
   checkButton: {
     padding: spacing.s,

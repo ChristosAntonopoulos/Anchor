@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: colors.category.health + '40',
+    borderColor: colors.borderSubtle,
   },
   insightIcon: {
     marginRight: spacing.s,

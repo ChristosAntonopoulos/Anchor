@@ -18,7 +18,7 @@ export function BehavioralActivityCard({ activity, onPress, onComplete }: Behavi
       activeOpacity={0.7}
     >
       <LinearGradient
-        colors={['#1E2530', '#252B38']}
+        colors={[colors.surface, colors.surface]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
@@ -53,7 +53,7 @@ export function BehavioralActivityCard({ activity, onPress, onComplete }: Behavi
 
         {activity.isCompleted && activity.completedDate && (
           <View style={styles.completedRow}>
-            <AppIcon name="checkmark-circle" size={16} color={colors.category.leverage} />
+            <AppIcon name="checkmark-circle" size={16} color={colors.primary} />
             <Text style={styles.completedText}>
               Completed {new Date(activity.completedDate).toLocaleDateString()}
             </Text>
@@ -97,7 +97,7 @@ export function BehavioralActivityCard({ activity, onPress, onComplete }: Behavi
             onPress={onComplete}
           >
             <LinearGradient
-              colors={[colors.category.health, colors.category.health + 'CC']}
+              colors={[colors.primary, colors.primary]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.completeGradient}
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
   },
   ratingValue: {
     fontSize: typography.fontSize.caption,
-    color: colors.category.health,
+    color: colors.textPrimary,
     fontWeight: typography.fontWeight.semibold,
   },
   completeButton: {
@@ -203,6 +203,6 @@ const styles = StyleSheet.create({
   completeText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
 });

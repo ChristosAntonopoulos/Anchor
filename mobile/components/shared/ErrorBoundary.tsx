@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   },
   button: {
     alignSelf: 'center',
-    backgroundColor: colors.category.work,
+    backgroundColor: colors.primary,
     borderRadius: 8,
     paddingHorizontal: spacing.l,
     paddingVertical: spacing.m,

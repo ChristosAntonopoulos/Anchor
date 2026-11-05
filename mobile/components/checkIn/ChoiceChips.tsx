@@ -32,6 +32,7 @@ export function ChoiceChips({ options, selected, onToggle, accessibilityLabel }:
             ]}
           >
             <Text style={[styles.label, isSelected && styles.labelSelected]}>{option.label}</Text>
+            {isSelected ? <Text style={styles.check}>✓</Text> : null}
           </Pressable>
         );
       })}
@@ -52,23 +53,31 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.s,
     borderRadius: borderRadius.round,
     borderWidth: 1,
-    borderColor: colors.borderLight,
-    backgroundColor: colors.surface,
+    borderColor: colors.borderControl,
+    backgroundColor: colors.surfaceRaised,
     justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   selected: {
-    backgroundColor: colors.category.health + '24',
-    borderColor: colors.category.health,
+    backgroundColor: colors.primaryContainer,
+    borderColor: colors.primary,
     borderWidth: 2,
   },
   pressed: {
-    opacity: 0.8,
+    backgroundColor: colors.surfaceHover,
   },
   label: {
     color: colors.textPrimary,
     fontSize: typography.fontSize.body,
   },
   labelSelected: {
+    fontWeight: typography.fontWeight.semibold,
+  },
+  check: {
+    color: colors.primary,
+    fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
   },
 });

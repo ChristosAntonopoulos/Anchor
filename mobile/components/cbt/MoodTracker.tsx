@@ -6,14 +6,14 @@ import { useCBTStore } from '../../store/useCBTStore';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 
 const MOODS = [
-  { label: 'Happy', value: 'happy', icon: 'sun', color: colors.category.leverage },
-  { label: 'Anxious', value: 'anxious', icon: 'energy', color: colors.category.work },
-  { label: 'Sad', value: 'sad', icon: 'heart', color: colors.category.stability },
-  { label: 'Angry', value: 'angry', icon: 'focus', color: '#EF4444' },
-  { label: 'Calm', value: 'calm', icon: 'leaf', color: colors.category.health },
-  { label: 'Excited', value: 'excited', icon: 'streak', color: colors.category.leverage },
-  { label: 'Tired', value: 'tired', icon: 'sleep', color: colors.textSecondary },
-  { label: 'Confused', value: 'confused', icon: 'insights', color: colors.textSecondary },
+  { label: 'Happy', value: 'happy', icon: 'sun' },
+  { label: 'Anxious', value: 'anxious', icon: 'energy' },
+  { label: 'Sad', value: 'sad', icon: 'heart' },
+  { label: 'Angry', value: 'angry', icon: 'focus' },
+  { label: 'Calm', value: 'calm', icon: 'leaf' },
+  { label: 'Excited', value: 'excited', icon: 'streak' },
+  { label: 'Tired', value: 'tired', icon: 'sleep' },
+  { label: 'Confused', value: 'confused', icon: 'insights' },
 ];
 
 export function MoodTracker() {
@@ -50,7 +50,7 @@ export function MoodTracker() {
       {/* Quick Mood Entry */}
       <View style={styles.entryCard}>
         <LinearGradient
-          colors={['#1E2530', '#252B38']}
+          colors={[colors.surface, colors.surface]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gradient}
@@ -65,19 +65,20 @@ export function MoodTracker() {
                 style={[
                   styles.moodButton,
                   selectedMood === mood.value && styles.moodButtonSelected,
-                  selectedMood === mood.value && { borderColor: mood.color },
                 ]}
                 onPress={() => setSelectedMood(mood.value)}
               >
                 <AppIcon
                   name={mood.icon}
                   size={24}
-                  opacity={selectedMood === mood.value ? 1 : 0.55}
+                  color={colors.textPrimary}
+                  opacity={1}
                 />
+                {selectedMood === mood.value ? <Text style={styles.moodCheck}>✓</Text> : null}
                 <Text
                   style={[
                     styles.moodLabel,
-                    selectedMood === mood.value && { color: mood.color },
+                    selectedMood === mood.value && styles.moodLabelSelected,
                   ]}
                 >
                   {mood.label}
@@ -148,7 +149,7 @@ export function MoodTracker() {
               disabled={loading}
             >
               <LinearGradient
-                colors={loading ? [colors.border, colors.border] : [colors.category.health, colors.category.health + 'CC']}
+                colors={loading ? [colors.border, colors.border] : [colors.primary, colors.primary]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.submitGradient}
@@ -221,21 +222,36 @@ const styles = StyleSheet.create({
   moodButton: {
     width: '22%',
     aspectRatio: 1,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceRaised,
     borderRadius: borderRadius.medium,
-    borderWidth: 2,
-    borderColor: colors.border,
+    borderWidth: 1,
+    borderColor: colors.borderControl,
     justifyContent: 'center',
     alignItems: 'center',
     gap: spacing.xs,
+    position: 'relative',
   },
   moodButtonSelected: {
+    backgroundColor: colors.primaryContainer,
+    borderColor: colors.primary,
     borderWidth: 2,
+  },
+  moodCheck: {
+    position: 'absolute',
+    top: 4,
+    right: 6,
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: typography.fontWeight.semibold,
   },
   moodLabel: {
     fontSize: typography.fontSize.caption,
-    color: colors.textSecondary,
+    color: colors.textPrimary,
     fontWeight: typography.fontWeight.medium,
+  },
+  moodLabelSelected: {
+    color: colors.textPrimary,
+    fontWeight: typography.fontWeight.semibold,
   },
   intensityContainer: {
     marginTop: spacing.m,
@@ -258,7 +274,7 @@ const styles = StyleSheet.create({
   },
   sliderFill: {
     height: '100%',
-    backgroundColor: colors.category.health,
+    backgroundColor: colors.borderControl,
     borderRadius: 4,
   },
   sliderButtons: {
@@ -276,8 +292,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sliderButtonActive: {
-    backgroundColor: colors.category.health + '20',
-    borderColor: colors.category.health,
+    backgroundColor: colors.primaryContainer,
+    borderColor: colors.primary,
   },
   sliderButtonText: {
     fontSize: typography.fontSize.caption,
@@ -285,7 +301,7 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.medium,
   },
   sliderButtonTextActive: {
-    color: colors.category.health,
+    color: colors.textPrimary,
     fontWeight: typography.fontWeight.semibold,
   },
   notesContainer: {
@@ -324,7 +340,7 @@ const styles = StyleSheet.create({
   submitText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
   recentContainer: {
     marginTop: spacing.xl,

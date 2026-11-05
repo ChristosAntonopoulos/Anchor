@@ -51,7 +51,7 @@ export function ScheduleBlockEditModal({
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable style={styles.modalContainer} onPress={(e) => e.stopPropagation()}>
           <LinearGradient
-            colors={['#1E2530', '#252B38']}
+            colors={[colors.surface, colors.surface]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.modalContent}
@@ -108,7 +108,7 @@ export function ScheduleBlockEditModal({
                 activeOpacity={0.7}
               >
                 <LinearGradient
-                  colors={[colors.category.work, colors.category.work + 'CC']}
+                  colors={[colors.primary, colors.primary]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.saveButtonGradient}
@@ -199,6 +199,6 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
 });

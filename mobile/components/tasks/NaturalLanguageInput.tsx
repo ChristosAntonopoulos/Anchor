@@ -49,7 +49,7 @@ export function NaturalLanguageInput({ onSubmit, disabled }: NaturalLanguageInpu
     return (
       <View style={styles.inputContainer}>
         <LinearGradient
-          colors={['#1E2530', '#252B38']}
+          colors={[colors.surface, colors.surface]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.inputWrapper}
@@ -106,13 +106,13 @@ export function NaturalLanguageInput({ onSubmit, disabled }: NaturalLanguageInpu
             <LinearGradient
               colors={(!text.trim() || loading) 
                 ? [colors.border, colors.border] 
-                : [colors.category.leverage, colors.category.leverage + 'CC']}
+                : [colors.primary, colors.primary]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.submitGradient}
             >
               {loading ? (
-                <ActivityIndicator size="small" color={colors.background} />
+                <ActivityIndicator size="small" color={colors.onPrimary} />
               ) : (
                 <Text style={styles.submitText}>Submit</Text>
               )}
@@ -132,13 +132,13 @@ export function NaturalLanguageInput({ onSubmit, disabled }: NaturalLanguageInpu
       <LinearGradient
         colors={disabled 
           ? [colors.border, colors.border] 
-          : [colors.category.leverage, colors.category.leverage + 'CC']}
+          : [colors.primary, colors.primary]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.buttonGradient}
       >
         <View style={styles.buttonContent}>
-          <AppIcon name="sparkles" size={20} color={colors.background} style={styles.buttonIcon} />
+          <AppIcon name="sparkles" size={20} color={colors.onPrimary} style={styles.buttonIcon} />
           <Text style={[styles.buttonText, disabled && styles.buttonTextDisabled]}>
             Write anything...
           </Text>
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
   buttonTextDisabled: {
     color: colors.textSecondary,
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   micButtonActive: {
-    backgroundColor: colors.category.leverage + '20',
+    backgroundColor: colors.primaryContainer,
     borderColor: colors.category.leverage,
   },
   hint: {
@@ -256,6 +256,6 @@ const styles = StyleSheet.create({
   submitText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
 });

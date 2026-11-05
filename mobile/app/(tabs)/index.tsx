@@ -64,7 +64,7 @@ export default function HomeScreen() {
       >
         <SafeAreaView style={styles.container}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.category.work} />
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
         </SafeAreaView>
       </LinearGradient>
@@ -117,7 +117,7 @@ export default function HomeScreen() {
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.category.work} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
           }
         >
           <TodayHeader date={data.day.date} />
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   stuckLink: {
-    color: colors.category.stability,
+    color: colors.textSecondary,
     marginTop: 8,
     textDecorationLine: 'underline',
   },

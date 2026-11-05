@@ -21,12 +21,12 @@ export function CreateTaskButton({ notification, onPress }: CreateTaskButtonProp
   return (
     <TouchableOpacity onPress={handlePress} activeOpacity={0.8}>
       <LinearGradient
-        colors={[colors.category.work, colors.category.work + 'CC']}
+        colors={[colors.primary, colors.primary]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.button}
       >
-        <AppIcon name="add-circle-outline" size={20} color={colors.background} />
+        <AppIcon name="add-circle-outline" size={20} color={colors.onPrimary} />
         <Text style={styles.buttonText}>Create Task</Text>
       </LinearGradient>
     </TouchableOpacity>
@@ -45,6 +45,6 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
 });

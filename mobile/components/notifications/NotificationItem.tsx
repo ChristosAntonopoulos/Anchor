@@ -16,7 +16,7 @@ export function NotificationItem({ notification, onPress }: NotificationItemProp
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
       <LinearGradient
-        colors={['#1E2530', '#252B38']}
+        colors={[colors.surface, colors.surface]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.container, notification.isRead && styles.readContainer]}
@@ -40,7 +40,7 @@ export function NotificationItem({ notification, onPress }: NotificationItemProp
               </Text>
               {notification.isTaskRelevant && (
                 <View style={styles.taskRelevantBadge}>
-                  <AppIcon name="star" size={12} color={colors.category.work} />
+                  <AppIcon name="star" size={12} color={colors.primary} />
                 </View>
               )}
               {notification.isRead && (

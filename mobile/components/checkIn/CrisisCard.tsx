@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.caption,
   },
   action: {
-    color: colors.category.work,
+    color: colors.primary,
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
     minHeight: 44,

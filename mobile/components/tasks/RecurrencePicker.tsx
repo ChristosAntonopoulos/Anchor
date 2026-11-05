@@ -106,7 +106,7 @@ export function RecurrencePicker({ visible, recurrence, onClose, onSave }: Recur
                   >
                     {type === rt.value ? (
                       <LinearGradient
-                        colors={[colors.category.work, colors.category.work + 'CC']}
+                        colors={[colors.primary, colors.primary]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         style={styles.typeChipActive}
@@ -165,7 +165,7 @@ export function RecurrencePicker({ visible, recurrence, onClose, onSave }: Recur
                     >
                       {daysOfWeek.includes(day.value) ? (
                         <LinearGradient
-                          colors={[colors.category.work, colors.category.work + 'CC']}
+                          colors={[colors.primary, colors.primary]}
                           start={{ x: 0, y: 0 }}
                           end={{ x: 1, y: 1 }}
                           style={styles.dayChipActive}
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   typeChipTextActive: {
     fontSize: typography.fontSize.caption,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
   intervalRow: {
     flexDirection: 'row',
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
   dayChipTextActive: {
     fontSize: typography.fontSize.caption,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
   monthDaysRow: {
     flexDirection: 'row',

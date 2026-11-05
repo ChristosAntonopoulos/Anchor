@@ -13,6 +13,7 @@
     "utils/phoneUnlockMapping.test.ts",
     "utils/unlockInsights.test.ts",
     "utils/checkIn.test.ts",
-    "utils/execution.test.ts"
+    "utils/execution.test.ts",
+    "constants/contrast.test.ts"
   ]
 }

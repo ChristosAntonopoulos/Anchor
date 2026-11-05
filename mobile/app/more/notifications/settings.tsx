@@ -86,7 +86,7 @@ export default function NotificationSettingsScreen() {
       >
         <SafeAreaView style={styles.container}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.category.work} />
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
         </SafeAreaView>
       </LinearGradient>
@@ -121,7 +121,7 @@ export default function NotificationSettingsScreen() {
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Retention Period</Text>
-            <LinearGradient colors={['#1E2530', '#252B38']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.settingCard}>
+            <LinearGradient colors={[colors.surface, colors.surface]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.settingCard}>
               <Text style={styles.settingLabel}>Keep notifications for (days)</Text>
               <TextInput
                 style={styles.numberInput}
@@ -134,7 +134,7 @@ export default function NotificationSettingsScreen() {
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Custom Keywords</Text>
-            <LinearGradient colors={['#1E2530', '#252B38']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.settingCard}>
+            <LinearGradient colors={[colors.surface, colors.surface]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.settingCard}>
               <Text style={styles.settingLabel}>Task-relevant keywords (comma-separated)</Text>
               <TextInput
                 style={styles.textInput}
@@ -149,7 +149,7 @@ export default function NotificationSettingsScreen() {
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>App Filtering</Text>
-            <LinearGradient colors={['#1E2530', '#252B38']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.searchBox}>
+            <LinearGradient colors={[colors.surface, colors.surface]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.searchBox}>
               <AppIcon name="search-outline" size={20} color={colors.textSecondary} style={styles.searchIcon} />
               <TextInput
                 style={styles.searchInput}
@@ -168,7 +168,7 @@ export default function NotificationSettingsScreen() {
                 return (
                   <LinearGradient
                     key={app.packageName}
-                    colors={['#1E2530', '#252B38']}
+                    colors={[colors.surface, colors.surface]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.appItem}
@@ -204,16 +204,16 @@ export default function NotificationSettingsScreen() {
             style={styles.saveButton}
           >
             <LinearGradient
-              colors={[colors.category.work, colors.category.work + 'CC']}
+              colors={[colors.primary, colors.primary]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.saveButtonGradient}
             >
               {saving ? (
-                <ActivityIndicator color={colors.background} />
+                <ActivityIndicator color={colors.onPrimary} />
               ) : (
                 <>
-                  <AppIcon name="save-outline" size={20} color={colors.background} />
+                  <AppIcon name="save-outline" size={20} color={colors.onPrimary} />
                   <Text style={styles.saveButtonText}>Save Settings</Text>
                 </>
               )}
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   toggleButtonActive: {
-    backgroundColor: colors.category.work,
+    backgroundColor: colors.primary,
     borderColor: colors.category.work,
   },
   toggleText: {
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   toggleTextActive: {
-    color: colors.background,
+    color: colors.onPrimary,
     fontWeight: typography.fontWeight.semibold,
   },
   saveButton: {
@@ -371,6 +371,6 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
 });

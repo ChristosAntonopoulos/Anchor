@@ -2,9 +2,8 @@ import { Tabs } from 'expo-router';
 import { Platform, TouchableOpacity, View, StyleSheet } from 'react-native';
 import { useState, useEffect } from 'react';
 import { AppIcon } from '../../components/icons/AppIcon';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, typography, spacing, borderRadius, shadows } from '../../constants/designTokens';
+import { colors, typography, shadows } from '../../constants/designTokens';
 import { MenuModal } from '../../components/navigation/MenuModal';
 import { YesterdayAssessmentModal } from '../../components/day/YesterdayAssessmentModal';
 import { useDayBootstrap } from '../../hooks/useDayBootstrap';
@@ -31,14 +30,13 @@ export default function TabLayout() {
         activeOpacity={0.7}
       >
         <View style={[styles.menuButton, focused && styles.menuButtonFocused]}>
-          <LinearGradient
-            colors={focused ? [colors.category.stability, colors.category.stability + 'CC'] : ['#1E2530', '#252B38']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.menuButtonGradient}
-          >
-            <AppIcon name="growth" size={28} opacity={focused ? 1 : 0.7} />
-          </LinearGradient>
+          <View style={[styles.menuButtonGradient, focused && styles.menuButtonGradientFocused]}>
+            <AppIcon
+              name="growth"
+              size={28}
+              color={focused ? colors.primary : colors.textSecondary}
+            />
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -63,7 +61,7 @@ export default function TabLayout() {
           },
           headerShadowVisible: false,
           headerTitleAlign: 'left',
-          tabBarActiveTintColor: colors.category.work,
+          tabBarActiveTintColor: colors.primary,
           tabBarInactiveTintColor: colors.textSecondary,
           tabBarStyle: {
             backgroundColor: colors.surface,
@@ -85,7 +83,9 @@ export default function TabLayout() {
             title: 'Dashboard',
             tabBarLabel: 'Dashboard',
             tabBarIcon: ({ size, focused }) => (
-              <AppIcon name="dashboard" size={size} opacity={focused ? 1 : 0.45} />
+              <View style={focused ? styles.tabSelected : undefined}>
+                <AppIcon name="dashboard" size={size} color={focused ? colors.primary : colors.textSecondary} />
+              </View>
             ),
           }}
         />
@@ -95,7 +95,9 @@ export default function TabLayout() {
             title: 'Tasks',
             tabBarLabel: 'Tasks',
             tabBarIcon: ({ size, focused }) => (
-              <AppIcon name="tasks" size={size} opacity={focused ? 1 : 0.45} />
+              <View style={focused ? styles.tabSelected : undefined}>
+                <AppIcon name="tasks" size={size} color={focused ? colors.primary : colors.textSecondary} />
+              </View>
             ),
           }}
         />
@@ -114,7 +116,9 @@ export default function TabLayout() {
             title: 'Schedule',
             tabBarLabel: 'Schedule',
             tabBarIcon: ({ size, focused }) => (
-              <AppIcon name="calendar" size={size} opacity={focused ? 1 : 0.45} />
+              <View style={focused ? styles.tabSelected : undefined}>
+                <AppIcon name="calendar" size={size} color={focused ? colors.primary : colors.textSecondary} />
+              </View>
             ),
           }}
         />
@@ -124,7 +128,9 @@ export default function TabLayout() {
             title: 'Check-in',
             tabBarLabel: 'Check-in',
             tabBarIcon: ({ size, focused }) => (
-              <AppIcon name="mood" size={size} opacity={focused ? 1 : 0.45} />
+              <View style={focused ? styles.tabSelected : undefined}>
+                <AppIcon name="mood" size={size} color={focused ? colors.primary : colors.textSecondary} />
+              </View>
             ),
           }}
         />
@@ -164,9 +170,7 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     ...shadows.medium,
   },
-  menuButtonFocused: {
-    ...shadows.glow.stability,
-  },
+  menuButtonFocused: {},
   menuButtonGradient: {
     width: 64,
     height: 64,
@@ -174,6 +178,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: colors.border,
+    borderColor: colors.borderControl,
+    backgroundColor: colors.surfaceRaised,
+  },
+  menuButtonGradientFocused: {
+    backgroundColor: colors.primaryContainer,
+    borderColor: colors.primary,
+  },
+  tabSelected: {
+    backgroundColor: colors.primaryContainer,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
 });

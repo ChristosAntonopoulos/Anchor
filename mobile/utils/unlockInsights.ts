@@ -1,3 +1,4 @@
+import { theme } from '../constants/designTokens';
 import {
   UNLOCK_COPY,
   formatUnlockedDuration,
@@ -35,17 +36,17 @@ export const UNLOCK_CATEGORY_ORDER: UnlockCategoryId[] = [
 ];
 
 export const UNLOCK_CATEGORY_COLORS: Record<UnlockCategoryId, string> = {
-  specific_task: '#00D9FF',
-  connection: '#F472B6',
-  intentional_break: '#FFB84D',
-  social_check: '#A78BFA',
-  automatic_check: '#8B95A6',
-  spotify: '#C7E5CD',
-  pay: '#E7C47B',
-  other: '#6EE7B7',
-  put_down: '#316F5F',
-  skipped: '#5B6B7C',
-  unspecified: '#3A4451',
+  specific_task: theme.primary,
+  connection: theme.textSecondary,
+  intentional_break: theme.warning,
+  social_check: theme.textMuted,
+  automatic_check: theme.borderControl,
+  spotify: theme.primaryPressed,
+  pay: theme.success,
+  other: theme.surfaceHover,
+  put_down: theme.primaryContainer,
+  skipped: theme.textMuted,
+  unspecified: theme.borderSubtle,
 };
 
 export interface UnlockCategoryStats {

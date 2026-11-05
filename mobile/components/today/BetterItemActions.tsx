@@ -45,7 +45,7 @@ export function BetterItemActions({
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable style={styles.modalContainer} onPress={(e) => e.stopPropagation()}>
           <LinearGradient
-            colors={['#1E2530', '#252B38']}
+            colors={[colors.surface, colors.surface]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.modalContent}
@@ -59,12 +59,12 @@ export function BetterItemActions({
                 activeOpacity={0.7}
               >
                 <LinearGradient
-                  colors={[colors.category.leverage, colors.category.leverage + 'CC']}
+                  colors={[colors.primary, colors.primary]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.actionButtonGradient}
                 >
-                  <AppIcon name="checkmark-circle" size={24} color={colors.background} />
+                  <AppIcon name="checkmark-circle" size={24} color={colors.onPrimary} />
                   <Text style={styles.actionButtonText}>Accept</Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -75,12 +75,12 @@ export function BetterItemActions({
                 activeOpacity={0.7}
               >
                 <LinearGradient
-                  colors={[colors.category.work, colors.category.work + 'CC']}
+                  colors={[colors.primary, colors.primary]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.actionButtonGradient}
                 >
-                  <AppIcon name="create-outline" size={24} color={colors.background} />
+                  <AppIcon name="create-outline" size={24} color={colors.onPrimary} />
                   <Text style={styles.actionButtonText}>Edit</Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
   rejectButton: {
     flexDirection: 'row',

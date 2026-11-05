@@ -46,7 +46,7 @@ export function NotificationList({ notifications, refreshing, onRefresh, groupBy
         showsVerticalScrollIndicator={false}
         refreshControl={
           onRefresh ? (
-            <RefreshControl refreshing={refreshing || false} onRefresh={onRefresh} tintColor={colors.category.work} />
+            <RefreshControl refreshing={refreshing || false} onRefresh={onRefresh} tintColor={colors.primary} />
           ) : undefined
         }
       >
@@ -83,7 +83,7 @@ export function NotificationList({ notifications, refreshing, onRefresh, groupBy
         showsVerticalScrollIndicator={false}
         refreshControl={
           onRefresh ? (
-            <RefreshControl refreshing={refreshing || false} onRefresh={onRefresh} tintColor={colors.category.work} />
+            <RefreshControl refreshing={refreshing || false} onRefresh={onRefresh} tintColor={colors.primary} />
           ) : undefined
         }
       >
@@ -110,7 +110,7 @@ export function NotificationList({ notifications, refreshing, onRefresh, groupBy
       showsVerticalScrollIndicator={false}
       refreshControl={
         onRefresh ? (
-          <RefreshControl refreshing={refreshing || false} onRefresh={onRefresh} tintColor={colors.category.work} />
+          <RefreshControl refreshing={refreshing || false} onRefresh={onRefresh} tintColor={colors.primary} />
         ) : undefined
       }
     >

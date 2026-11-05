@@ -47,7 +47,7 @@ export default function SettingsScreen() {
               <Text style={styles.sectionTitle}>Notifications</Text>
               <View style={styles.settingItem}>
                 <LinearGradient
-                  colors={['#1E2530', '#252B38']}
+                  colors={[colors.surface, colors.surface]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.settingCard}
@@ -61,7 +61,7 @@ export default function SettingsScreen() {
                   <Switch
                     value={notificationsEnabled}
                     onValueChange={setNotificationsEnabled}
-                    trackColor={{ false: colors.border, true: colors.category.work }}
+                    trackColor={{ false: colors.border, true: colors.primary }}
                     thumbColor={colors.surface}
                   />
                 </LinearGradient>
@@ -72,7 +72,7 @@ export default function SettingsScreen() {
               <Text style={styles.sectionTitle}>Check-in</Text>
               <View style={styles.settingItem}>
                 <LinearGradient
-                  colors={['#1E2530', '#252B38']}
+                  colors={[colors.surface, colors.surface]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.settingCard}
@@ -85,7 +85,7 @@ export default function SettingsScreen() {
               </View>
               <View style={styles.settingItem}>
                 <LinearGradient
-                  colors={['#1E2530', '#252B38']}
+                  colors={[colors.surface, colors.surface]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.settingCard}
@@ -99,7 +99,7 @@ export default function SettingsScreen() {
                   <Switch
                     value={usePreviousEntries}
                     onValueChange={(value) => useCheckInStore.setState({ usePreviousEntries: value })}
-                    trackColor={{ false: colors.border, true: colors.category.work }}
+                    trackColor={{ false: colors.border, true: colors.primary }}
                     thumbColor={colors.surface}
                     accessibilityLabel="Use earlier check-ins for suggestions"
                   />
@@ -112,7 +112,7 @@ export default function SettingsScreen() {
               <Text style={styles.sectionTitle}>About</Text>
               <View style={styles.settingItem}>
                 <LinearGradient
-                  colors={['#1E2530', '#252B38']}
+                  colors={[colors.surface, colors.surface]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.settingCard}

@@ -46,7 +46,7 @@ export function CBTInput({ onSubmit, disabled }: CBTInputProps) {
     return (
       <View style={styles.inputContainer}>
         <LinearGradient
-          colors={['#1E2530', '#252B38']}
+          colors={[colors.surface, colors.surface]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.inputWrapper}
@@ -77,7 +77,7 @@ export function CBTInput({ onSubmit, disabled }: CBTInputProps) {
               <AppIcon
                 name={isRecording ? "mic" : "mic-outline"}
                 size={24}
-                color={isRecording ? colors.category.health : colors.textSecondary}
+                color={isRecording ? colors.primary : colors.textSecondary}
               />
             </TouchableOpacity>
           </View>
@@ -102,13 +102,13 @@ export function CBTInput({ onSubmit, disabled }: CBTInputProps) {
             <LinearGradient
               colors={(!text.trim() || loading) 
                 ? [colors.border, colors.border] 
-                : [colors.category.health, colors.category.health + 'CC']}
+                : [colors.primary, colors.primary]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.submitGradient}
             >
               {loading ? (
-                <ActivityIndicator size="small" color={colors.background} />
+                <ActivityIndicator size="small" color={colors.onPrimary} />
               ) : (
                 <Text style={styles.submitText}>Submit</Text>
               )}
@@ -128,13 +128,13 @@ export function CBTInput({ onSubmit, disabled }: CBTInputProps) {
       <LinearGradient
         colors={disabled 
           ? [colors.border, colors.border] 
-          : [colors.category.health, colors.category.health + 'CC']}
+          : [colors.primary, colors.primary]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.buttonGradient}
       >
         <View style={styles.buttonContent}>
-          <AppIcon name="bulb-outline" size={20} color={colors.background} style={styles.buttonIcon} />
+          <AppIcon name="bulb-outline" size={20} color={colors.onPrimary} style={styles.buttonIcon} />
           <Text style={[styles.buttonText, disabled && styles.buttonTextDisabled]}>
             Write anything...
           </Text>
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
   buttonTextDisabled: {
     color: colors.textSecondary,
@@ -210,8 +210,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   micButtonActive: {
-    backgroundColor: colors.category.health + '20',
-    borderColor: colors.category.health,
+    backgroundColor: colors.primaryContainer,
+    borderColor: colors.primary,
   },
   hint: {
     fontSize: typography.fontSize.caption,
@@ -252,6 +252,6 @@ const styles = StyleSheet.create({
   submitText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
 });

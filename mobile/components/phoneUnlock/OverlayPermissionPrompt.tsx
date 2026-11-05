@@ -71,7 +71,7 @@ export function OverlayPermissionPrompt({ onPermissionGranted }: OverlayPermissi
     <View style={styles.container}>
       <View style={styles.content}>
         <View style={styles.iconContainer}>
-          <AppIcon name="layers-outline" size={48} color={colors.category.stability} />
+          <AppIcon name="layers-outline" size={48} color={colors.primary} />
         </View>
 
         <Text style={styles.title}>Enable Overlay Permission</Text>
@@ -89,12 +89,12 @@ export function OverlayPermissionPrompt({ onPermissionGranted }: OverlayPermissi
           onPress={handleRequestPermission}
         >
           <LinearGradient
-            colors={[colors.category.stability, colors.category.stability + 'CC']}
+            colors={[colors.primary, colors.primary]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.buttonGradient}
           >
-            <AppIcon name="settings-outline" size={20} color={colors.background} style={styles.buttonIcon} />
+            <AppIcon name="settings-outline" size={20} color={colors.onPrimary} style={styles.buttonIcon} />
             <Text style={styles.buttonText}>Open Settings</Text>
           </LinearGradient>
         </TouchableOpacity>
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
   checkButton: {
     padding: spacing.s,

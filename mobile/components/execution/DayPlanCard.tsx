@@ -16,7 +16,7 @@ export function DayPlanCard({ plan, onUse, onFirstOnly, onDiscard }: DayPlanCard
 
   return (
     <View style={styles.card}>
-      <Text style={styles.kicker}>Draft plan</Text>
+      <Text style={styles.kicker}>Suggested plan</Text>
       <Text style={styles.summary}>{plan.summary}</Text>
       {plan.proposedBlocks.map((block, index) => (
         <View key={`${block.taskId}-${index}`} style={styles.block}>
@@ -50,23 +50,23 @@ const styles = StyleSheet.create({
     marginBottom: spacing.m,
     padding: spacing.m,
     borderRadius: borderRadius.large,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.aiContainer,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderSubtle,
   },
-  kicker: { color: colors.category.leverage, fontSize: typography.fontSize.caption, marginBottom: spacing.s },
+  kicker: { color: colors.aiAccent, fontSize: typography.fontSize.caption, fontWeight: typography.fontWeight.semibold, marginBottom: spacing.s },
   summary: { color: colors.textPrimary, fontSize: typography.fontSize.body, marginBottom: spacing.s },
   block: { marginBottom: spacing.s },
-  time: { color: colors.category.work, fontSize: typography.fontSize.caption },
+  time: { color: colors.textSecondary, fontSize: typography.fontSize.caption },
   title: { color: colors.textPrimary, fontWeight: typography.fontWeight.semibold },
   action: { color: colors.textSecondary, fontSize: typography.fontSize.caption },
-  meta: { color: colors.textSecondary, fontSize: 11, marginTop: 2 },
+  meta: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
   risk: { color: colors.warning, fontSize: typography.fontSize.caption, marginTop: spacing.s },
   assume: { color: colors.textSecondary, fontSize: typography.fontSize.caption, marginTop: spacing.s },
   question: { color: colors.textPrimary, marginTop: spacing.s },
-  primary: { marginTop: spacing.m, backgroundColor: colors.category.leverage, borderRadius: borderRadius.medium, padding: spacing.s, alignItems: 'center' },
-  primaryText: { color: colors.background, fontWeight: typography.fontWeight.semibold },
+  primary: { marginTop: spacing.m, backgroundColor: colors.primary, borderRadius: borderRadius.medium, padding: spacing.s, alignItems: 'center' },
+  primaryText: { color: colors.onPrimary, fontWeight: typography.fontWeight.semibold },
   row: { gap: spacing.s, marginTop: spacing.s },
-  ghost: { padding: spacing.s, alignItems: 'center', borderRadius: borderRadius.medium, borderWidth: 1, borderColor: colors.border },
+  ghost: { padding: spacing.s, alignItems: 'center', borderRadius: borderRadius.medium, borderWidth: 1, borderColor: colors.borderControl, backgroundColor: colors.surfaceRaised },
   ghostText: { color: colors.textPrimary, fontSize: typography.fontSize.caption, textAlign: 'center' },
 });

@@ -63,7 +63,7 @@ export default function NotificationDetailScreen() {
       >
         <SafeAreaView style={styles.container}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.category.work} />
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
         </SafeAreaView>
       </LinearGradient>
@@ -117,7 +117,7 @@ export default function NotificationDetailScreen() {
           </View>
 
           <LinearGradient
-            colors={['#1E2530', '#252B38']}
+            colors={[colors.surface, colors.surface]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.contentCard}
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     padding: spacing.m,
-    backgroundColor: '#1E2530',
+    backgroundColor: colors.surface,
     borderRadius: borderRadius.small,
     marginBottom: spacing.s,
     borderWidth: 1,
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing.m,
-    backgroundColor: '#1E2530',
+    backgroundColor: colors.surface,
     borderRadius: borderRadius.small,
     borderWidth: 1,
     borderColor: colors.border,

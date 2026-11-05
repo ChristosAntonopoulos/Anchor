@@ -26,7 +26,7 @@ export function BetterTodayList({ items, onToggleItem, onAcceptItem, onEditItem,
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#1E2530', '#252B38']}
+        colors={[colors.surface, colors.surface]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.frame}

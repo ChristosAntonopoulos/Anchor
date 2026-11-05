@@ -78,6 +78,7 @@ export function AppIcon({
         name={calmName}
         size={size}
         scheme={scheme}
+        color={color}
         opacity={opacity}
         style={style as StyleProp<ViewStyle>}
       />

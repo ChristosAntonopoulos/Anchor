@@ -142,7 +142,7 @@ export function AppUpdatePrompt() {
           <Text style={styles.title}>Update available</Text>
           <Text style={styles.message}>{message}</Text>
           {phase === 'downloading' ? (
-            <ActivityIndicator color={colors.category.stability} style={styles.spinner} />
+            <ActivityIndicator color={colors.primary} style={styles.spinner} />
           ) : (
             <View style={styles.actions}>
               <TouchableOpacity
@@ -211,13 +211,13 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.body,
   },
   primaryButton: {
-    backgroundColor: colors.category.stability,
+    backgroundColor: colors.primary,
     borderRadius: borderRadius.medium,
     paddingVertical: spacing.s,
     paddingHorizontal: spacing.l,
   },
   primaryText: {
-    color: colors.background,
+    color: colors.onPrimary,
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
   },

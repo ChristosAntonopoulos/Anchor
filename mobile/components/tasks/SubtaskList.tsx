@@ -27,7 +27,7 @@ export function SubtaskList({ subtasks, onUpdate, onRemove }: SubtaskListProps) 
             onPress={() => onUpdate(subtask.id, { completed: !subtask.completed })}
           >
             {subtask.completed && (
-              <AppIcon name="checkmark" size={16} color={colors.background} />
+              <AppIcon name="checkmark" size={16} color={colors.onPrimary} />
             )}
           </TouchableOpacity>
           <TextInput
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: colors.category.work,
+    backgroundColor: colors.primary,
     borderColor: colors.category.work,
   },
   input: {

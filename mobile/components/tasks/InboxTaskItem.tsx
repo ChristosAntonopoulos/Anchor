@@ -21,7 +21,7 @@ export function InboxTaskItem({ task, onPromote, onPress, promoteDisabled }: Inb
     <View style={styles.container}>
       <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.main}>
         <LinearGradient
-          colors={['#1E2530', '#252B38']}
+          colors={[colors.surface, colors.surface]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gradient}
@@ -47,7 +47,7 @@ export function InboxTaskItem({ task, onPromote, onPress, promoteDisabled }: Inb
         <AppIcon
           name="arrow-up-circle-outline"
           size={28}
-          color={promoteDisabled ? colors.textSecondary : colors.category.work}
+          color={promoteDisabled ? colors.textSecondary : colors.primary}
         />
       </TouchableOpacity>
     </View>

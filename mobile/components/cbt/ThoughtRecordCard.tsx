@@ -20,7 +20,7 @@ export function ThoughtRecordCard({ entry, onPress }: ThoughtRecordCardProps) {
       activeOpacity={0.7}
     >
       <LinearGradient
-        colors={['#1E2530', '#252B38']}
+        colors={[colors.surface, colors.surface]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
@@ -49,7 +49,7 @@ export function ThoughtRecordCard({ entry, onPress }: ThoughtRecordCardProps) {
         {/* Mood */}
         {entry.mood && (
           <View style={styles.moodRow}>
-            <AppIcon name="heart-outline" size={16} color={colors.category.health} />
+            <AppIcon name="heart-outline" size={16} color={colors.primary} />
             <Text style={styles.moodText}>
               {entry.mood} {entry.moodIntensity !== undefined && `(${entry.moodIntensity}/10)`}
             </Text>
@@ -95,7 +95,7 @@ export function ThoughtRecordCard({ entry, onPress }: ThoughtRecordCardProps) {
         {/* AI Insights Preview */}
         {entry.aiInsights && (
           <View style={styles.insightsContainer}>
-            <AppIcon name="bulb-outline" size={16} color={colors.category.leverage} />
+            <AppIcon name="bulb-outline" size={16} color={colors.primary} />
             <Text style={styles.insightsText} numberOfLines={2}>
               {entry.aiInsights}
             </Text>
@@ -135,13 +135,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.s,
     paddingVertical: 4,
     borderRadius: borderRadius.small,
-    backgroundColor: colors.category.health + '20',
+    backgroundColor: colors.primaryContainer,
     borderWidth: 1,
-    borderColor: colors.category.health + '40',
+    borderColor: colors.borderSubtle,
   },
   statusBadgeCompleted: {
-    backgroundColor: colors.category.leverage + '20',
-    borderColor: colors.category.leverage + '40',
+    backgroundColor: colors.primaryContainer,
+    borderColor: colors.borderSubtle,
   },
   statusText: {
     fontSize: typography.fontSize.caption,
@@ -208,9 +208,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.s,
     paddingVertical: 4,
     borderRadius: borderRadius.small,
-    backgroundColor: colors.category.work + '20',
+    backgroundColor: colors.primaryContainer,
     borderWidth: 1,
-    borderColor: colors.category.work + '40',
+    borderColor: colors.borderSubtle,
   },
   distortionText: {
     fontSize: typography.fontSize.caption,
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.s,
     gap: spacing.xs,
     padding: spacing.s,
-    backgroundColor: colors.category.leverage + '10',
+    backgroundColor: colors.primaryContainer,
     borderRadius: borderRadius.small,
   },
   insightsText: {

@@ -201,7 +201,7 @@ private class UnlockReasonFormView(
         isFocusable = true
         isFocusableInTouchMode = true
         descendantFocusability = FOCUS_AFTER_DESCENDANTS
-        setBackgroundColor(Color.parseColor("#F20F1419"))
+        setBackgroundColor(Color.parseColor("#F2151D1B"))
         val inset = systemBottomInset()
         setPadding(dp(16), dp(24), dp(16), dp(16) + inset)
         applyImeInsets()
@@ -213,29 +213,29 @@ private class UnlockReasonFormView(
         }
         val card = LinearLayout(context).apply {
             orientation = VERTICAL
-            background = rounded(Color.parseColor("#1E2530"), dp(20))
+            background = rounded(Color.parseColor("#1E2925"), dp(20))
             setPadding(dp(18), dp(22), dp(18), dp(18))
         }
 
-        card.addView(text(R.string.unlock_title, Color.parseColor("#E8EAED"), 22f, true, Gravity.CENTER))
-        card.addView(text(R.string.unlock_subtitle, Color.parseColor("#8B95A6"), 15f, false, Gravity.CENTER).apply {
+        card.addView(text(R.string.unlock_title, Color.parseColor("#EAF0EB"), 22f, true, Gravity.CENTER))
+        card.addView(text(R.string.unlock_subtitle, Color.parseColor("#B4C1BA"), 15f, false, Gravity.CENTER).apply {
             setPadding(0, dp(6), 0, dp(10))
         })
 
         todayCountView = TextView(context).apply {
-            setTextColor(Color.parseColor("#C7E5CD"))
+            setTextColor(Color.parseColor("#A4CDBB"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             setTypeface(typeface, Typeface.BOLD)
         }
         mostOftenView = TextView(context).apply {
-            setTextColor(Color.parseColor("#8B95A6"))
+            setTextColor(Color.parseColor("#B4C1BA"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
             setPadding(0, dp(2), 0, 0)
             visibility = GONE
         }
         statsCard = LinearLayout(context).apply {
             orientation = VERTICAL
-            background = rounded(Color.parseColor("#252B38"), dp(14))
+            background = rounded(Color.parseColor("#26332D"), dp(14))
             setPadding(dp(12), dp(10), dp(12), dp(10))
             addView(todayCountView)
             addView(mostOftenView)
@@ -246,12 +246,12 @@ private class UnlockReasonFormView(
         card.addView(statsCard)
 
         currentBlockTitle = TextView(context).apply {
-            setTextColor(Color.parseColor("#E8EAED"))
+            setTextColor(Color.parseColor("#EAF0EB"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
             setTypeface(typeface, Typeface.BOLD)
         }
         currentBlockTime = TextView(context).apply {
-            setTextColor(Color.parseColor("#8B95A6"))
+            setTextColor(Color.parseColor("#B4C1BA"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
             setPadding(0, dp(2), 0, 0)
         }
@@ -262,11 +262,11 @@ private class UnlockReasonFormView(
         }
         currentBlockCard = LinearLayout(context).apply {
             orientation = VERTICAL
-            background = roundedStroke(Color.parseColor("#252B38"), Color.parseColor("#316F5F"), dp(14))
+            background = roundedStroke(Color.parseColor("#26332D"), Color.parseColor("#A4CDBB"), dp(14))
             setPadding(dp(12), dp(10), dp(12), dp(10))
             visibility = GONE
             importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
-            addView(text(R.string.unlock_now, Color.parseColor("#C7E5CD"), 11f, true, Gravity.START).apply {
+            addView(text(R.string.unlock_now, Color.parseColor("#A4CDBB"), 11f, true, Gravity.START).apply {
                 letterSpacing = 0.08f
             })
             addView(currentBlockTitle)
@@ -283,13 +283,13 @@ private class UnlockReasonFormView(
         }
 
         pauseCount = TextView(context).apply {
-            setTextColor(Color.parseColor("#C7E5CD"))
+            setTextColor(Color.parseColor("#A4CDBB"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)
             setTypeface(typeface, Typeface.BOLD)
             gravity = Gravity.CENTER
         }
         pauseCaption = TextView(context).apply {
-            setTextColor(Color.parseColor("#E8EAED"))
+            setTextColor(Color.parseColor("#EAF0EB"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             gravity = Gravity.CENTER
             setPadding(0, dp(4), 0, 0)
@@ -297,7 +297,7 @@ private class UnlockReasonFormView(
         pauseBanner = LinearLayout(context).apply {
             orientation = VERTICAL
             gravity = Gravity.CENTER
-            background = rounded(Color.parseColor("#31443C"), dp(14))
+            background = rounded(Color.parseColor("#293F34"), dp(14))
             setPadding(dp(12), dp(12), dp(12), dp(12))
             visibility = GONE
             isClickable = true
@@ -305,7 +305,7 @@ private class UnlockReasonFormView(
             setOnClickListener { cancelPause() }
             addView(pauseCount)
             addView(pauseCaption)
-            addView(text(R.string.unlock_pause_cancel, Color.parseColor("#8B95A6"), 12f, false, Gravity.CENTER).apply {
+            addView(text(R.string.unlock_pause_cancel, Color.parseColor("#B4C1BA"), 12f, false, Gravity.CENTER).apply {
                 setPadding(0, dp(6), 0, 0)
             })
             val params = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
@@ -334,11 +334,11 @@ private class UnlockReasonFormView(
         }
         bindStats(PhoneUnlockStore.summary(context))
 
-        addContextButton = actionText(R.string.unlock_add_context, Color.parseColor("#C7E5CD")).apply {
+        addContextButton = actionText(R.string.unlock_add_context, Color.parseColor("#A4CDBB")).apply {
             contentDescription = "${context.getString(R.string.unlock_add_context)}. ${context.getString(R.string.unlock_add_context_helper)}"
             setOnClickListener { expandContext() }
         }
-        addContextHelper = text(R.string.unlock_add_context_helper, Color.parseColor("#8B95A6"), 12f, false, Gravity.CENTER)
+        addContextHelper = text(R.string.unlock_add_context_helper, Color.parseColor("#B4C1BA"), 12f, false, Gravity.CENTER)
         card.addView(addContextButton)
         card.addView(addContextHelper)
 
@@ -347,28 +347,28 @@ private class UnlockReasonFormView(
             visibility = GONE
             setPadding(0, dp(8), 0, 0)
         }
-        contextSection.addView(text(R.string.unlock_context_helper, Color.parseColor("#8B95A6"), 13f, false, Gravity.START).apply {
+        contextSection.addView(text(R.string.unlock_context_helper, Color.parseColor("#B4C1BA"), 13f, false, Gravity.START).apply {
             setPadding(0, 0, 0, dp(10))
         })
-        contextSection.addView(text(R.string.unlock_trigger_question, Color.parseColor("#E8EAED"), 14f, true, Gravity.START).apply {
+        contextSection.addView(text(R.string.unlock_trigger_question, Color.parseColor("#EAF0EB"), 14f, true, Gravity.START).apply {
             setPadding(0, 0, 0, dp(6))
         })
         addChipRows(contextSection, TRIGGERS, triggerChips) { code -> toggleTrigger(code) }
 
-        contextSection.addView(text(R.string.unlock_feeling_question, Color.parseColor("#E8EAED"), 14f, true, Gravity.START).apply {
+        contextSection.addView(text(R.string.unlock_feeling_question, Color.parseColor("#EAF0EB"), 14f, true, Gravity.START).apply {
             setPadding(0, dp(12), 0, dp(6))
         })
         addChipRows(contextSection, FEELINGS, feelingChips) { code -> toggleFeeling(code) }
 
-        noteLabel = text(R.string.unlock_note_label_none, Color.parseColor("#E8EAED"), 14f, true, Gravity.START).apply {
+        noteLabel = text(R.string.unlock_note_label_none, Color.parseColor("#EAF0EB"), 14f, true, Gravity.START).apply {
             setPadding(0, dp(12), 0, dp(6))
         }
         noteField = EditText(context).apply {
             hint = context.getString(R.string.unlock_note_placeholder_optional)
-            setHintTextColor(Color.parseColor("#8B95A6"))
-            setTextColor(Color.parseColor("#E8EAED"))
+            setHintTextColor(Color.parseColor("#B4C1BA"))
+            setTextColor(Color.parseColor("#EAF0EB"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
-            setBackground(rounded(Color.parseColor("#252B38"), dp(12)))
+            setBackground(rounded(Color.parseColor("#26332D"), dp(12)))
             setPadding(dp(12), dp(12), dp(12), dp(12))
             minHeight = dp(88)
             gravity = Gravity.TOP or Gravity.START
@@ -401,7 +401,7 @@ private class UnlockReasonFormView(
         card.addView(outlineButton(R.string.unlock_put_phone_down).apply {
             setOnClickListener { putPhoneDown() }
         })
-        card.addView(actionText(R.string.unlock_check_in_offer, Color.parseColor("#C7E5CD")).apply {
+        card.addView(actionText(R.string.unlock_check_in_offer, Color.parseColor("#A4CDBB")).apply {
             contentDescription = context.getString(R.string.unlock_check_in_offer)
             setOnClickListener {
                 submit(
@@ -413,7 +413,7 @@ private class UnlockReasonFormView(
                 )
             }
         })
-        card.addView(actionText(R.string.unlock_skip, Color.parseColor("#8B95A6")).apply {
+        card.addView(actionText(R.string.unlock_skip, Color.parseColor("#B4C1BA")).apply {
             setOnClickListener {
                 cancelPause()
                 submit(
@@ -596,7 +596,7 @@ private class UnlockReasonFormView(
             visibleItems.forEach { item ->
                 currentBlockItems.addView(TextView(context).apply {
                     text = if (item.completed) "✓  ${item.title}" else "○  ${item.title}"
-                    setTextColor(if (item.completed) Color.parseColor("#8B95A6") else Color.parseColor("#E8EAED"))
+                    setTextColor(if (item.completed) Color.parseColor("#B4C1BA") else Color.parseColor("#EAF0EB"))
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
                     setPadding(0, dp(3), 0, 0)
                 })
@@ -605,7 +605,7 @@ private class UnlockReasonFormView(
             if (extra > 0) {
                 currentBlockItems.addView(TextView(context).apply {
                     text = "+$extra more"
-                    setTextColor(Color.parseColor("#8B95A6"))
+                    setTextColor(Color.parseColor("#B4C1BA"))
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
                     setPadding(0, dp(3), 0, 0)
                 })
@@ -712,34 +712,34 @@ private class UnlockReasonFormView(
         val card = LinearLayout(context).apply {
             orientation = VERTICAL
             gravity = Gravity.START
-            background = rounded(Color.parseColor("#252B38"), dp(14))
+            background = rounded(Color.parseColor("#26332D"), dp(14))
             setPadding(dp(10), dp(10), dp(10), dp(10))
             minimumHeight = dp(88)
             isClickable = true
             isFocusable = true
             contentDescription = "${context.getString(item.label)}. ${context.getString(item.support)}"
             setOnClickListener { onIntention(item.code) }
-            bindPressedState(this, Color.parseColor("#252B38"), Color.parseColor("#31443C"), dp(14))
+            bindPressedState(this, Color.parseColor("#26332D"), Color.parseColor("#293F34"), dp(14))
         }
         val icon = TextView(context).apply {
             text = item.icon
-            setTextColor(Color.parseColor("#C7E5CD"))
+            setTextColor(Color.parseColor("#A4CDBB"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
             gravity = Gravity.START
             importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
             setPadding(0, 0, 0, dp(6))
         }
         card.addView(icon)
-        card.addView(text(item.label, Color.parseColor("#E8EAED"), 14f, true, Gravity.START).apply {
+        card.addView(text(item.label, Color.parseColor("#EAF0EB"), 14f, true, Gravity.START).apply {
             setLineSpacing(0f, 1.05f)
         })
-        card.addView(text(item.support, Color.parseColor("#8B95A6"), 11f, false, Gravity.START).apply {
+        card.addView(text(item.support, Color.parseColor("#B4C1BA"), 11f, false, Gravity.START).apply {
             setPadding(0, dp(3), 0, 0)
             setLineSpacing(0f, 1.1f)
         })
         card.addView(TextView(context).apply {
             text = context.getString(R.string.unlock_most_often_badge)
-            setTextColor(Color.parseColor("#C7E5CD"))
+            setTextColor(Color.parseColor("#A4CDBB"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
             setPadding(0, dp(4), 0, 0)
             visibility = GONE
@@ -753,7 +753,7 @@ private class UnlockReasonFormView(
             val row = intentionRows[item.code] ?: return@forEach
             val selected = intention == item.code
             row.background = rounded(
-                if (selected) Color.parseColor("#31443C") else Color.parseColor("#252B38"),
+                if (selected) Color.parseColor("#293F34") else Color.parseColor("#26332D"),
                 dp(14)
             )
             val usual = item.code == usualIntention
@@ -803,10 +803,10 @@ private class UnlockReasonFormView(
             pair.forEach { item ->
                 val chip = TextView(context).apply {
                     text = context.getString(item.label)
-                    setTextColor(Color.parseColor("#E8EAED"))
+                    setTextColor(Color.parseColor("#EAF0EB"))
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
                     gravity = Gravity.CENTER
-                    background = rounded(Color.parseColor("#252B38"), dp(18))
+                    background = rounded(Color.parseColor("#26332D"), dp(18))
                     setPadding(dp(10), dp(10), dp(10), dp(10))
                     minimumHeight = dp(48)
                     isClickable = true
@@ -832,10 +832,10 @@ private class UnlockReasonFormView(
         map.forEach { (code, chip) ->
             val isSelected = code == selected
             chip.background = rounded(
-                if (isSelected) Color.parseColor("#31443C") else Color.parseColor("#252B38"),
+                if (isSelected) Color.parseColor("#293F34") else Color.parseColor("#26332D"),
                 dp(18)
             )
-            chip.setTextColor(if (isSelected) Color.parseColor("#C7E5CD") else Color.parseColor("#E8EAED"))
+            chip.setTextColor(if (isSelected) Color.parseColor("#A4CDBB") else Color.parseColor("#EAF0EB"))
             chip.contentDescription = buildString {
                 append(chip.text)
                 if (isSelected) {
@@ -852,11 +852,11 @@ private class UnlockReasonFormView(
     private fun filledButton(label: Int): TextView {
         return TextView(context).apply {
             text = context.getString(label)
-            setTextColor(Color.parseColor("#132E2A"))
+            setTextColor(Color.parseColor("#152B23"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             setTypeface(typeface, Typeface.BOLD)
             gravity = Gravity.CENTER
-            background = rounded(Color.parseColor("#C7E5CD"), dp(14))
+            background = rounded(Color.parseColor("#A4CDBB"), dp(14))
             setPadding(dp(14), dp(14), dp(14), dp(14))
             minimumHeight = dp(48)
             isClickable = true
@@ -870,10 +870,10 @@ private class UnlockReasonFormView(
     private fun outlineButton(label: Int): TextView {
         return TextView(context).apply {
             text = context.getString(label)
-            setTextColor(Color.parseColor("#C7E5CD"))
+            setTextColor(Color.parseColor("#A4CDBB"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             gravity = Gravity.CENTER
-            background = roundedStroke(Color.parseColor("#31443C"), Color.parseColor("#C7E5CD"), dp(14))
+            background = roundedStroke(Color.parseColor("#293F34"), Color.parseColor("#A4CDBB"), dp(14))
             setPadding(dp(14), dp(14), dp(14), dp(14))
             minimumHeight = dp(48)
             isClickable = true

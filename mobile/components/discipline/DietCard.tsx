@@ -42,7 +42,7 @@ export function DietCard({ diet, onToggle, onUpdate }: DietCardProps) {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#1E2530', '#252B38']}
+        colors={[colors.surface, colors.surface]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
@@ -59,7 +59,7 @@ export function DietCard({ diet, onToggle, onUpdate }: DietCardProps) {
           >
             {diet.compliant ? (
               <LinearGradient
-                colors={[colors.category.leverage, colors.category.leverage + 'CC']}
+                colors={[colors.primary, colors.primary]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.toggleCompliant}
@@ -112,7 +112,7 @@ export function DietCard({ diet, onToggle, onUpdate }: DietCardProps) {
                 onPress={handleSaveNote}
               >
                 <LinearGradient
-                  colors={[colors.category.leverage, colors.category.leverage + 'CC']}
+                  colors={[colors.primary, colors.primary]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.saveNoteGradient}
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   },
   toggleTextCompliant: {
     fontSize: typography.fontSize.caption,
-    color: colors.background,
+    color: colors.onPrimary,
     fontWeight: typography.fontWeight.semibold,
   },
   photoContainer: {
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   saveNoteText: {
     fontSize: typography.fontSize.caption,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
   noteDisplay: {
     marginTop: spacing.m,

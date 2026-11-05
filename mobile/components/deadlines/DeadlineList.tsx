@@ -26,7 +26,7 @@ export function DeadlineList({ deadlines, refreshing, onRefresh }: DeadlineListP
       showsVerticalScrollIndicator={false}
       refreshControl={
         onRefresh ? (
-          <RefreshControl refreshing={refreshing || false} onRefresh={onRefresh} tintColor={colors.category.work} />
+          <RefreshControl refreshing={refreshing || false} onRefresh={onRefresh} tintColor={colors.primary} />
         ) : undefined
       }
     >

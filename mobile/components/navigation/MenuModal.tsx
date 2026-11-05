@@ -13,17 +13,16 @@ interface MenuItem {
   title: string;
   icon: string;
   route: string;
-  color: string;
 }
 
 const menuItems: MenuItem[] = [
-  { title: 'Discipline', icon: 'habits', route: '/(tabs)/discipline', color: colors.category.health },
-  { title: 'Unlocks', icon: 'focus', route: '/(tabs)/unlocks', color: colors.category.stability },
-  { title: 'Notifications', icon: 'notification', route: '/more/notifications', color: colors.category.work },
-  { title: 'Money', icon: 'goals', route: '/more/money', color: colors.category.leverage },
-  { title: 'Deadlines', icon: 'calendar', route: '/more/deadlines', color: colors.category.work },
-  { title: 'Weekly Review', icon: 'journal', route: '/more/weekly-review', color: colors.category.stability },
-  { title: 'Settings', icon: 'settings', route: '/more/settings', color: colors.textSecondary },
+  { title: 'Discipline', icon: 'habits', route: '/(tabs)/discipline' },
+  { title: 'Unlocks', icon: 'focus', route: '/(tabs)/unlocks' },
+  { title: 'Notifications', icon: 'notification', route: '/more/notifications' },
+  { title: 'Money', icon: 'goals', route: '/more/money' },
+  { title: 'Deadlines', icon: 'calendar', route: '/more/deadlines' },
+  { title: 'Weekly Review', icon: 'journal', route: '/more/weekly-review' },
+  { title: 'Settings', icon: 'settings', route: '/more/settings' },
 ];
 
 export function MenuModal({ visible, onClose }: MenuModalProps) {
@@ -65,14 +64,14 @@ export function MenuModal({ visible, onClose }: MenuModalProps) {
                   activeOpacity={0.7}
                 >
                   <LinearGradient
-                    colors={['#1E2530', '#252B38']}
+                    colors={[colors.surface, colors.surface]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.menuItemGradient}
                   >
                     <View style={styles.menuItemContent}>
-                      <View style={[styles.iconContainer, { backgroundColor: item.color + '20' }]}>
-                        <AppIcon name={item.icon} size={24} color={item.color} />
+                      <View style={styles.iconContainer}>
+                        <AppIcon name={item.icon} size={24} color={colors.textSecondary} />
                       </View>
                       <Text style={styles.menuItemText}>{item.title}</Text>
                       <AppIcon name="chevron-forward" size={20} color={colors.textSecondary} />
@@ -146,6 +145,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.m,
+    backgroundColor: colors.surfaceRaised,
   },
   menuItemText: {
     flex: 1,

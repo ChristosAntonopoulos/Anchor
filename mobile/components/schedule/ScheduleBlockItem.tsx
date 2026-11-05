@@ -38,8 +38,13 @@ export function ScheduleBlockItem({ block, isCurrent, onUpdate, onItemComplete, 
   };
 
   const gradientColors = isCurrent
-    ? ([colors.category.work + '30', colors.category.work + '10'] as const)
-    : (['#1E2530', '#252B38'] as const);
+    ? ([colors.primaryContainer, colors.primaryContainer] as const)
+    : ([colors.surface, colors.surface] as const);
+  const kindLabel = block.windowKind === 'exact'
+    ? 'Fixed commitment'
+    : block.isRoutine
+      ? 'Routine'
+      : 'Scheduled work';
 
   const canEdit = !isCurrent && onUpdate;
   const items = block.checklistItems ?? [];
@@ -65,12 +70,14 @@ export function ScheduleBlockItem({ block, isCurrent, onUpdate, onItemComplete, 
           style={[styles.gradient, isCurrent && styles.currentGradient]}
         >
           <View style={styles.timeContainer}>
-            <Text style={[styles.time, isCurrent && styles.currentTime]}>{block.startTime}</Text>
-            <Text style={[styles.timeSeparator, isCurrent && styles.currentTime]}>-</Text>
-            <Text style={[styles.time, isCurrent && styles.currentTime]}>{block.endTime}</Text>
+            {isCurrent ? <Text style={styles.nowLabel}>Now</Text> : null}
+            <Text style={styles.time}>{block.startTime}</Text>
+            <Text style={styles.timeSeparator}>-</Text>
+            <Text style={styles.time}>{block.endTime}</Text>
+            <Text style={styles.kindLabel}>{kindLabel}</Text>
           </View>
           <View style={styles.titleRow}>
-            <Text style={[styles.title, isCurrent && styles.currentTitle]}>{block.title}</Text>
+            <Text style={styles.title}>{block.title}</Text>
             {canEdit && (
               <AppIcon name="create-outline" size={18} color={colors.textSecondary} style={styles.editIcon} />
             )}
@@ -86,17 +93,17 @@ export function ScheduleBlockItem({ block, isCurrent, onUpdate, onItemComplete, 
                     <AppIcon
                       name={item.completed ? 'checkmark-circle' : 'ellipse-outline'}
                       size={item === currentItem ? 16 : 14}
-                      color={item.completed ? colors.category.work : colors.textSecondary}
+                      color={item.completed ? colors.success : colors.textSecondary}
                     />
                     <Text
                       style={[
                         styles.checklistText,
                         item.completed && styles.checklistTextDone,
-                        isCurrent && styles.currentChecklistText,
                         item === currentItem && styles.currentAction,
                       ]}
                       numberOfLines={2}
                     >
+                      {item === currentItem && !item.completed ? 'Current step · ' : item.completed ? 'Done · ' : ''}
                       {item.title}
                     </Text>
                     <Text style={styles.durationBadge}>{item.durationMinutes ?? '—'}m</Text>
@@ -124,7 +131,7 @@ export function ScheduleBlockItem({ block, isCurrent, onUpdate, onItemComplete, 
           ) : null}
 
           {block.skipped ? (
-            <Text style={styles.skipped}>Left for today</Text>
+            <Text style={styles.skipped}>Plans changed.</Text>
           ) : null}
 
           {block.isRoutine && !block.skipped ? (
@@ -156,7 +163,7 @@ export function ScheduleBlockItem({ block, isCurrent, onUpdate, onItemComplete, 
               }}
               activeOpacity={0.85}
             >
-              <AppIcon name="play-circle" size={20} color={colors.background} />
+              <AppIcon name="play-circle" size={20} color={colors.onPrimary} />
               <Text style={styles.startButtonText}>
                 Start {block.startMinutes ? `${block.startMinutes} min` : ''}
               </Text>
@@ -170,7 +177,7 @@ export function ScheduleBlockItem({ block, isCurrent, onUpdate, onItemComplete, 
               }}
               activeOpacity={0.85}
             >
-              <AppIcon name="play-circle" size={20} color={colors.background} />
+              <AppIcon name="play-circle" size={20} color={colors.onPrimary} />
               <Text style={styles.startButtonText}>
                 {isCurrent ? 'Start block timer' : 'Start block'}
               </Text>
@@ -179,9 +186,9 @@ export function ScheduleBlockItem({ block, isCurrent, onUpdate, onItemComplete, 
 
           {allDone && (
             <View style={styles.doneBadge}>
-              <AppIcon name="checkmark-done" size={16} color={colors.category.work} />
+              <AppIcon name="checkmark-done" size={16} color={colors.success} />
               <Text style={styles.doneBadgeText}>
-                {block.routineVersion === 'shorter' ? 'Shorter routine complete.' : 'Completed today'}
+                {block.routineVersion === 'shorter' ? 'Shorter routine complete.' : 'Completed'}
               </Text>
             </View>
           )}
@@ -218,19 +225,17 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.medium,
     ...shadows.small,
   },
-  currentContainer: {
-    ...shadows.glow.work,
-  },
+  currentContainer: {},
   gradient: {
     borderRadius: borderRadius.medium,
     padding: spacing.m,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderSubtle,
     position: 'relative',
     overflow: 'hidden',
   },
   currentGradient: {
-    borderColor: colors.category.work + '60',
+    borderColor: colors.primary,
   },
   timeContainer: {
     flexDirection: 'row',
@@ -253,21 +258,29 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.caption,
     color: colors.textSecondary,
   },
-  currentTime: { color: colors.category.work },
+  nowLabel: {
+    fontSize: typography.fontSize.caption,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.primary,
+    marginRight: spacing.s,
+  },
+  kindLabel: {
+    marginLeft: 'auto',
+    fontSize: typography.fontSize.small,
+    color: colors.textMuted,
+  },
   timeSeparator: {
     fontSize: typography.fontSize.caption,
     color: colors.textSecondary,
     marginHorizontal: spacing.xs,
   },
-  currentTitle: { color: colors.category.work },
   glowIndicator: {
     position: 'absolute',
-    right: 0,
+    left: 0,
     top: 0,
     bottom: 0,
     width: 4,
-    backgroundColor: colors.category.work,
-    opacity: 0.8,
+    backgroundColor: colors.primary,
   },
   checklistContainer: {
     marginTop: spacing.s,
@@ -284,10 +297,8 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   checklistTextDone: {
-    textDecorationLine: 'line-through',
-    opacity: 0.6,
+    color: colors.textSecondary,
   },
-  currentChecklistText: { color: colors.category.work + 'CC' },
   currentAction: {
     color: colors.textPrimary,
     fontWeight: typography.fontWeight.semibold,
@@ -298,8 +309,8 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.caption,
   },
   routineChipOn: {
-    backgroundColor: '#31443C',
-    borderColor: colors.category.leverage,
+    backgroundColor: colors.primaryContainer,
+    borderColor: colors.primary,
   },
   durationBadge: {
     fontSize: typography.fontSize.small,
@@ -312,7 +323,7 @@ const styles = StyleSheet.create({
   },
   checklistProgress: {
     fontSize: typography.fontSize.small,
-    color: colors.category.work,
+    color: colors.textSecondary,
     marginTop: spacing.xs,
   },
   taskLine: {
@@ -327,7 +338,7 @@ const styles = StyleSheet.create({
   },
   routineChip: {
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderControl,
     borderRadius: 14,
     paddingHorizontal: spacing.m,
     paddingVertical: 4,
@@ -342,18 +353,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
-    backgroundColor: colors.category.leverage,
+    backgroundColor: colors.primary,
     borderRadius: borderRadius.medium,
     paddingVertical: spacing.s,
     paddingHorizontal: spacing.m,
   },
   startButtonCurrent: {
-    backgroundColor: colors.category.work,
+    backgroundColor: colors.primary,
   },
   startButtonText: {
     fontSize: typography.fontSize.caption,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
   doneBadge: {
     marginTop: spacing.m,
@@ -363,6 +374,6 @@ const styles = StyleSheet.create({
   },
   doneBadgeText: {
     fontSize: typography.fontSize.caption,
-    color: colors.category.work,
+    color: colors.textPrimary,
   },
 });

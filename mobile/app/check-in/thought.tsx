@@ -189,6 +189,6 @@ const styles = StyleSheet.create({
     gap: spacing.s,
   },
   selected: {
-    borderColor: colors.category.health,
+    borderColor: colors.borderControl,
   },
 });

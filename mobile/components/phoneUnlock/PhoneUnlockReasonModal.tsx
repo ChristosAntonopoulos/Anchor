@@ -233,7 +233,7 @@ export function PhoneUnlockReasonModal({
       }}
     >
       <LinearGradient
-        colors={['#0F1419', '#1A1F2E', '#0F1419']}
+        colors={[colors.background, colors.background, colors.background]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
@@ -620,7 +620,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   pauseBanner: {
-    backgroundColor: '#31443C',
+    backgroundColor: colors.primaryContainer,
     borderRadius: borderRadius.medium,
     padding: spacing.m,
     alignItems: 'center',
@@ -663,7 +663,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.s,
   },
   intentionRowSelected: {
-    backgroundColor: '#31443C',
+    backgroundColor: colors.primaryContainer,
   },
   intentionLabel: {
     fontSize: 14,
@@ -735,7 +735,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   chipTextSelected: {
-    backgroundColor: '#31443C',
+    backgroundColor: colors.primaryContainer,
     color: '#C7E5CD',
   },
   note: {
@@ -762,7 +762,7 @@ const styles = StyleSheet.create({
   putDownButton: {
     borderWidth: 1,
     borderColor: '#C7E5CD',
-    backgroundColor: '#31443C',
+    backgroundColor: colors.primaryContainer,
     borderRadius: borderRadius.medium,
     minHeight: 48,
     alignItems: 'center',

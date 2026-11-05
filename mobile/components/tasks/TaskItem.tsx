@@ -3,21 +3,15 @@ import { useRef, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
-import { useCategoryStore } from '../../store/useCategoryStore';
 import type { Task } from '../../types';
 
 function getPriorityColor(priority: string): string {
   switch (priority) {
     case 'urgent':
-      return '#EF4444';
     case 'high':
-      return colors.category.health;
-    case 'medium':
-      return colors.category.work;
-    case 'low':
-      return colors.textSecondary;
+      return colors.warning;
     default:
-      return colors.textSecondary;
+      return colors.textMuted;
   }
 }
 
@@ -29,11 +23,8 @@ interface TaskItemProps {
 }
 
 export function TaskItem({ task, onToggle, onPress, onStart }: TaskItemProps) {
-  const { getCategoryColor, getCategoryGlow } = useCategoryStore();
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const categoryColor = getCategoryColor(task.category);
-  const glowColor = getCategoryGlow(task.category);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -79,7 +70,7 @@ export function TaskItem({ task, onToggle, onPress, onStart }: TaskItemProps) {
         activeOpacity={1}
       >
       <LinearGradient
-        colors={['#1E2530', '#252B38']}
+        colors={[colors.surface, colors.surface]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
@@ -89,7 +80,7 @@ export function TaskItem({ task, onToggle, onPress, onStart }: TaskItemProps) {
           style={styles.checkboxContainer}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <View style={[styles.checkbox, task.completed && styles.checkboxChecked, task.completed && { backgroundColor: categoryColor }]}>
+          <View style={[styles.checkbox, task.completed && styles.checkboxChecked]}>
             {task.completed && <Text style={styles.checkmark}>✓</Text>}
           </View>
         </TouchableOpacity>
@@ -107,8 +98,8 @@ export function TaskItem({ task, onToggle, onPress, onStart }: TaskItemProps) {
             )}
           </View>
           <View style={styles.metaRow}>
-            <View style={[styles.categoryTag, { backgroundColor: glowColor }]}>
-              <Text style={[styles.categoryText, { color: categoryColor }]}>
+            <View style={styles.categoryTag}>
+              <Text style={styles.categoryText}>
                 {task.category}
               </Text>
             </View>
@@ -160,9 +151,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.medium,
     ...shadows.small,
   },
-  completed: {
-    opacity: 0.6,
-  },
+  completed: {},
   gradient: {
     borderRadius: borderRadius.medium,
     padding: spacing.m,
@@ -179,15 +168,16 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: colors.border,
+    borderColor: colors.borderControl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxChecked: {
-    borderColor: 'transparent',
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
   },
   checkmark: {
-    color: colors.background,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -202,13 +192,13 @@ const styles = StyleSheet.create({
   startBtn: {
     alignSelf: 'flex-start',
     marginTop: spacing.s,
-    backgroundColor: colors.category.work,
+    backgroundColor: colors.primary,
     paddingHorizontal: spacing.m,
     paddingVertical: 6,
     borderRadius: 14,
   },
   startBtnText: {
-    color: colors.background,
+    color: colors.onPrimary,
     fontSize: typography.fontSize.caption,
     fontWeight: typography.fontWeight.semibold,
   },
@@ -226,12 +216,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.s,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.small,
-    opacity: 0.3,
+    backgroundColor: colors.surfaceRaised,
   },
   categoryText: {
     fontSize: typography.fontSize.caption,
     fontWeight: typography.fontWeight.semibold,
     textTransform: 'capitalize',
+    color: colors.textMuted,
   },
   titleRow: {
     flexDirection: 'row',

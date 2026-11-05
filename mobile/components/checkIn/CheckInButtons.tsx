@@ -22,12 +22,12 @@ export function PrimaryButton({ label, onPress, disabled, loading, accessibility
       style={({ pressed }) => [
         styles.primary,
         (disabled || loading) && styles.disabled,
-        pressed && styles.pressed,
+        pressed && styles.primaryPressed,
         style,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={colors.background} />
+        <ActivityIndicator color={colors.onPrimary} />
       ) : (
         <Text style={styles.primaryText}>{label}</Text>
       )}
@@ -60,14 +60,14 @@ const styles = StyleSheet.create({
   primary: {
     minHeight: 48,
     borderRadius: borderRadius.medium,
-    backgroundColor: colors.category.health,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.m,
     paddingVertical: spacing.s,
   },
   primaryText: {
-    color: colors.background,
+    color: colors.onPrimary,
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
   },
@@ -90,7 +90,10 @@ const styles = StyleSheet.create({
   disabled: {
     opacity: 0.45,
   },
+  primaryPressed: {
+    backgroundColor: colors.primaryPressed,
+  },
   pressed: {
-    opacity: 0.8,
+    backgroundColor: colors.surfaceHover,
   },
 });

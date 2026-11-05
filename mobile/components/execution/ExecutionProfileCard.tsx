@@ -47,7 +47,7 @@ export function ExecutionProfileCard({ profile, onChange, review, onReview }: Ex
         <Switch
           value={profile.countdownsFeelHelpful}
           onValueChange={(countdownsFeelHelpful) => onChange({ countdownsFeelHelpful })}
-          trackColor={{ false: colors.border, true: colors.category.work }}
+          trackColor={{ false: colors.border, true: colors.primary }}
         />
       </View>
       <View style={styles.switchRow}>
@@ -55,7 +55,7 @@ export function ExecutionProfileCard({ profile, onChange, review, onReview }: Ex
         <Switch
           value={profile.breakReminders}
           onValueChange={(breakReminders) => onChange({ breakReminders })}
-          trackColor={{ false: colors.border, true: colors.category.work }}
+          trackColor={{ false: colors.border, true: colors.primary }}
         />
       </View>
       <Text style={styles.label}>AI prompting</Text>
@@ -102,8 +102,8 @@ const styles = StyleSheet.create({
   help: { color: colors.textSecondary, fontSize: typography.fontSize.caption, marginTop: spacing.s, marginBottom: spacing.m },
   label: { color: colors.textSecondary, fontSize: typography.fontSize.caption, marginTop: spacing.s },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.s, marginTop: spacing.s },
-  chip: { paddingHorizontal: spacing.m, paddingVertical: spacing.xs, borderRadius: 16, borderWidth: 1, borderColor: colors.border },
-  chipOn: { backgroundColor: '#31443C', borderColor: colors.category.leverage },
+  chip: { paddingHorizontal: spacing.m, paddingVertical: spacing.xs, borderRadius: 16, borderWidth: 1, borderColor: colors.borderControl },
+  chipOn: { backgroundColor: colors.primaryContainer, borderColor: colors.primary },
   chipText: { color: colors.textPrimary, fontSize: typography.fontSize.caption },
   switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.m },
   switchLabel: { color: colors.textPrimary, flex: 1, paddingRight: spacing.s },

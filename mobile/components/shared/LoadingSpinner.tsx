@@ -6,7 +6,7 @@ interface LoadingSpinnerProps {
   color?: string;
 }
 
-export function LoadingSpinner({ size = 'large', color = colors.category.work }: LoadingSpinnerProps) {
+export function LoadingSpinner({ size = 'large', color = colors.primary }: LoadingSpinnerProps) {
   return (
     <View style={styles.container}>
       <ActivityIndicator size={size} color={color} />

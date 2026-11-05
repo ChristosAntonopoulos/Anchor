@@ -64,14 +64,14 @@ export function PhoneUnlockOverlayModal({
       style={styles.container}
     >
       <LinearGradient
-        colors={['#0F1419', '#1A1F2E', '#0F1419']}
+        colors={[colors.background, colors.background, colors.background]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
         <View style={styles.content}>
           <View style={styles.iconContainer}>
-            <AppIcon name="lock-open-outline" size={64} color={colors.category.stability} />
+            <AppIcon name="lock-open-outline" size={64} color={colors.primary} />
           </View>
 
           <Text style={styles.title}>Why did you unlock your phone?</Text>
@@ -111,7 +111,7 @@ export function PhoneUnlockOverlayModal({
               colors={
                 loading || !reason.trim()
                   ? [colors.border, colors.border]
-                  : [colors.category.stability, colors.category.stability + 'CC']
+                  : [colors.primary, colors.primary]
               }
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
@@ -202,6 +202,6 @@ const styles = StyleSheet.create({
   submitText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
 });

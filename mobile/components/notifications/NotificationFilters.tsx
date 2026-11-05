@@ -24,7 +24,7 @@ export function NotificationFilters({
     <View style={styles.container}>
       <View style={styles.searchContainer}>
         <LinearGradient
-          colors={['#1E2530', '#252B38']}
+          colors={[colors.surface, colors.surface]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.searchBox}
@@ -136,12 +136,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.m,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.small,
-    backgroundColor: '#1E2530',
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
   },
   filterButtonActive: {
-    backgroundColor: colors.category.work,
+    backgroundColor: colors.primary,
     borderColor: colors.category.work,
   },
   filterButtonText: {
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   filterButtonTextActive: {
-    color: colors.background,
+    color: colors.onPrimary,
     fontWeight: typography.fontWeight.semibold,
   },
 });

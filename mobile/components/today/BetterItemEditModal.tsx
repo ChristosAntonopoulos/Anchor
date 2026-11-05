@@ -41,7 +41,7 @@ export function BetterItemEditModal({
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable style={styles.modalContainer} onPress={(e) => e.stopPropagation()}>
           <LinearGradient
-            colors={['#1E2530', '#252B38']}
+            colors={[colors.surface, colors.surface]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.modalContent}
@@ -74,7 +74,7 @@ export function BetterItemEditModal({
                 disabled={!title.trim()}
               >
                 <LinearGradient
-                  colors={title.trim() ? [colors.category.work, colors.category.work + 'CC'] : ['#2A3441', '#2A3441']}
+                  colors={title.trim() ? [colors.primary, colors.primary] : [colors.surfaceRaised, colors.surfaceRaised]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.saveButtonGradient}
@@ -158,6 +158,6 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
 });
