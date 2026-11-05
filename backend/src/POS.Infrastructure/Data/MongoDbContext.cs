@@ -8,6 +8,10 @@ using POS.Core.Entities.Diet;
 using POS.Core.Entities.Money;
 using POS.Core.Entities.Deadlines;
 using POS.Core.Entities.WeeklyReview;
+using POS.Core.Entities.AIInput;
+using POS.Core.Entities.CBT;
+using POS.Core.Entities.Notifications;
+using POS.Core.Entities.Execution;
 
 namespace POS.Infrastructure.Data;
 
@@ -26,6 +30,8 @@ public class MongoDbContext
     // Core collections
     public IMongoCollection<User> Users => _database.GetCollection<User>("users");
     public IMongoCollection<Day> Days => _database.GetCollection<Day>("days");
+    public IMongoCollection<DayStartPlan> DayStartPlans =>
+        _database.GetCollection<DayStartPlan>("dayStartPlans");
     public IMongoCollection<AIJobRun> AIJobRuns => _database.GetCollection<AIJobRun>("aiJobRuns");
 
     // Schedule collections
@@ -75,4 +81,39 @@ public class MongoDbContext
     // Weekly Review collection
     public IMongoCollection<WeeklyReview> WeeklyReviews => 
         _database.GetCollection<WeeklyReview>("weeklyReviews");
+
+    // AI Input collection
+    public IMongoCollection<AIInput> AIInputs => 
+        _database.GetCollection<AIInput>("aiInputs");
+
+    // Categories collection (global, not user-specific)
+    public IMongoCollection<Category> Categories => 
+        _database.GetCollection<Category>("categories");
+
+    // CBT collections
+    public IMongoCollection<CBTEntry> CBTEntries => 
+        _database.GetCollection<CBTEntry>("cbtEntries");
+    public IMongoCollection<MoodEntry> MoodEntries => 
+        _database.GetCollection<MoodEntry>("moodEntries");
+    public IMongoCollection<BehavioralActivity> BehavioralActivities => 
+        _database.GetCollection<BehavioralActivity>("behavioralActivities");
+
+    // Notification collections
+    public IMongoCollection<Notification> Notifications => 
+        _database.GetCollection<Notification>("notifications");
+    public IMongoCollection<NotificationSettings> NotificationSettings => 
+        _database.GetCollection<NotificationSettings>("notificationSettings");
+
+    // Phone Unlock collection
+    public IMongoCollection<PhoneUnlockEntry> PhoneUnlockEntries => 
+        _database.GetCollection<PhoneUnlockEntry>("phoneUnlockEntries");
+
+    public IMongoCollection<ExecutionProfile> ExecutionProfiles =>
+        _database.GetCollection<ExecutionProfile>("executionProfiles");
+
+    public IMongoCollection<WorkSession> WorkSessions =>
+        _database.GetCollection<WorkSession>("workSessions");
+
+    public IMongoCollection<DayPlanDraft> DayPlanDrafts =>
+        _database.GetCollection<DayPlanDraft>("dayPlanDrafts");
 }

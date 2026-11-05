@@ -40,6 +40,30 @@ export default function MoreLayout() {
           title: 'Settings',
         }}
       />
+      <Stack.Screen
+        name="notifications"
+        options={{
+          title: 'Notifications',
+        }}
+      />
+      <Stack.Screen
+        name="notifications/[id]"
+        options={{
+          title: 'Notification Details',
+        }}
+      />
+      <Stack.Screen
+        name="notifications/insights"
+        options={{
+          title: 'Notification Insights',
+        }}
+      />
+      <Stack.Screen
+        name="notifications/settings"
+        options={{
+          title: 'Notification Settings',
+        }}
+      />
     </Stack>
   );
 }

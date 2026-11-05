@@ -30,7 +30,7 @@ export default function DeadlinesScreen() {
       >
         <SafeAreaView style={styles.container}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.category.work} />
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
         </SafeAreaView>
       </LinearGradient>

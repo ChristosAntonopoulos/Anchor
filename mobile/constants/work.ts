@@ -1,0 +1,31 @@
+export const CURRENT_WORK_SENTINEL = 'current';
+
+export const WORK_COPY = {
+  now: 'Now',
+  title: 'This block',
+  intro: 'This is the work on your schedule. Start here, or take a smaller step.',
+  currentStep: 'Current step',
+  sequence: 'Sequence',
+  start: (minutes?: number | null) =>
+    minutes && minutes > 0 ? `Start for ${minutes} minutes` : 'Start this block',
+  continue: 'Continue session',
+  makeSmaller: 'Make this smaller',
+  skipRoutine: 'Skip this routine',
+  openSchedule: "Open today's schedule",
+  missingTitle: 'This block is no longer current.',
+  missingBody: "Open today's schedule to pick what to do next.",
+  done: 'This block is complete.',
+  skipped: 'Plans changed. Pick something else from the schedule.',
+  linkedTask: 'Linked task',
+  cue: 'Cue',
+  progress: (done: number, total: number) => `${done}/${total} done`,
+  showSequence: (count: number) => `Show sequence (${count})`,
+  hideSequence: 'Hide sequence',
+  routine: 'Routine',
+  scheduled: 'Scheduled work',
+  fixed: 'Fixed commitment',
+  openBlock: 'Open this block',
+  markDone: 'Mark done',
+  useSmaller: 'Use this',
+  leaveSmaller: 'Leave for now',
+} as const;

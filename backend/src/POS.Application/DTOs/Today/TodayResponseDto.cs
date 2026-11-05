@@ -1,3 +1,7 @@
+using POS.Application.DTOs.Day;
+using POS.Application.DTOs.Discipline;
+using POS.Application.DTOs.Tasks;
+
 namespace POS.Application.DTOs.Today;
 
 /// <summary>
@@ -7,6 +11,7 @@ namespace POS.Application.DTOs.Today;
 public class TodayResponseDto
 {
     public DayDto Day { get; set; } = new();
+    public DayBootstrapDto DayBootstrap { get; set; } = new();
     public List<BetterItemDto> BetterItems { get; set; } = new();
     public List<TaskDto> Tasks { get; set; } = new();
     public DisciplineEntryDto Discipline { get; set; } = new();

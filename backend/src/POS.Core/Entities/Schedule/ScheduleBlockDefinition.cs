@@ -42,13 +42,20 @@ public class ScheduleBlockDefinition : DefinitionEntity
 
     [BsonElement("tags")]
     public string[] Tags { get; set; } = Array.Empty<string>();
+
+    [BsonElement("routineActivities")]
+    public List<string>? RoutineActivities { get; set; }
+
+    [BsonElement("shorterRoutineActivities")]
+    public List<string>? ShorterRoutineActivities { get; set; }
 }
 
 public enum ScheduleBlockKind
 {
     Fixed,
     Flexible,
-    Recurring
+    Recurring,
+    Routine
 }
 
 public enum RecurrenceType

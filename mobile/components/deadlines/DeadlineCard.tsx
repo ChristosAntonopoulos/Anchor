@@ -8,13 +8,9 @@ interface DeadlineCardProps {
 }
 
 export function DeadlineCard({ deadline }: DeadlineCardProps) {
-  const isBehind = deadline.status === 'behind';
-  const gradientColors = isBehind 
-    ? ['#FF6B6B30', '#FF6B6B10'] 
-    : ['#FFB84D30', '#FFB84D10'];
-  const textColor = isBehind ? '#FF6B6B' : '#FFB84D';
-  const borderColor = isBehind ? '#FF6B6B60' : '#FFB84D60';
-  const glowShadow = isBehind ? shadows.glow.health : shadows.glow.health;
+  const gradientColors = [colors.warningContainer, colors.warningContainer] as const;
+  const borderColor = colors.warning;
+  const glowShadow = shadows.small;
 
   const formattedDate = new Date(deadline.dueDate).toLocaleDateString('en-US', {
     month: 'short',
@@ -28,7 +24,7 @@ export function DeadlineCard({ deadline }: DeadlineCardProps) {
   const daysLeft = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
   return (
-    <View style={[styles.container, isBehind && glowShadow]}>
+    <View style={[styles.container, glowShadow]}>
       <LinearGradient
         colors={gradientColors}
         start={{ x: 0, y: 0 }}
@@ -36,20 +32,21 @@ export function DeadlineCard({ deadline }: DeadlineCardProps) {
         style={[styles.gradient, { borderColor }]}
       >
         <View style={styles.content}>
-          <Text style={[styles.title, { color: textColor }]}>{deadline.title}</Text>
+          <Text style={styles.kicker}>Needs a decision</Text>
+          <Text style={styles.title}>{deadline.title}</Text>
           <View style={styles.meta}>
-            <Text style={[styles.date, { color: textColor }]}>{formattedDate}</Text>
-            <Text style={[styles.daysLeft, { color: textColor }]}>
+            <Text style={styles.date}>{formattedDate}</Text>
+            <Text style={styles.daysLeft}>
               {daysLeft} day{daysLeft !== 1 ? 's' : ''} left
             </Text>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: textColor + '30' }]}>
-            <Text style={[styles.statusText, { color: textColor }]}>
+          <View style={styles.statusBadge}>
+            <Text style={styles.statusText}>
               {deadline.status}
             </Text>
           </View>
         </View>
-        <View style={[styles.glowBar, { backgroundColor: textColor }]} />
+        <View style={styles.glowBar} />
       </LinearGradient>
     </View>
   );
@@ -72,9 +69,16 @@ const styles = StyleSheet.create({
   content: {
     zIndex: 2,
   },
+  kicker: {
+    fontSize: typography.fontSize.caption,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.warning,
+    marginBottom: spacing.xs,
+  },
   title: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
+    color: colors.textPrimary,
     marginBottom: spacing.s,
   },
   meta: {
@@ -84,21 +88,25 @@ const styles = StyleSheet.create({
   },
   date: {
     fontSize: typography.fontSize.caption,
+    color: colors.textSecondary,
   },
   daysLeft: {
     fontSize: typography.fontSize.caption,
     fontWeight: typography.fontWeight.semibold,
+    color: colors.textSecondary,
   },
   statusBadge: {
     alignSelf: 'flex-start',
     paddingHorizontal: spacing.s,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.small,
+    backgroundColor: colors.surfaceRaised,
   },
   statusText: {
     fontSize: typography.fontSize.caption,
     fontWeight: typography.fontWeight.semibold,
     textTransform: 'capitalize',
+    color: colors.textPrimary,
   },
   glowBar: {
     position: 'absolute',
@@ -106,6 +114,6 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 4,
-    opacity: 0.8,
+    backgroundColor: colors.warning,
   },
 });

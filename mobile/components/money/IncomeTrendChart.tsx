@@ -25,7 +25,7 @@ export function IncomeTrendChart({ income }: IncomeTrendChartProps) {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#1E2530', '#252B38']}
+        colors={[colors.surface, colors.surface]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
@@ -38,7 +38,7 @@ export function IncomeTrendChart({ income }: IncomeTrendChartProps) {
               <View key={entry.id} style={styles.barContainer}>
                 <View style={styles.barWrapper}>
                   <LinearGradient
-                    colors={[colors.category.leverage, colors.category.leverage + 'CC']}
+                    colors={[colors.primary, colors.primary]}
                     start={{ x: 0, y: 1 }}
                     end={{ x: 0, y: 0 }}
                     style={[styles.bar, { height: `${height}%` }]}

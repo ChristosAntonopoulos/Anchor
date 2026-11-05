@@ -1,7 +1,8 @@
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { useState, useRef, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, spacing, typography, getCategoryColor, getCategoryGlow, getCategoryShadow, borderRadius, shadows } from '../../constants/designTokens';
+import { colors, spacing, typography, getCategoryShadow, borderRadius, shadows } from '../../constants/designTokens';
+import { useCategoryStore } from '../../store/useCategoryStore';
 import type { BetterItem } from '../../types';
 import { BetterItemActions } from './BetterItemActions';
 import { BetterItemEditModal } from './BetterItemEditModal';
@@ -15,6 +16,7 @@ interface BetterTodayItemProps {
 }
 
 export function BetterTodayItem({ item, onToggle, onAccept, onEdit, onReject }: BetterTodayItemProps) {
+  const { getCategoryColor, getCategoryGlow } = useCategoryStore();
   const [actionsVisible, setActionsVisible] = useState(false);
   const [editVisible, setEditVisible] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -83,7 +85,7 @@ export function BetterTodayItem({ item, onToggle, onAccept, onEdit, onReject }: 
           activeOpacity={1}
         >
           <LinearGradient
-            colors={item.completed ? ['#1E2530', '#252B38'] : ['#1E2530', '#252B38']}
+            colors={item.completed ? [colors.surface, colors.surface] : [colors.surface, colors.surface]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.gradient}
@@ -175,7 +177,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   checkmark: {
-    color: colors.background,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: 'bold',
   },
