@@ -543,22 +543,7 @@ private class UnlockReasonFormView(
         )
     }
 
-    private fun launchWork(blockId: String) {
-        val encoded = android.net.Uri.encode(blockId)
-        val viewIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("pos:///work/$encoded")).apply {
-            setPackage(context.packageName)
-            addFlags(
-                Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP
-            )
-        }
-        try {
-            context.startActivity(viewIntent)
-            return
-        } catch (error: Exception) {
-            android.util.Log.w("UnlockReasonOverlay", "Could not open work deep link", error)
-        }
+    private fun launchApp() {
         val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
         if (launch != null) {
             launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
@@ -761,7 +746,7 @@ private class UnlockReasonFormView(
             val snapshot = CurrentBlockStore.read(context)
             val blockId = snapshot?.id?.trim().orEmpty().ifEmpty { "current" }
             PhoneUnlockStore.setPendingWorkBlock(context, blockId)
-            launchWork(blockId)
+            launchApp()
         }
         dismiss()
         if (lockAfter) {

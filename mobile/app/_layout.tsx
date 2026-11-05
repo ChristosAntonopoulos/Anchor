@@ -22,6 +22,7 @@ export default function RootLayout() {
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const lastUnlockTimeRef = useRef<number>(0);
   const isShowingModalRef = useRef<boolean>(false);
+  const openingWorkRef = useRef(false);
   const DEBOUNCE_MS = 2000; // Prevent duplicate modals within 2 seconds
 
   useEffect(() => {
@@ -174,12 +175,21 @@ export default function RootLayout() {
   }, []); // Empty dependency array - only run on mount/unmount
 
   const openPendingWork = useCallback(async () => {
+    if (openingWorkRef.current) {
+      return;
+    }
     try {
       const blockId = await consumePendingWorkBlock();
-      if (blockId) {
-        router.push(workPath(blockId));
+      if (!blockId) {
+        return;
       }
+      openingWorkRef.current = true;
+      router.push(workPath(blockId));
+      setTimeout(() => {
+        openingWorkRef.current = false;
+      }, 2000);
     } catch (error) {
+      openingWorkRef.current = false;
       console.error('[RootLayout] Error opening pending work block:', error);
     }
   }, []);

@@ -285,6 +285,9 @@ export function PhoneUnlockReasonModal({
                         : ''
                     }. ${UNLOCK_COPY.openThisBlock}`}
                     onPress={() => {
+                      if (submittingRef.current) {
+                        return;
+                      }
                       cancelPause();
                       void submit({
                         skip: false,
