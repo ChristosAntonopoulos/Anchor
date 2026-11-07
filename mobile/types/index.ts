@@ -88,6 +88,26 @@ export interface WeeklyReview {
   completed: boolean;
 }
 
+// AI Brief types — written by BotSystem's anchor.day-start bot
+export interface YesterdayAssessment {
+  summary?: string;
+  wins: string[];
+  misses: string[];
+  carryForward: string[];
+  moodNote?: string;
+  dietNote?: string;
+  generatedAt?: string;
+}
+
+export interface AiBrief {
+  id: string;
+  date: string;
+  focusCategory?: Category;
+  applied: boolean;
+  yesterdayAssessment?: YesterdayAssessment;
+  todayFocusTasks: string[];
+}
+
 // TodayResponse - matches GET /api/today
 export interface TodayResponse {
   day: Day;
@@ -97,6 +117,8 @@ export interface TodayResponse {
   diet: DietEntry;
   currentBlock: ScheduleBlock;
   deadlineWarning?: DeadlineWarning;
+  /** AI-generated daily brief from BotSystem. Null until bot has run today. */
+  aiBrief?: AiBrief;
 }
 
 // API Request/Response types for mutations

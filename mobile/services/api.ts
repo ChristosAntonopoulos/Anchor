@@ -22,10 +22,11 @@ import type {
 import { API_CONFIG, getApiUrl } from '../constants/apiConfig';
 import {
   unwrapResponse,
+  transformAiBrief,
+  transformDietEntry,
+  transformDisciplineEntry,
   transformScheduleBlock,
   transformTask,
-  transformDisciplineEntry,
-  transformDietEntry,
   transformWeeklyReview,
   type ApiResponse,
 } from '../utils/apiResponseTransformer';
@@ -51,6 +52,7 @@ export interface APIClient {
   updateDiet(request: UpdateDietRequest): Promise<void>;
   createIncome(request: CreateIncomeRequest): Promise<void>;
   submitWeeklyReview(request: SubmitWeeklyReviewRequest): Promise<void>;
+  markAiBriefApplied(): Promise<void>;
 }
 
 // HTTP API Client Implementation
@@ -121,6 +123,7 @@ class HTTPAPIClient implements APIClient {
           endTime: '',
         },
         deadlineWarning: data.deadlineWarning,
+        aiBrief: data.aiBrief ? transformAiBrief(data.aiBrief as any) : undefined,
       };
     } catch (error) {
       throw this.handleError(error, 'Failed to fetch today\'s data');
@@ -282,6 +285,14 @@ class HTTPAPIClient implements APIClient {
       // Ignore returned WeeklyReviewDto, frontend expects void
     } catch (error) {
       throw this.handleError(error, 'Failed to submit weekly review');
+    }
+  }
+
+  async markAiBriefApplied(): Promise<void> {
+    try {
+      await this.axiosInstance.post<ApiResponse<unknown>>('/ai-brief/applied');
+    } catch (error) {
+      throw this.handleError(error, 'Failed to mark AI brief as applied');
     }
   }
 

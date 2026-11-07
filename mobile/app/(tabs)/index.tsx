@@ -9,9 +9,10 @@ import { BetterTodayList } from '../../components/today/BetterTodayList';
 import { CurrentBlockIndicator } from '../../components/today/CurrentBlockIndicator';
 import { DisciplineQuickToggle } from '../../components/today/DisciplineQuickToggle';
 import { DeadlineWarningBanner } from '../../components/today/DeadlineWarningBanner';
+import { AiBriefCard } from '../../components/today/AiBriefCard';
 
 export default function HomeScreen() {
-  const { data, loading, error, fetchToday, completeBetterItem, acceptBetterItem, editBetterItem, rejectBetterItem, updateDiscipline } = useTodayStore();
+  const { data, loading, error, fetchToday, completeBetterItem, acceptBetterItem, editBetterItem, rejectBetterItem, updateDiscipline, markAiBriefApplied } = useTodayStore();
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
@@ -91,6 +92,13 @@ export default function HomeScreen() {
           }
         >
           <TodayHeader date={data.day.date} />
+
+          {data.aiBrief && (
+            <AiBriefCard
+              brief={data.aiBrief}
+              onMarkApplied={markAiBriefApplied}
+            />
+          )}
           
           <BetterTodayList
             items={data.betterItems}

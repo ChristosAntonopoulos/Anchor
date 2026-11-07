@@ -2,12 +2,14 @@
 // Handles conversion between backend ApiResponse<T> format and frontend expected formats
 
 import type {
+  AiBrief,
+  Category,
+  DietEntry,
+  DisciplineEntry,
   ScheduleBlock,
   Task,
-  DisciplineEntry,
-  DietEntry,
   WeeklyReview,
-  Category,
+  YesterdayAssessment,
 } from '../types';
 
 // Backend API response wrapper
@@ -62,6 +64,27 @@ interface DietEntryDto {
 interface WeeklyReviewDto {
   aiSummary?: string;
   completed?: boolean;
+  [key: string]: unknown;
+}
+
+interface YesterdayAssessmentDto {
+  summary?: string;
+  wins?: string[];
+  misses?: string[];
+  carryForward?: string[];
+  moodNote?: string;
+  dietNote?: string;
+  generatedAt?: string;
+  [key: string]: unknown;
+}
+
+interface AiBriefDto {
+  id: string;
+  date: string;
+  focusCategory?: Category;
+  applied?: boolean;
+  yesterdayAssessment?: YesterdayAssessmentDto;
+  todayFocusTasks?: string[];
   [key: string]: unknown;
 }
 
@@ -148,5 +171,32 @@ export function transformWeeklyReview(dto: WeeklyReviewDto): WeeklyReview {
   return {
     aiSummary: dto.aiSummary ?? '',
     completed: dto.completed ?? false,
+  };
+}
+
+/**
+ * Transforms AiBriefDto to AiBrief
+ */
+export function transformAiBrief(dto: AiBriefDto): AiBrief {
+  let assessment: YesterdayAssessment | undefined;
+  if (dto.yesterdayAssessment) {
+    const a = dto.yesterdayAssessment;
+    assessment = {
+      summary: a.summary,
+      wins: a.wins ?? [],
+      misses: a.misses ?? [],
+      carryForward: a.carryForward ?? [],
+      moodNote: a.moodNote,
+      dietNote: a.dietNote,
+      generatedAt: a.generatedAt,
+    };
+  }
+  return {
+    id: dto.id,
+    date: dto.date,
+    focusCategory: dto.focusCategory,
+    applied: dto.applied ?? false,
+    yesterdayAssessment: assessment,
+    todayFocusTasks: dto.todayFocusTasks ?? [],
   };
 }

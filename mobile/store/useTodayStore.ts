@@ -18,6 +18,7 @@ interface TodayStore {
   completeTask: (id: string) => Promise<void>;
   updateDiscipline: (discipline: Partial<DisciplineEntry>) => Promise<void>;
   updateDiet: (diet: Partial<DietEntry>) => Promise<void>;
+  markAiBriefApplied: () => Promise<void>;
   reset: () => void;
 }
 
@@ -187,6 +188,25 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Failed to update diet'
+      });
+    }
+  },
+
+  markAiBriefApplied: async () => {
+    try {
+      await apiClient.markAiBriefApplied();
+      const currentData = get().data;
+      if (currentData?.aiBrief) {
+        set({
+          data: {
+            ...currentData,
+            aiBrief: { ...currentData.aiBrief, applied: true },
+          },
+        });
+      }
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to mark brief as applied',
       });
     }
   },

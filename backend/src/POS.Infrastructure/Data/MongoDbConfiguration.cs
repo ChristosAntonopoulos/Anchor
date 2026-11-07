@@ -9,6 +9,7 @@ using POS.Core.Entities.Discipline;
 using POS.Core.Entities.Money;
 using POS.Core.Entities.Schedule;
 using POS.Core.Entities.Tasks;
+using POS.Core.Entities.AIBrief;
 using POS.Core.Entities.WeeklyReview;
 using POS.Core.Repositories;
 using POS.Infrastructure.Repositories;
@@ -87,6 +88,10 @@ public static class MongoDbConfiguration
         // Weekly Review
         services.AddScoped<IRepository<WeeklyReview>>(sp =>
             new MongoRepository<WeeklyReview>(database.GetCollection<WeeklyReview>("weeklyReviews")));
+
+        // AI Brief (written by BotSystem's day-start bot)
+        services.AddScoped<IDayAnchoredRepository<DayStartPlan>>(sp =>
+            new DayAnchoredRepository<DayStartPlan>(database.GetCollection<DayStartPlan>("dayStartPlans")));
     }
 
     private static void CreateIndexes(IMongoDatabase database)
@@ -159,5 +164,12 @@ public static class MongoDbConfiguration
         incomeEntriesCollection.Indexes.CreateOne(
             new CreateIndexModel<POS.Core.Entities.Money.IncomeEntry>(
                 Builders<POS.Core.Entities.Money.IncomeEntry>.IndexKeys.Ascending(x => x.UserId).Descending(x => x.Date)));
+
+        // DayStartPlans indexes - compound unique index on UserId and Date
+        var dayStartPlansCollection = database.GetCollection<POS.Core.Entities.AIBrief.DayStartPlan>("dayStartPlans");
+        dayStartPlansCollection.Indexes.CreateOne(
+            new CreateIndexModel<POS.Core.Entities.AIBrief.DayStartPlan>(
+                Builders<POS.Core.Entities.AIBrief.DayStartPlan>.IndexKeys.Ascending(x => x.UserId).Descending(x => x.Date),
+                new CreateIndexOptions { Unique = true }));
     }
 }

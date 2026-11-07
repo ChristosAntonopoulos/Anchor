@@ -1,3 +1,4 @@
+using POS.Application.DTOs.AIBrief;
 using POS.Application.DTOs.Diet;
 using POS.Application.DTOs.Discipline;
 
@@ -16,4 +17,10 @@ public class TodayResponseDto
     public DietEntryDto Diet { get; set; } = new();
     public ScheduleBlockDto CurrentBlock { get; set; } = new();
     public DeadlineWarningDto? DeadlineWarning { get; set; }
+
+    /// <summary>
+    /// AI-generated daily brief from BotSystem's day-start bot. Null when the bot
+    /// has not yet run today (first run of the day before 8 AM).
+    /// </summary>
+    public DayStartPlanDto? AiBrief { get; set; }
 }
