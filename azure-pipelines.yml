@@ -131,9 +131,87 @@ stages:
       displayName: 'Set Android version from the pipeline build id'
 
     - script: |
+        set -uo pipefail
+        echo "Locating JDK 17 for the Gradle Android build..."
+
+        if [ -n "${JAVA_HOME:-}" ] && [ -x "${JAVA_HOME}/bin/java" ]; then
+          echo "JAVA_HOME already set to $JAVA_HOME"
+        else
+          JAVA_HOME=""
+          for candidate in \
+            /usr/lib/jvm/java-17-openjdk-amd64 \
+            /usr/lib/jvm/java-17-openjdk \
+            /usr/lib/jvm/temurin-17-jdk-amd64 \
+            /usr/lib/jvm/jdk-17 \
+            "$HOME/jdk-17" \
+            "$HOME/android-studio/jbr" \
+            /opt/android-studio/jbr \
+            /usr/lib/jvm/java-21-openjdk-amd64
+          do
+            if [ -x "$candidate/bin/java" ]; then
+              JAVA_HOME="$candidate"
+              echo "Found JDK at $JAVA_HOME"
+              break
+            fi
+          done
+        fi
+
+        if [ -z "${JAVA_HOME:-}" ] || [ ! -x "${JAVA_HOME}/bin/java" ]; then
+          if command -v java >/dev/null 2>&1; then
+            JAVA_BIN="$(command -v java)"
+            JAVA_BIN="$(readlink -f "$JAVA_BIN" 2>/dev/null || echo "$JAVA_BIN")"
+            JAVA_HOME="$(dirname "$(dirname "$JAVA_BIN")")"
+            echo "Derived JAVA_HOME from PATH: $JAVA_HOME"
+          fi
+        fi
+
+        INSTALL_DIR="$HOME/jdk-17"
+        if [ -z "${JAVA_HOME:-}" ] || [ ! -x "${JAVA_HOME}/bin/java" ]; then
+          echo "No JDK found. Downloading Eclipse Temurin 17 to $INSTALL_DIR"
+          if [ ! -x "$INSTALL_DIR/bin/java" ]; then
+            curl --retry 4 --retry-delay 4 -fL -o /tmp/jdk17.tgz \
+              "https://api.adoptium.net/v3/binary/latest/17/ga/linux/x64/jdk/hotspot/normal/eclipse?project=jdk"
+            rm -rf /tmp/jdk17-extract
+            mkdir -p /tmp/jdk17-extract
+            tar -xzf /tmp/jdk17.tgz -C /tmp/jdk17-extract
+            EXTRACTED="$(find /tmp/jdk17-extract -maxdepth 1 -mindepth 1 -type d | head -1)"
+            if [ -z "$EXTRACTED" ] || [ ! -x "$EXTRACTED/bin/java" ]; then
+              echo "ERROR: Temurin archive did not contain a JDK."
+              ls -la /tmp/jdk17-extract || true
+              exit 1
+            fi
+            rm -rf "$INSTALL_DIR"
+            mv "$EXTRACTED" "$INSTALL_DIR"
+            rm -f /tmp/jdk17.tgz
+          fi
+          JAVA_HOME="$INSTALL_DIR"
+        fi
+
+        if [ ! -x "${JAVA_HOME}/bin/java" ]; then
+          echo "ERROR: JAVA_HOME is not usable: ${JAVA_HOME:-unset}"
+          echo "Install openjdk-17-jdk on the Default agent, or allow api.adoptium.net."
+          exit 1
+        fi
+
+        export JAVA_HOME
+        export PATH="$JAVA_HOME/bin:$PATH"
+        echo "Using JAVA_HOME=$JAVA_HOME"
+        java -version
+        echo "##vso[task.setvariable variable=JAVA_HOME]$JAVA_HOME"
+      displayName: 'Ensure JDK 17 is installed'
+
+    - script: |
         set -euo pipefail
         cd mobile
         export EXPO_PUBLIC_API_URL="http://185.193.66.50:31247/api"
+        export JAVA_HOME="${JAVA_HOME}"
+        export PATH="${JAVA_HOME}/bin:$PATH"
+        if [ ! -x "${JAVA_HOME}/bin/java" ]; then
+          echo "ERROR: JAVA_HOME from the previous step is not usable: ${JAVA_HOME:-unset}"
+          exit 1
+        fi
+        echo "Using JAVA_HOME=$JAVA_HOME"
+        java -version
 
         if [ -z "${ANDROID_HOME:-}${ANDROID_SDK_ROOT:-}" ]; then
           for candidate in "$HOME/Android/Sdk" /opt/android-sdk /usr/lib/android-sdk; do
@@ -161,59 +239,6 @@ stages:
           echo "ERROR: android/app/update.keystore is missing. Sideload updates need a stable signing key."
           exit 1
         fi
-
-        if [ -z "${JAVA_HOME:-}" ] || [ ! -x "${JAVA_HOME}/bin/java" ]; then
-          for candidate in \
-            /usr/lib/jvm/java-17-openjdk-amd64 \
-            /usr/lib/jvm/java-17-openjdk \
-            /usr/lib/jvm/temurin-17-jdk-amd64 \
-            /usr/lib/jvm/jdk-17 \
-            "$HOME/jdk-17" \
-            "$HOME/android-studio/jbr" \
-            /opt/android-studio/jbr \
-            /usr/lib/jvm/java-21-openjdk-amd64
-          do
-            if [ -x "$candidate/bin/java" ]; then
-              export JAVA_HOME="$candidate"
-              break
-            fi
-          done
-        fi
-
-        if [ -z "${JAVA_HOME:-}" ] || [ ! -x "${JAVA_HOME}/bin/java" ]; then
-          if command -v java >/dev/null 2>&1; then
-            JAVA_BIN="$(command -v java)"
-            JAVA_BIN="$(readlink -f "$JAVA_BIN" 2>/dev/null || echo "$JAVA_BIN")"
-            export JAVA_HOME="$(dirname "$(dirname "$JAVA_BIN")")"
-          fi
-        fi
-
-        if [ -z "${JAVA_HOME:-}" ] || [ ! -x "${JAVA_HOME}/bin/java" ]; then
-          echo "No JDK on PATH. Installing Eclipse Temurin 17 into $HOME/jdk-17 for this agent."
-          INSTALL_DIR="$HOME/jdk-17"
-          if [ ! -x "$INSTALL_DIR/bin/java" ]; then
-            curl -fsSL -o /tmp/jdk17.tgz \
-              "https://api.adoptium.net/v3/binary/latest/17/ga/linux/x64/jdk/hotspot/normal/eclipse?project=jdk"
-            rm -rf /tmp/jdk17-extract
-            mkdir -p /tmp/jdk17-extract
-            tar -xzf /tmp/jdk17.tgz -C /tmp/jdk17-extract
-            EXTRACTED="$(find /tmp/jdk17-extract -maxdepth 1 -mindepth 1 -type d | head -1)"
-            rm -rf "$INSTALL_DIR"
-            mv "$EXTRACTED" "$INSTALL_DIR"
-            rm -f /tmp/jdk17.tgz
-          fi
-          export JAVA_HOME="$INSTALL_DIR"
-        fi
-
-        if [ ! -x "${JAVA_HOME}/bin/java" ]; then
-          echo "ERROR: JAVA_HOME is not usable: ${JAVA_HOME:-unset}"
-          echo "Install JDK 17 on the Default agent or allow outbound download to api.adoptium.net."
-          exit 1
-        fi
-
-        export PATH="$JAVA_HOME/bin:$PATH"
-        echo "Using JAVA_HOME=$JAVA_HOME"
-        java -version
 
         chmod +x android/gradlew
         (cd android && ./gradlew assembleRelease --no-daemon)
