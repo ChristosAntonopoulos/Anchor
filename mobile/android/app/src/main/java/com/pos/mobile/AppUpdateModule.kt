@@ -1,6 +1,7 @@
 package com.pos.mobile
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -18,6 +19,38 @@ class AppUpdateModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
     override fun getName(): String = "AppUpdateModule"
 
     @ReactMethod
+    fun getInstalledVersionCode(promise: Promise) {
+        try {
+            promise.resolve(installedVersionCode().toDouble())
+        } catch (error: Exception) {
+            promise.reject("VERSION_FAILED", error.message, error)
+        }
+    }
+
+    @ReactMethod
+    fun canRequestPackageInstalls(promise: Promise) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            promise.resolve(true)
+            return
+        }
+        promise.resolve(reactApplicationContext.packageManager.canRequestPackageInstalls())
+    }
+
+    @ReactMethod
+    fun openInstallPermissionSettings(promise: Promise) {
+        try {
+            val settings = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                data = Uri.parse("package:${reactApplicationContext.packageName}")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startOnUi(settings)
+            promise.resolve(true)
+        } catch (error: Exception) {
+            promise.reject("SETTINGS_FAILED", error.message, error)
+        }
+    }
+
+    @ReactMethod
     fun installApk(url: String, promise: Promise) {
         val context = reactApplicationContext
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
@@ -27,10 +60,10 @@ class AppUpdateModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
                 data = Uri.parse("package:${context.packageName}")
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-            context.startActivity(settings)
+            startOnUi(settings)
             promise.reject(
                 "INSTALL_PERMISSION",
-                "Allow installs from this app, then press OK again."
+                "Allow installs from this app, then the update continues."
             )
             return
         }
@@ -47,13 +80,40 @@ class AppUpdateModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
                     setDataAndType(uri, "application/vnd.android.package-archive")
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 }
-                context.startActivity(install)
+                startOnUi(install)
                 promise.resolve(true)
             } catch (error: Exception) {
                 promise.reject("DOWNLOAD_FAILED", error.message, error)
             }
         }.start()
+    }
+
+    private fun installedVersionCode(): Long {
+        val pm = reactApplicationContext.packageManager
+        val pkg = reactApplicationContext.packageName
+        val info = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            pm.getPackageInfo(pkg, PackageManager.PackageInfoFlags.of(0))
+        } else {
+            @Suppress("DEPRECATION")
+            pm.getPackageInfo(pkg, 0)
+        }
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            info.longVersionCode
+        } else {
+            @Suppress("DEPRECATION")
+            info.versionCode.toLong()
+        }
+    }
+
+    private fun startOnUi(intent: Intent) {
+        val activity = currentActivity
+        if (activity != null) {
+            activity.runOnUiThread { activity.startActivity(intent) }
+        } else {
+            reactApplicationContext.startActivity(intent)
+        }
     }
 
     private fun download(url: String): File {

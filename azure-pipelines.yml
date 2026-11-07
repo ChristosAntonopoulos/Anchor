@@ -84,7 +84,7 @@ stages:
   condition: succeeded()
   jobs:
   - job: BuildMobile
-    displayName: 'Build Android APK with EAS'
+    displayName: 'Build Android APK with Gradle'
     timeoutInMinutes: 90
     pool:
       name: 'Default'
@@ -94,57 +94,8 @@ stages:
       inputs:
         versionSpec: '20.x'
 
-    - script: 'npm install -g eas-cli@20.1.0'
-      displayName: 'Install EAS CLI'
-
-    - script: |
-        if [ -z "${EXPO_TOKEN:-}" ]; then
-          echo "ERROR: EXPO_TOKEN is not set!"
-          echo ""
-          echo "Please add EXPO_TOKEN to the POS-Secrets variable group:"
-          echo "  1. Go to Azure DevOps → Pipelines → Library"
-          echo "  2. Open POS-Secrets variable group"
-          echo "  3. Add variable: EXPO_TOKEN (mark as secret)"
-          echo "  4. Get token from: https://expo.dev/accounts/[username]/settings/access-tokens"
-          exit 1
-        fi
-        echo "EXPO_TOKEN is set (length: ${#EXPO_TOKEN} characters)"
-        echo "EAS CLI will automatically use EXPO_TOKEN environment variable for authentication"
-      displayName: 'Verify EXPO_TOKEN is set'
-      env:
-        EXPO_TOKEN: $(EXPO_TOKEN)
-
     - script: 'cd mobile && npm install'
       displayName: 'Install mobile dependencies'
-
-    - script: |
-        cd mobile
-        echo "Verifying EAS project is configured..."
-        echo ""
-        echo "Note: EAS project must be initialized locally first."
-        echo "If this is the first build, run 'eas init' locally in the mobile/ directory."
-        echo ""
-        echo "Checking project configuration..."
-        if [ -f "eas.json" ]; then
-          echo "✅ eas.json found"
-        else
-          echo "⚠️  eas.json not found - project may not be initialized"
-        fi
-        
-        # Verify authentication
-        EXPO_USERNAME=$(eas whoami 2>/dev/null | head -1 || echo "")
-        if [ -n "$EXPO_USERNAME" ]; then
-          echo "✅ Authenticated as: $EXPO_USERNAME"
-        else
-          echo "⚠️  Could not verify authentication"
-        fi
-        
-        echo ""
-        echo "Proceeding with build..."
-      displayName: 'Verify EAS Project Configuration'
-      env:
-        EXPO_TOKEN: $(EXPO_TOKEN)
-      continueOnError: true
 
     - script: |
         set -euo pipefail
@@ -180,120 +131,48 @@ stages:
       displayName: 'Set Android version from the pipeline build id'
 
     - script: |
-        set -uo pipefail
+        set -euo pipefail
         cd mobile
-        echo "Starting Android APK build..."
-        echo "Build profile: production"
-        echo "API URL: http://185.193.66.50:31247/api"
-        export EAS_SKIP_AUTO_FINGERPRINT=1
         export EXPO_PUBLIC_API_URL="http://185.193.66.50:31247/api"
 
-        collect_apk() {
-          node <<'NODE'
-        const fs = require('fs');
-        const path = require('path');
-        const { execSync } = require('child_process');
-
-        function parseBuild() {
-          if (!fs.existsSync('eas-build-output.json')) return null;
-          const raw = fs.readFileSync('eas-build-output.json', 'utf8').trim();
-          const brace = raw.indexOf('{');
-          const bracket = raw.indexOf('[');
-          let start = -1;
-          if (brace >= 0 && (bracket < 0 || brace < bracket)) start = brace;
-          else if (bracket >= 0) start = bracket;
-          if (start < 0) return null;
-          const parsed = JSON.parse(raw.slice(start));
-          return Array.isArray(parsed) ? parsed[0] : parsed;
-        }
-
-        function copyApk(src) {
-          fs.copyFileSync(src, 'pos-mobile.apk');
-          console.log(`Using APK ${src}`);
-        }
-
-        const build = parseBuild();
-        const url =
-          build?.artifacts?.buildUrl ||
-          build?.artifacts?.applicationArchiveUrl ||
-          build?.applicationArchiveUrl ||
-          null;
-        if (url && /^https?:\/\//i.test(url)) {
-          execSync(`curl -fsSL "${url}" -o pos-mobile.apk`, { stdio: 'inherit' });
-          process.exit(0);
-        }
-        const localPath = typeof url === 'string' ? url.replace(/^file:\/\//, '') : '';
-        if (localPath && fs.existsSync(localPath) && localPath.endsWith('.apk')) {
-          copyApk(localPath);
-          process.exit(0);
-        }
-        if (build?.id && !process.env.EAS_LOCAL_BUILD) {
-          try {
-            execSync(`eas build:download --build-id ${build.id} --non-interactive`, { stdio: 'inherit' });
-          } catch (e) {
-            console.error('eas build:download failed');
-          }
-        }
-
-        const found = [];
-        function walk(dir, depth) {
-          if (depth > 8 || !fs.existsSync(dir)) return;
-          for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
-            if (['node_modules', '.git'].includes(ent.name)) continue;
-            const p = path.join(dir, ent.name);
-            if (ent.isDirectory()) walk(p, depth + 1);
-            else if (ent.name.endsWith('.apk')) found.push(p);
-          }
-        }
-        walk('.', 0);
-        if (!found.length) process.exit(1);
-        found.sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
-        copyApk(found[0]);
-        NODE
-        }
-
-        echo "Trying EAS cloud build..."
-        set +e
-        eas build --platform android --profile production --non-interactive --wait --json > eas-build-output.json
-        CLOUD_RC=$?
-        set -e
-        if [ "$CLOUD_RC" -eq 0 ] && collect_apk; then
-          echo "EAS cloud build produced pos-mobile.apk"
-        else
-          echo "EAS cloud build failed (exit ${CLOUD_RC}). Free-plan Android quota is often the cause."
-          echo "Falling back to a local EAS build, which does not use Expo cloud credits."
-          set +e
-          export EAS_LOCAL_BUILD=1
-          eas build --platform android --profile production --non-interactive --wait --json --local > eas-build-output.json
-          LOCAL_RC=$?
-          set -e
-          if [ "$LOCAL_RC" -eq 0 ] && collect_apk; then
-            echo "EAS local build produced pos-mobile.apk"
-          else
-            echo "EAS local build failed (exit ${LOCAL_RC:-n/a}). Falling back to Gradle assembleRelease."
-            (cd android && chmod +x gradlew && ./gradlew assembleRelease --no-daemon)
-            GRADLE_APK="$(find android/app/build/outputs/apk -name '*.apk' -type f | head -1)"
-            if [ -z "$GRADLE_APK" ]; then
-              echo "ERROR: No APK from EAS cloud, EAS local, or Gradle."
-              exit 1
+        if [ -z "${ANDROID_HOME:-}${ANDROID_SDK_ROOT:-}" ]; then
+          for candidate in "$HOME/Android/Sdk" /opt/android-sdk /usr/lib/android-sdk; do
+            if [ -d "$candidate" ]; then
+              export ANDROID_HOME="$candidate"
+              break
             fi
-            cp "$GRADLE_APK" ./pos-mobile.apk
+          done
+          if [ -z "${ANDROID_HOME:-}" ] && [ -n "${LOCALAPPDATA:-}" ] && [ -d "${LOCALAPPDATA}/Android/Sdk" ]; then
+            export ANDROID_HOME="${LOCALAPPDATA}/Android/Sdk"
           fi
         fi
+        export ANDROID_HOME="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+        export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+        if [ -z "$ANDROID_HOME" ] || [ ! -d "$ANDROID_HOME" ]; then
+          echo "ERROR: ANDROID_HOME is not set and no Android SDK was found on this agent."
+          echo "Install the Android SDK on the Default pool machine, then rerun."
+          exit 1
+        fi
+        SDK_DIR="${ANDROID_HOME//\\//}"
+        printf 'sdk.dir=%s\n' "$SDK_DIR" > android/local.properties
+        echo "Using Android SDK at $ANDROID_HOME"
 
-        if [ ! -f "./pos-mobile.apk" ]; then
-          echo "ERROR: APK file not found after build"
+        if [ ! -f android/app/update.keystore ]; then
+          echo "ERROR: android/app/update.keystore is missing. Sideload updates need a stable signing key."
           exit 1
         fi
 
-        APK_SIZE=$(du -h ./pos-mobile.apk | cut -f1)
-        echo "APK ready: $APK_SIZE"
+        chmod +x android/gradlew
+        (cd android && ./gradlew assembleRelease --no-daemon)
+        GRADLE_APK="$(find android/app/build/outputs/apk -name '*.apk' -type f | head -1)"
+        if [ -z "$GRADLE_APK" ]; then
+          echo "ERROR: Gradle did not produce an APK."
+          exit 1
+        fi
+        cp "$GRADLE_APK" ./pos-mobile.apk
+        echo "APK ready: $(du -h ./pos-mobile.apk | cut -f1)"
         ls -lh ./pos-mobile.apk
-      displayName: 'Build Android APK (EAS cloud, local, or Gradle)'
-      env:
-        EXPO_TOKEN: $(EXPO_TOKEN)
-        EAS_SKIP_AUTO_FINGERPRINT: '1'
-      continueOnError: false
+      displayName: 'Build release APK with Gradle on the agent'
       timeoutInMinutes: 80
 
     - task: PublishBuildArtifacts@1
@@ -305,20 +184,9 @@ stages:
 
     - script: |
         echo "=== Mobile Build Summary ==="
-        echo ""
-        echo "✅ APK built successfully!"
-        echo ""
-        echo "To install on your phone:"
-        echo "  1. Go to Azure DevOps → Pipelines → Latest run"
-        echo "  2. Click on 'Artifacts'"
-        echo "  3. Download 'mobile-apk' artifact"
-        echo "  4. Transfer APK to your Android phone"
-        echo "  5. Install the APK (enable 'Install from unknown sources' if needed)"
-        echo ""
-        echo "The app will automatically connect to:"
-        echo "  http://185.193.66.50:31247/api"
-        echo ""
-        echo "Install this APK once. After that, opening the app offers newer builds."
+        echo "Gradle APK built on the Default agent (no Expo cloud quota)."
+        echo "PublishRelease uploads it to GET /api/app/release."
+        echo "Opening the app checks for that version and starts the installer."
       displayName: 'Display build summary'
 
 - stage: Deploy

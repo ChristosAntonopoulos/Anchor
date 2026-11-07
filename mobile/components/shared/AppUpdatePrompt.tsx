@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   Modal,
   NativeModules,
   Platform,
@@ -15,15 +16,18 @@ import { colors, spacing, typography, borderRadius } from '../../constants/desig
 import { parseAppRelease, shouldOfferUpdate, type AppRelease } from '../../utils/appUpdate';
 import { isExpoGo } from '../../utils/nativeModuleSupport';
 
-type InstallPhase = 'ready' | 'downloading' | 'permission' | 'failed';
+type InstallPhase = 'checking' | 'ready' | 'downloading' | 'installing' | 'permission' | 'failed';
 
 type AppUpdateNativeModule = {
   installApk: (url: string) => Promise<boolean>;
+  getInstalledVersionCode?: () => Promise<number>;
+  canRequestPackageInstalls?: () => Promise<boolean>;
+  openInstallPermissionSettings?: () => Promise<boolean>;
 };
 
 const CHECK_TIMEOUT_MS = 8000;
 
-function installedVersionCode(): number {
+function fallbackInstalledVersionCode(): number {
   const raw = Constants.nativeBuildVersion;
   const parsed = typeof raw === 'string' ? Number.parseInt(raw, 10) : Number(raw);
   return Number.isFinite(parsed) ? parsed : Number.NaN;
@@ -37,6 +41,22 @@ function errorCode(error: unknown): string {
     }
   }
   return '';
+}
+
+function nativeInstaller(): AppUpdateNativeModule | undefined {
+  return NativeModules.AppUpdateModule as AppUpdateNativeModule | undefined;
+}
+
+async function installedVersionCode(installer?: AppUpdateNativeModule): Promise<number> {
+  try {
+    const native = await installer?.getInstalledVersionCode?.();
+    if (typeof native === 'number' && Number.isFinite(native)) {
+      return native;
+    }
+  } catch {
+    // Fall through to Constants.
+  }
+  return fallbackInstalledVersionCode();
 }
 
 async function fetchRelease(): Promise<AppRelease | null> {
@@ -57,105 +77,146 @@ async function fetchRelease(): Promise<AppRelease | null> {
 
 export function AppUpdatePrompt() {
   const [release, setRelease] = useState<AppRelease | null>(null);
-  const [phase, setPhase] = useState<InstallPhase>('ready');
+  const [phase, setPhase] = useState<InstallPhase>('checking');
+  const dismissedRef = useRef(false);
+  const installingRef = useRef(false);
+  const autoStartedForRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    if (Platform.OS !== 'android' || isExpoGo) {
+  const checkForUpdate = useCallback(async () => {
+    if (Platform.OS !== 'android' || isExpoGo || dismissedRef.current) {
       return;
     }
-    const installer = NativeModules.AppUpdateModule as AppUpdateNativeModule | undefined;
+    const installer = nativeInstaller();
     if (!installer) {
       return;
     }
 
-    let cancelled = false;
-
-    void (async () => {
-      try {
-        const available = await fetchRelease();
-        if (cancelled || !available) {
-          return;
-        }
-        if (!shouldOfferUpdate(installedVersionCode(), available.versionCode)) {
-          return;
-        }
-        setRelease(available);
-      } catch (error) {
-        console.error('[AppUpdatePrompt] Update check failed:', error);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
+    const available = await fetchRelease();
+    if (!available) {
+      return;
+    }
+    const installed = await installedVersionCode(installer);
+    if (!shouldOfferUpdate(installed, available.versionCode)) {
+      return;
+    }
+    setRelease(available);
   }, []);
 
-  const install = async () => {
-    const installer = NativeModules.AppUpdateModule as AppUpdateNativeModule | undefined;
-    if (!installer || !release) {
+  const install = useCallback(async () => {
+    const installer = nativeInstaller();
+    if (!installer || !release || installingRef.current) {
       return;
     }
 
+    installingRef.current = true;
     setPhase('downloading');
     try {
+      const allowed = installer.canRequestPackageInstalls
+        ? await installer.canRequestPackageInstalls()
+        : true;
+      if (!allowed) {
+        setPhase('permission');
+        await installer.openInstallPermissionSettings?.();
+        return;
+      }
       await installer.installApk(getApiUrl('/app/release/apk'));
-      setRelease(null);
-      setPhase('ready');
+      setPhase('installing');
     } catch (error) {
       if (errorCode(error) === 'INSTALL_PERMISSION') {
         setPhase('permission');
         return;
       }
       setPhase('failed');
+    } finally {
+      installingRef.current = false;
     }
-  };
+  }, [release]);
+
+  useEffect(() => {
+    void checkForUpdate();
+  }, [checkForUpdate]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active' || dismissedRef.current) {
+        return;
+      }
+      if (release && phase === 'permission') {
+        void install();
+        return;
+      }
+      if (!release) {
+        void checkForUpdate();
+      }
+    });
+    return () => sub.remove();
+  }, [checkForUpdate, install, phase, release]);
+
+  useEffect(() => {
+    if (!release || dismissedRef.current) {
+      return;
+    }
+    if (autoStartedForRef.current === release.versionCode) {
+      return;
+    }
+    autoStartedForRef.current = release.versionCode;
+    void install();
+  }, [install, release]);
+
+  if (!release) {
+    return null;
+  }
 
   const message = (() => {
-    if (!release) {
-      return '';
-    }
     if (phase === 'downloading') {
-      return 'Downloading the update. Android will ask you to confirm the install.';
+      return `Κατεβάζω την έκδοση ${release.version} και ανοίγω την εγκατάσταση.`;
+    }
+    if (phase === 'installing') {
+      return 'Το Android ζητά επιβεβαίωση. Πάτα Εγκατάσταση στο επόμενο παράθυρο.';
     }
     if (phase === 'permission') {
-      return 'Allow this app to install updates, then press OK.';
+      return 'Επίτρεψε την εγκατάσταση από αυτή την εφαρμογή. Μόλις επιστρέψεις, συνεχίζω μόνος μου.';
     }
     if (phase === 'failed') {
-      return 'The update did not download. Press OK to try again.';
+      return 'Η ενημέρωση δεν κατέβηκε. Πατάω Εγκατάσταση για νέα προσπάθεια.';
     }
-    return `Version ${release.version} is ready. Press OK to install it.`;
+    return `Η έκδοση ${release.version} είναι έτοιμη. Ξεκινάει η εγκατάσταση.`;
   })();
 
   return (
     <Modal
-      visible={release !== null}
+      visible
       transparent
       animationType="fade"
       onRequestClose={() => {
-        if (phase !== 'downloading') {
+        if (phase !== 'downloading' && phase !== 'installing') {
+          dismissedRef.current = true;
           setRelease(null);
         }
       }}
     >
       <View style={styles.backdrop}>
         <View style={styles.card}>
-          <Text style={styles.title}>Update available</Text>
+          <Text style={styles.title}>Ενημέρωση εφαρμογής</Text>
           <Text style={styles.message}>{message}</Text>
-          {phase === 'downloading' ? (
+          {phase === 'downloading' || phase === 'installing' ? (
             <ActivityIndicator color={colors.primary} style={styles.spinner} />
           ) : (
             <View style={styles.actions}>
               <TouchableOpacity
                 style={styles.secondaryButton}
                 onPress={() => {
+                  dismissedRef.current = true;
                   setRelease(null);
                   setPhase('ready');
                 }}
               >
-                <Text style={styles.secondaryText}>Not now</Text>
+                <Text style={styles.secondaryText}>Αργότερα</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.primaryButton} onPress={() => void install()}>
-                <Text style={styles.primaryText}>OK</Text>
+                <Text style={styles.primaryText}>
+                  {phase === 'permission' ? 'Συνέχεια' : 'Εγκατάσταση'}
+                </Text>
               </TouchableOpacity>
             </View>
           )}
