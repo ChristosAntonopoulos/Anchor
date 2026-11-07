@@ -17,10 +17,17 @@ export function TodayMealCard() {
   if (todayCardLoading || !todayCard) return null;
 
   const { nextMeal, actionableReminder, hasUnconfirmedIngredients } = todayCard;
-  const cookPath = nextMeal ? (`/more/meals/cook/${nextMeal.id}` as const) : null;
-  const changePath = nextMeal ? (`/more/meals/change/${nextMeal.id}` as const) : null;
+  const canStart = nextMeal?.state === 'Planned';
+  const cookPath = canStart ? (`/more/meals/cook/${nextMeal.id}` as const) : null;
+  const changePath = canStart ? (`/more/meals/change/${nextMeal.id}` as const) : null;
+  const slotLabels: Record<string, string> = {
+    Breakfast: 'ΠΡΩΙΝΟ ΣΗΜΕΡΑ',
+    Lunch: 'ΜΕΣΗΜΕΡΙΑΝΟ ΣΗΜΕΡΑ',
+    Dinner: 'ΒΡΑΔΙΝΟ ΣΗΜΕΡΑ',
+    Snack: 'ΣΝΑΚ ΣΗΜΕΡΑ',
+  };
 
-  if (!nextMeal) {
+  if (!nextMeal || !canStart) {
     return (
       <View style={styles.container}>
         <LinearGradient
@@ -33,7 +40,9 @@ export function TodayMealCard() {
             <Ionicons name="restaurant-outline" size={18} color={colors.category.health} />
             <Text style={styles.sectionLabel}>ΓΕΥΜΑΤΑ ΣΗΜΕΡΑ</Text>
           </View>
-          <Text style={styles.noMealText}>Δεν υπάρχει προγραμματισμένο γεύμα</Text>
+          <Text style={styles.noMealText}>
+            {actionableReminder ?? 'Δεν υπάρχει προγραμματισμένο γεύμα'}
+          </Text>
           <View style={styles.actions}>
             <TouchableOpacity
               style={styles.actionBtn}
@@ -67,10 +76,12 @@ export function TodayMealCard() {
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
-        <View style={styles.headerRow}>
-          <Ionicons name="restaurant-outline" size={18} color={colors.category.health} />
-          <Text style={styles.sectionLabel}>ΒΡΑΔΙΝΟ ΣΗΜΕΡΑ</Text>
-        </View>
+          <View style={styles.headerRow}>
+            <Ionicons name="restaurant-outline" size={18} color={colors.category.health} />
+            <Text style={styles.sectionLabel}>
+              {slotLabels[nextMeal.slot] ?? 'ΓΕΥΜΑ ΣΗΜΕΡΑ'}
+            </Text>
+          </View>
 
         <Text style={styles.mealName}>{nextMeal.recipeName ?? 'Γεύμα'}</Text>
 

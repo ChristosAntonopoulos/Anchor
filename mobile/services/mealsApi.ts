@@ -15,7 +15,6 @@ import type {
   CompleteCookRequest,
   CookReady,
   GenerateRecipeRequest,
-  UpdateMealSlotRequest,
 } from '../types/meals';
 
 interface ApiResponse<T> {
@@ -113,6 +112,11 @@ class MealsApiClient {
 
   async getActivePlan(): Promise<MealPlan | null> {
     const r = await this.http.get<ApiResponse<MealPlan | null>>('/plans/active');
+    return unwrap(r.data);
+  }
+
+  async ensureWeek(): Promise<MealPlan> {
+    const r = await this.http.post<ApiResponse<MealPlan>>('/plans/ensure-week');
     return unwrap(r.data);
   }
 

@@ -137,7 +137,7 @@ export const useMealsStore = create<MealsStore>((set, get) => ({
   fetchActivePlan: async () => {
     set({ planLoading: true, planError: null });
     try {
-      const plan = await mealsApi.getActivePlan();
+      const plan = (await mealsApi.getActivePlan()) ?? (await mealsApi.ensureWeek());
       set({ activePlan: plan, planLoading: false });
     } catch (e) {
       set({ planError: e instanceof Error ? e.message : 'Error', planLoading: false });

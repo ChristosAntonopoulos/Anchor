@@ -13,20 +13,79 @@ public class MealPlanService
 {
     private readonly MongoDbContext _context;
     private readonly UserDayClock _dayClock;
+    private readonly RecipeService _recipes;
+    private readonly InventoryService _inventory;
+    private readonly MealProfileService _profile;
     private readonly ILogger<MealPlanService> _logger;
 
-    public MealPlanService(MongoDbContext context, UserDayClock dayClock, ILogger<MealPlanService> logger)
+    public MealPlanService(
+        MongoDbContext context,
+        UserDayClock dayClock,
+        RecipeService recipes,
+        InventoryService inventory,
+        MealProfileService profile,
+        ILogger<MealPlanService> logger)
     {
         _context = context;
         _dayClock = dayClock;
+        _recipes = recipes;
+        _inventory = inventory;
+        _profile = profile;
         _logger = logger;
     }
 
     public async Task<MealPlanDto?> GetActivePlanAsync(string userId)
     {
+        return await EnsureCurrentWeekAsync(userId);
+    }
+
+    public async Task<MealPlanDto> EnsureCurrentWeekAsync(string userId)
+    {
         var today = await _dayClock.GetTodayAsync(userId);
-        var plan = await FindCurrentPlanAsync(userId, today);
-        return plan == null ? null : await MapToDtoAsync(plan, userId);
+        var monday = UserDayClock.StartOfWeekMonday(today);
+        var sunday = monday.AddDays(6);
+        var weekStart = DateTime.SpecifyKind(monday, DateTimeKind.Utc);
+        var weekEnd = DateTime.SpecifyKind(sunday, DateTimeKind.Utc);
+
+        var plan = await FindWeekPlanAsync(userId, monday, sunday);
+        var becameActive = false;
+        if (plan == null)
+        {
+            var archiveFilter = Builders<MealPlan>.Filter.And(
+                Builders<MealPlan>.Filter.Eq(p => p.UserId, userId),
+                Builders<MealPlan>.Filter.Ne(p => p.Status, MealPlanStatus.Archived));
+            await _context.MealPlans.UpdateManyAsync(archiveFilter,
+                Builders<MealPlan>.Update.Set(p => p.Status, MealPlanStatus.Archived));
+
+            plan = new MealPlan
+            {
+                UserId = userId,
+                WeekStartDate = weekStart,
+                WeekEndDate = weekEnd,
+                Status = MealPlanStatus.Active,
+                Slots = new List<MealSlot>(),
+            };
+            await _context.MealPlans.InsertOneAsync(plan);
+            becameActive = true;
+            _logger.LogInformation("Created current-week MealPlan {PlanId} for user {UserId}", plan.Id, userId);
+        }
+        else if (plan.Status != MealPlanStatus.Active)
+        {
+            plan.Status = MealPlanStatus.Active;
+            becameActive = true;
+        }
+
+        var profile = await _profile.GetOrCreateProfileAsync(userId);
+        var servings = profile.DefaultServings > 0 ? profile.DefaultServings : 2;
+        var changed = await FillMissingSlotsAsync(userId, plan, monday, servings);
+        if (changed || becameActive)
+        {
+            plan.UpdatedAt = DateTime.UtcNow;
+            plan.Version++;
+            await _context.MealPlans.ReplaceOneAsync(p => p.Id == plan.Id, plan);
+        }
+
+        return await MapToDtoAsync(plan, userId);
     }
 
     public async Task<MealPlanDto> CreatePlanAsync(string userId, CreateMealPlanRequest request)
@@ -122,65 +181,206 @@ public class MealPlanService
     public async Task<TodayMealCardDto> GetTodayCardAsync(string userId)
     {
         var today = await _dayClock.GetTodayAsync(userId);
-        var plan = await FindCurrentPlanAsync(userId, today);
+        var planDto = await EnsureCurrentWeekAsync(userId);
+        var plan = await FindWeekPlanAsync(userId, UserDayClock.StartOfWeekMonday(today), UserDayClock.StartOfWeekMonday(today).AddDays(6));
         if (plan == null)
-            return new TodayMealCardDto();
+            return new TodayMealCardDto { ActionableReminder = "Δεν υπάρχει προγραμματισμένο γεύμα για σήμερα." };
 
         var todaySlots = plan.Slots
             .Where(s => IsSameLocalDate(s.LocalDate, today))
-            .OrderBy(s => s.State == MealSlotState.Planned ? 0 : 1)
-            .ThenBy(s => s.Slot)
+            .OrderBy(s => s.Slot)
             .ToList();
 
-        var actionable = todaySlots.Where(s => s.State == MealSlotState.Planned).ToList();
-        var nextSlot = actionable.FirstOrDefault(s => s.Slot == MealSlotKind.Dinner)
-            ?? actionable.FirstOrDefault()
-            ?? todaySlots.FirstOrDefault();
-
+        var nextSlot = todaySlots.FirstOrDefault(s => s.State == MealSlotState.Planned);
         if (nextSlot == null)
-            return new TodayMealCardDto { ActionableReminder = "Δεν υπάρχει προγραμματισμένο γεύμα για σήμερα." };
-
-        var dto = MapSlotToDto(nextSlot);
-        if (string.IsNullOrWhiteSpace(dto.RecipeName) && ObjectId.TryParse(dto.RecipeVersionId, out _))
         {
-            var recipe = await _context.RecipeVersions
-                .Find(r => r.Id == dto.RecipeVersionId)
-                .FirstOrDefaultAsync();
-            if (recipe != null)
+            return new TodayMealCardDto
             {
-                dto.RecipeName = recipe.NameEl;
-                dto.HandsonMinutes ??= recipe.HandsonMinutes;
-                dto.TotalMinutes ??= recipe.TotalMinutes;
-            }
+                PlanId = plan.Id,
+                NextMeal = null,
+                ActionableReminder = todaySlots.Count == 0
+                    ? "Δεν υπάρχει προγραμματισμένο γεύμα για σήμερα."
+                    : "Όλα τα σημερινά γεύματα ολοκληρώθηκαν.",
+                HasUnconfirmedIngredients = false,
+            };
         }
+
+        var dto = planDto.Slots.FirstOrDefault(s => s.Id == nextSlot.Id) ?? MapSlotToDto(nextSlot);
+        var tz = await _dayClock.GetTimeZoneInfoAsync(userId);
+        var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
+        var reminder = BuildStartReminder(nextSlot, today, nowLocal);
 
         return new TodayMealCardDto
         {
             PlanId = plan.Id,
             NextMeal = dto,
-            ActionableReminder = nextSlot.HandsonMinutes.HasValue
-                ? $"Ξεκινήστε στις {DateTime.UtcNow.AddHours(2).AddMinutes(-(nextSlot.TotalMinutes ?? 0)):HH:mm}"
-                : null,
-            HasUnconfirmedIngredients = false,
+            ActionableReminder = reminder,
+            HasUnconfirmedIngredients = dto.MissingIngredients.Count > 0 || dto.UncertainIngredients.Count > 0,
         };
     }
 
-    private async Task<MealPlan?> FindCurrentPlanAsync(string userId, DateTime today)
+    private async Task<MealPlan?> FindWeekPlanAsync(string userId, DateTime monday, DateTime sunday)
     {
         var filter = Builders<MealPlan>.Filter.And(
             Builders<MealPlan>.Filter.Eq(p => p.UserId, userId),
-            Builders<MealPlan>.Filter.In(p => p.Status, new[] { MealPlanStatus.Active, MealPlanStatus.Draft }),
-            Builders<MealPlan>.Filter.Lte(p => p.WeekStartDate, today.AddDays(1)),
-            Builders<MealPlan>.Filter.Gte(p => p.WeekEndDate, today.AddDays(-1)));
+            Builders<MealPlan>.Filter.Ne(p => p.Status, MealPlanStatus.Archived));
 
-        return await _context.MealPlans.Find(filter)
+        var plans = await _context.MealPlans.Find(filter)
             .SortByDescending(p => p.Status)
             .ThenByDescending(p => p.WeekStartDate)
-            .FirstOrDefaultAsync();
+            .ToListAsync();
+
+        return plans.FirstOrDefault(p =>
+            p.WeekStartDate.Date <= sunday.Date && p.WeekEndDate.Date >= monday.Date);
+    }
+
+    private async Task<bool> FillMissingSlotsAsync(string userId, MealPlan plan, DateTime monday, int servings)
+    {
+        var changed = false;
+        MealSlot? previousDinner = null;
+        var recipeCache = new Dictionary<string, RecipeVersionDto>(StringComparer.OrdinalIgnoreCase);
+
+        for (var dayOffset = 0; dayOffset < 7; dayOffset++)
+        {
+            var date = monday.AddDays(dayOffset);
+            var localDate = date.ToString("yyyy-MM-dd");
+            var menu = MenuFor(date.DayOfWeek);
+
+            foreach (var dish in menu)
+            {
+                var slot = plan.Slots.FirstOrDefault(s =>
+                    IsSameLocalDate(s.LocalDate, date) && s.Slot == dish.Slot);
+
+                if (slot != null && slot.State != MealSlotState.Planned)
+                {
+                    if (dish.Slot == MealSlotKind.Dinner)
+                        previousDinner = slot;
+                    continue;
+                }
+
+                if (slot == null)
+                {
+                    slot = new MealSlot
+                    {
+                        LocalDate = localDate,
+                        Slot = dish.Slot,
+                        Kind = dish.Kind,
+                        Servings = servings,
+                        ReasonSummary = dish.Reason,
+                        State = MealSlotState.Planned,
+                    };
+                    plan.Slots.Add(slot);
+                    changed = true;
+                }
+
+                var dishName = dish.Name;
+                var kind = dish.Kind;
+                if (kind == MealKind.Leftovers && previousDinner != null)
+                {
+                    dishName = string.IsNullOrWhiteSpace(previousDinner.RecipeName)
+                        ? dish.Name
+                        : $"Υπολείμματα: {previousDinner.RecipeName}";
+                    slot.SourceMealSlotId = previousDinner.Id;
+                    slot.Kind = MealKind.Leftovers;
+                }
+
+                var needsRecipe = string.IsNullOrWhiteSpace(slot.RecipeVersionId)
+                    || string.IsNullOrWhiteSpace(slot.RecipeName);
+                if (needsRecipe)
+                {
+                    var cacheKey = $"{kind}:{dishName}";
+                    if (!recipeCache.TryGetValue(cacheKey, out var recipe))
+                    {
+                        recipe = await _recipes.GetOrGenerateAsync(userId, dishName, servings, kind);
+                        recipeCache[cacheKey] = recipe;
+                    }
+                    slot.RecipeVersionId = recipe.Id;
+                    slot.RecipeName = recipe.NameEl;
+                    slot.HandsonMinutes = recipe.HandsonMinutes;
+                    slot.TotalMinutes = recipe.TotalMinutes;
+                    slot.Kind = kind;
+                    slot.ReasonSummary ??= dish.Reason;
+                    slot.Servings = servings;
+                    changed = true;
+                }
+
+                if (dish.Slot == MealSlotKind.Dinner)
+                    previousDinner = slot;
+            }
+        }
+
+        return changed;
+    }
+
+    private static WeekDish[] MenuFor(DayOfWeek day) => day switch
+    {
+        DayOfWeek.Monday =>
+        [
+            new(MealSlotKind.Breakfast, MealKind.NoCook, "Γιαούρτι με μέλι", "Γρήγορο πρωινό"),
+            new(MealSlotKind.Lunch, MealKind.FreshCook, "Χωριάτικη σαλάτα", "Ελαφρύ μεσημεριανό"),
+            new(MealSlotKind.Dinner, MealKind.FreshCook, "Φακές σούπα", "Κυρίως πιάτο"),
+        ],
+        DayOfWeek.Tuesday =>
+        [
+            new(MealSlotKind.Breakfast, MealKind.FreshCook, "Αυγά μάτια", "Πρωινό με πρωτεΐνη"),
+            new(MealSlotKind.Lunch, MealKind.Leftovers, "Υπολείμματα φακές", "Χρήση χθεσινού"),
+            new(MealSlotKind.Dinner, MealKind.FreshCook, "Μακαρόνια με σάλτσα", "Κυρίως πιάτο"),
+        ],
+        DayOfWeek.Wednesday =>
+        [
+            new(MealSlotKind.Breakfast, MealKind.NoCook, "Γιαούρτι με μέλι", "Γρήγορο πρωινό"),
+            new(MealSlotKind.Lunch, MealKind.FreshCook, "Ρύζι με λαχανικά", "Μεσημεριανό"),
+            new(MealSlotKind.Dinner, MealKind.FreshCook, "Κοτόπουλο λεμονάτο", "Κυρίως πιάτο"),
+        ],
+        DayOfWeek.Thursday =>
+        [
+            new(MealSlotKind.Breakfast, MealKind.FreshCook, "Ομελέτα", "Πρωινό με πρωτεΐνη"),
+            new(MealSlotKind.Lunch, MealKind.FreshCook, "Χωριάτικη σαλάτα", "Ελαφρύ μεσημεριανό"),
+            new(MealSlotKind.Dinner, MealKind.FreshCook, "Φακές σούπα", "Κυρίως πιάτο"),
+        ],
+        DayOfWeek.Friday =>
+        [
+            new(MealSlotKind.Breakfast, MealKind.NoCook, "Γιαούρτι με μέλι", "Γρήγορο πρωινό"),
+            new(MealSlotKind.Lunch, MealKind.Leftovers, "Υπολείμματα φακές", "Χρήση χθεσινού"),
+            new(MealSlotKind.Dinner, MealKind.FreshCook, "Μακαρόνια με σάλτσα", "Κυρίως πιάτο"),
+        ],
+        DayOfWeek.Saturday =>
+        [
+            new(MealSlotKind.Breakfast, MealKind.FreshCook, "Αυγά μάτια", "Σαββατιάτικο πρωινό"),
+            new(MealSlotKind.Lunch, MealKind.FreshCook, "Χωριάτικη σαλάτα", "Ελαφρύ μεσημεριανό"),
+            new(MealSlotKind.Dinner, MealKind.FreshCook, "Κοτόπουλο λεμονάτο", "Κυρίως πιάτο"),
+        ],
+        _ =>
+        [
+            new(MealSlotKind.Breakfast, MealKind.NoCook, "Γιαούρτι με μέλι", "Κυριακάτικο πρωινό"),
+            new(MealSlotKind.Lunch, MealKind.FreshCook, "Ρύζι με λαχανικά", "Μεσημεριανό"),
+            new(MealSlotKind.Dinner, MealKind.FreshCook, "Μακαρόνια με σάλτσα", "Κυρίως πιάτο"),
+        ]
+    };
+
+    private static string BuildStartReminder(MealSlot slot, DateTime today, DateTime nowLocal)
+    {
+        var mealLocal = slot.Slot switch
+        {
+            MealSlotKind.Breakfast => today.Date.AddHours(8),
+            MealSlotKind.Lunch => today.Date.AddHours(13).AddMinutes(30),
+            MealSlotKind.Dinner => today.Date.AddHours(20),
+            _ => today.Date.AddHours(17),
+        };
+        var start = mealLocal.AddMinutes(-(slot.TotalMinutes ?? slot.HandsonMinutes ?? 0));
+        return start <= nowLocal
+            ? "Ξεκινήστε τώρα"
+            : $"Ξεκινήστε στις {start:HH:mm}";
     }
 
     private async Task<MealPlanDto> MapToDtoAsync(MealPlan plan, string userId)
     {
+        var inventoryList = await _inventory.GetInventoryAsync(userId);
+        var allInventory = inventoryList.Fridge
+            .Concat(inventoryList.Freezer)
+            .Concat(inventoryList.Cupboard)
+            .ToList();
+
         var dto = new MealPlanDto
         {
             Id = plan.Id,
@@ -191,32 +391,39 @@ public class MealPlanService
             Slots = plan.Slots.Select(MapSlotToDto).ToList(),
         };
 
-        var missingNameSlots = dto.Slots
-            .Where(s => string.IsNullOrWhiteSpace(s.RecipeName) && s.RecipeVersionId != null)
+        var ids = dto.Slots
+            .Select(s => s.RecipeVersionId)
+            .Where(id => !string.IsNullOrWhiteSpace(id) && ObjectId.TryParse(id, out _))
+            .Cast<string>()
+            .Distinct()
             .ToList();
-        if (missingNameSlots.Count > 0)
-        {
-            var ids = missingNameSlots
-                .Select(s => s.RecipeVersionId!)
-                .Where(id => ObjectId.TryParse(id, out _))
-                .Distinct()
-                .ToList();
-            if (ids.Count > 0)
-            {
-                var recipeFilter = Builders<RecipeVersion>.Filter.In(r => r.Id, ids);
-                var recipes = await _context.RecipeVersions.Find(recipeFilter).ToListAsync();
-                var recipeMap = recipes.ToDictionary(r => r.Id);
 
-                foreach (var slot in dto.Slots)
-                {
-                    if (slot.RecipeVersionId != null && recipeMap.TryGetValue(slot.RecipeVersionId, out var rv))
-                    {
-                        if (string.IsNullOrWhiteSpace(slot.RecipeName))
-                            slot.RecipeName = rv.NameEl;
-                        slot.HandsonMinutes ??= rv.HandsonMinutes;
-                        slot.TotalMinutes ??= rv.TotalMinutes;
-                    }
-                }
+        Dictionary<string, RecipeVersion> recipeMap = new();
+        if (ids.Count > 0)
+        {
+            var recipes = await _context.RecipeVersions
+                .Find(Builders<RecipeVersion>.Filter.In(r => r.Id, ids))
+                .ToListAsync();
+            recipeMap = recipes.ToDictionary(r => r.Id);
+        }
+
+        foreach (var slot in dto.Slots)
+        {
+            RecipeVersion? recipe = null;
+            if (slot.RecipeVersionId != null && recipeMap.TryGetValue(slot.RecipeVersionId, out var rv))
+                recipe = rv;
+
+            if (recipe != null)
+            {
+                if (string.IsNullOrWhiteSpace(slot.RecipeName))
+                    slot.RecipeName = recipe.NameEl;
+                slot.HandsonMinutes ??= recipe.HandsonMinutes;
+                slot.TotalMinutes ??= recipe.TotalMinutes;
+
+                var scale = recipe.YieldServings > 0 ? (decimal)slot.Servings / recipe.YieldServings : 1m;
+                var diff = IngredientUnits.DiffIngredients(recipe.Ingredients, allInventory, scale);
+                slot.MissingIngredients = diff.Missing;
+                slot.UncertainIngredients = diff.Uncertain;
             }
         }
 
@@ -252,4 +459,6 @@ public class MealPlanService
         State = slot.State.ToString(),
         CookEventId = slot.CookEventId,
     };
+
+    private sealed record WeekDish(MealSlotKind Slot, MealKind Kind, string Name, string Reason);
 }

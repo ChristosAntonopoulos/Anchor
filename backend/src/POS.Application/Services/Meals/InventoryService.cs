@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using POS.Application.DTOs.Meals;
 using POS.Core.Entities.Meals;
@@ -103,8 +104,109 @@ public class InventoryService
         return MapToDto(batch);
     }
 
+    public async Task<InventoryBatchDto> AddLeftoverAsync(
+        string userId,
+        string description,
+        decimal portions,
+        string location,
+        string? note = null)
+    {
+        var batch = new InventoryBatch
+        {
+            UserId = userId,
+            RawName = description,
+            Form = "cooked",
+            CurrentAmount = portions,
+            Unit = "portions",
+            Location = Enum.TryParse<StorageLocation>(location, out var loc) ? loc : StorageLocation.Fridge,
+            PurchasedAt = DateTime.UtcNow,
+            Confidence = DataConfidence.UserConfirmed,
+            DateType = DateType.Unknown,
+            Notes = note ?? "Stored leftover",
+        };
+
+        await _context.InventoryBatches.InsertOneAsync(batch);
+        await RecordMovementAsync(userId, batch.Id, MovementKind.Correction, portions, "portions", note ?? "Stored leftover");
+        return MapToDto(batch);
+    }
+
+    public async Task ConsumeAsync(
+        string userId,
+        string rawName,
+        decimal amount,
+        string unit,
+        string? batchId = null,
+        string? note = null)
+    {
+        if (string.IsNullOrWhiteSpace(rawName) || amount <= 0)
+            return;
+
+        var filter = Builders<InventoryBatch>.Filter.And(
+            Builders<InventoryBatch>.Filter.Eq(b => b.UserId, userId),
+            Builders<InventoryBatch>.Filter.Eq(b => b.IsDiscarded, false),
+            Builders<InventoryBatch>.Filter.Eq(b => b.IsConsumed, false),
+            Builders<InventoryBatch>.Filter.Gt(b => b.CurrentAmount, 0m));
+
+        var batches = await _context.InventoryBatches
+            .Find(filter)
+            .SortBy(b => b.PurchasedAt)
+            .ToListAsync();
+
+        var matches = batches
+            .Where(b => IngredientUnits.NamesMatch(b.RawName, rawName))
+            .ToList();
+        if (matches.Count == 0)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(batchId))
+        {
+            var preferred = matches.FirstOrDefault(b => b.Id == batchId);
+            if (preferred != null)
+            {
+                matches.Remove(preferred);
+                matches.Insert(0, preferred);
+            }
+        }
+
+        var remaining = amount;
+        foreach (var batch in matches)
+        {
+            if (remaining <= 0)
+                break;
+            if (!IngredientUnits.TryConvert(remaining, unit, batch.Unit, out var needInBatchUnit))
+                continue;
+
+            var take = Math.Min(batch.CurrentAmount, needInBatchUnit);
+            if (take <= 0)
+                continue;
+
+            batch.CurrentAmount -= take;
+            if (batch.CurrentAmount <= 0)
+            {
+                batch.CurrentAmount = 0;
+                batch.IsConsumed = true;
+            }
+
+            batch.Version++;
+            batch.UpdatedAt = DateTime.UtcNow;
+            await _context.InventoryBatches.ReplaceOneAsync(b => b.Id == batch.Id, batch);
+            await RecordMovementAsync(userId, batch.Id, MovementKind.Consumed, -take, batch.Unit, note ?? $"Used {rawName}");
+
+            if (IngredientUnits.TryConvert(take, batch.Unit, unit, out var takenInNeedUnit))
+                remaining -= takenInNeedUnit;
+            else
+                remaining = 0;
+        }
+
+        if (remaining > 0.01m)
+            _logger.LogInformation("Could not fully consume {Name}: {Left} {Unit} remaining for user {UserId}", rawName, remaining, unit, userId);
+    }
+
     public async Task<InventoryBatchDto> UpdateBatchAsync(string userId, UpdateInventoryBatchRequest request)
     {
+        if (!ObjectId.TryParse(request.Id, out _))
+            throw new NotFoundException("Inventory batch not found.");
+
         var filter = Builders<InventoryBatch>.Filter.And(
             Builders<InventoryBatch>.Filter.Eq(b => b.Id, request.Id),
             Builders<InventoryBatch>.Filter.Eq(b => b.UserId, userId));
@@ -142,6 +244,9 @@ public class InventoryService
 
     public async Task DiscardBatchAsync(string userId, DiscardBatchRequest request)
     {
+        if (!ObjectId.TryParse(request.Id, out _))
+            throw new NotFoundException("Inventory batch not found.");
+
         var filter = Builders<InventoryBatch>.Filter.And(
             Builders<InventoryBatch>.Filter.Eq(b => b.Id, request.Id),
             Builders<InventoryBatch>.Filter.Eq(b => b.UserId, userId));

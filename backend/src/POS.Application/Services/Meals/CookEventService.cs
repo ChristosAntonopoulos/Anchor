@@ -10,17 +10,18 @@ namespace POS.Application.Services.Meals;
 public class CookEventService
 {
     private readonly MongoDbContext _context;
+    private readonly InventoryService _inventory;
     private readonly ILogger<CookEventService> _logger;
 
-    public CookEventService(MongoDbContext context, ILogger<CookEventService> logger)
+    public CookEventService(MongoDbContext context, InventoryService inventory, ILogger<CookEventService> logger)
     {
         _context = context;
+        _inventory = inventory;
         _logger = logger;
     }
 
     public async Task<CookEventDto> CompleteCookAsync(string userId, CompleteCookRequest request)
     {
-        // Idempotency: check for existing event with same key
         if (!string.IsNullOrEmpty(request.IdempotencyKey))
         {
             var existingFilter = Builders<CookEvent>.Filter.And(
@@ -31,7 +32,13 @@ public class CookEventService
                 return MapToDto(existing);
         }
 
-        // Validate meal slot exists
+        if (!TryParseOutcome(request.Outcome, out var outcome))
+            throw new ValidationException("outcome", "Outcome must be Cooked, PartlyCooked, DidNotCook, or Skipped.");
+
+        var makeAgain = request.FeedbackMakeAgain != null && Enum.TryParse<MakeAgainChoice>(request.FeedbackMakeAgain, true, out var ma)
+            ? ma
+            : (MakeAgainChoice?)null;
+
         var planFilter = Builders<MealPlan>.Filter.And(
             Builders<MealPlan>.Filter.Eq(p => p.UserId, userId),
             Builders<MealPlan>.Filter.ElemMatch(p => p.Slots, s => s.Id == request.MealSlotId));
@@ -40,15 +47,15 @@ public class CookEventService
             ?? throw new NotFoundException("Meal slot not found in any plan.");
 
         var slot = plan.Slots.First(s => s.Id == request.MealSlotId);
+        if (slot.State != MealSlotState.Planned)
+            throw new BusinessException("Meal already completed.");
 
-        var outcome = Enum.TryParse<CookOutcome>(request.Outcome, out var co) ? co : CookOutcome.Cooked;
-        var makeAgain = request.FeedbackMakeAgain != null && Enum.TryParse<MakeAgainChoice>(request.FeedbackMakeAgain, out var ma) ? ma : (MakeAgainChoice?)null;
-
+        var recipeVersionId = request.RecipeVersionId ?? slot.RecipeVersionId;
         var cookEvent = new CookEvent
         {
             UserId = userId,
             MealSlotId = request.MealSlotId,
-            RecipeVersionId = request.RecipeVersionId ?? slot.RecipeVersionId,
+            RecipeVersionId = recipeVersionId,
             Outcome = outcome,
             ActualServings = request.ActualServings,
             CookedAt = DateTime.UtcNow,
@@ -66,38 +73,19 @@ public class CookEventService
             }).ToList(),
         };
 
-        // Create stored portion batches for leftovers
+        if (outcome is CookOutcome.Cooked or CookOutcome.PartlyCooked)
+            await ConsumeIngredientsAsync(userId, slot, recipeVersionId, request);
+
         if (outcome == CookOutcome.Cooked && request.StoredPortions.Any())
         {
             foreach (var portion in request.StoredPortions)
             {
-                var portionBatch = new InventoryBatch
-                {
-                    UserId = userId,
-                    RawName = portion.Description,
-                    Form = "cooked",
-                    CurrentAmount = portion.Portions,
-                    Unit = "portions",
-                    Location = Enum.TryParse<StorageLocation>(portion.Location, out var loc) ? loc : StorageLocation.Fridge,
-                    PurchasedAt = portion.StoredAt ?? DateTime.UtcNow,
-                    Confidence = DataConfidence.UserConfirmed,
-                    DateType = DateType.Unknown,
-                    Notes = $"Leftover from meal slot {request.MealSlotId}",
-                };
-
-                await _context.InventoryBatches.InsertOneAsync(portionBatch);
-
-                var movement = new InventoryMovement
-                {
-                    UserId = userId,
-                    BatchId = portionBatch.Id,
-                    Kind = MovementKind.Purchased,
-                    AmountDelta = portion.Portions,
-                    Unit = "portions",
-                    Note = "Stored leftover",
-                    OccurredAt = DateTime.UtcNow,
-                };
-                await _context.InventoryMovements.InsertOneAsync(movement);
+                var leftover = await _inventory.AddLeftoverAsync(
+                    userId,
+                    portion.Description,
+                    portion.Portions,
+                    portion.Location,
+                    $"Leftover from meal slot {request.MealSlotId}");
 
                 cookEvent.StoredPortions.Add(new StoredPortion
                 {
@@ -105,14 +93,13 @@ public class CookEventService
                     Portions = portion.Portions,
                     Location = Enum.TryParse<StorageLocation>(portion.Location, out var l) ? l : StorageLocation.Fridge,
                     StoredAt = portion.StoredAt ?? DateTime.UtcNow,
-                    InventoryBatchId = portionBatch.Id,
+                    InventoryBatchId = leftover.Id,
                 });
             }
         }
 
         await _context.CookEvents.InsertOneAsync(cookEvent);
 
-        // Update meal slot state
         slot.State = outcome switch
         {
             CookOutcome.Cooked => MealSlotState.Cooked,
@@ -124,8 +111,70 @@ public class CookEventService
         var planUpdateFilter = Builders<MealPlan>.Filter.Eq(p => p.Id, plan.Id);
         await _context.MealPlans.ReplaceOneAsync(planUpdateFilter, plan);
 
-        _logger.LogInformation("Completed cook event {EventId} for slot {SlotId}", cookEvent.Id, request.MealSlotId);
+        _logger.LogInformation("Completed cook event {EventId} for slot {SlotId} as {Outcome}", cookEvent.Id, request.MealSlotId, outcome);
         return MapToDto(cookEvent);
+    }
+
+    private async Task ConsumeIngredientsAsync(
+        string userId,
+        MealSlot slot,
+        string? recipeVersionId,
+        CompleteCookRequest request)
+    {
+        var usage = new Dictionary<string, (decimal amount, string unit, string? batchId)>(StringComparer.OrdinalIgnoreCase);
+
+        if (!string.IsNullOrWhiteSpace(recipeVersionId))
+        {
+            var recipe = await _context.RecipeVersions
+                .Find(r => r.Id == recipeVersionId)
+                .FirstOrDefaultAsync();
+            if (recipe != null)
+            {
+                var scale = recipe.YieldServings > 0
+                    ? (decimal)(request.ActualServings ?? slot.Servings) / recipe.YieldServings
+                    : 1m;
+                foreach (var ingredient in recipe.Ingredients.Where(i => !i.IsOptional && !string.IsNullOrWhiteSpace(i.RawName)))
+                {
+                    usage[ingredient.RawName] = (
+                        (ingredient.Amount ?? 1m) * scale,
+                        ingredient.Unit ?? "unit",
+                        null);
+                }
+            }
+        }
+
+        foreach (var adjustment in request.IngredientAdjustments)
+        {
+            if (string.IsNullOrWhiteSpace(adjustment.RawName) || !adjustment.AmountUsed.HasValue)
+                continue;
+            usage[adjustment.RawName] = (adjustment.AmountUsed.Value, adjustment.Unit ?? "unit", adjustment.BatchId);
+        }
+
+        foreach (var (name, used) in usage)
+            await _inventory.ConsumeAsync(userId, name, used.amount, used.unit, used.batchId, $"Cooked {slot.RecipeName}");
+    }
+
+    private static bool TryParseOutcome(string? raw, out CookOutcome outcome)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            outcome = CookOutcome.Cooked;
+            return true;
+        }
+
+        if (raw.Equals("Skipped", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("Skip", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("DidNotCook", StringComparison.OrdinalIgnoreCase))
+        {
+            outcome = CookOutcome.DidNotCook;
+            return true;
+        }
+
+        if (Enum.TryParse(raw, true, out outcome) && Enum.IsDefined(outcome))
+            return true;
+
+        outcome = CookOutcome.Cooked;
+        return false;
     }
 
     private static CookEventDto MapToDto(CookEvent e) => new()

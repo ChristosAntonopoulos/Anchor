@@ -247,7 +247,7 @@ export interface ShoppingTrip {
 export interface CompleteCookRequest {
   mealSlotId: string;
   recipeVersionId?: string;
-  outcome: 'Cooked' | 'PartlyCooked' | 'DidNotCook';
+  outcome: 'Cooked' | 'PartlyCooked' | 'DidNotCook' | 'Skipped';
   actualServings?: number;
   actualHandsonMinutes?: number;
   ingredientAdjustments?: Array<{

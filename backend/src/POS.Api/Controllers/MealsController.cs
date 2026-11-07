@@ -133,6 +133,13 @@ public class MealsController : BaseController
         return Success(plan);
     }
 
+    [HttpPost("plans/ensure-week")]
+    public async Task<IActionResult> EnsureWeek()
+    {
+        var plan = await _planService.EnsureCurrentWeekAsync(GetUserId());
+        return Success(plan, "Current week initialized");
+    }
+
     [HttpPost("plans")]
     public async Task<IActionResult> CreatePlan([FromBody] CreateMealPlanRequest request)
     {

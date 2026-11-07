@@ -54,8 +54,14 @@ public class RecipeService
         return recipe == null ? null : MapToDto(recipe);
     }
 
-    public async Task<RecipeVersionDto> CreateRecipeAsync(string userId, CreateRecipeRequest request)
+    public async Task<RecipeVersionDto> CreateRecipeAsync(
+        string userId,
+        CreateRecipeRequest request,
+        RecipeSourceKind sourceKind = RecipeSourceKind.UserImported)
     {
+        if (string.IsNullOrWhiteSpace(request.NameEl) && string.IsNullOrWhiteSpace(request.NameEn))
+            throw new ValidationException("nameEl", "Recipe name is required.");
+
         var recipeId = MongoDB.Bson.ObjectId.GenerateNewId().ToString();
 
         var recipe = new RecipeVersion
@@ -65,7 +71,7 @@ public class RecipeService
             VersionNumber = 1,
             NameEl = request.NameEl,
             NameEn = request.NameEn,
-            SourceKind = RecipeSourceKind.AiGenerated,
+            SourceKind = sourceKind,
             YieldServings = request.YieldServings,
             Ingredients = request.Ingredients.Select(i => new RecipeIngredient
             {
@@ -102,8 +108,25 @@ public class RecipeService
 
     public async Task<RecipeVersionDto> GenerateRecipeAsync(string userId, GenerateRecipeRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new ValidationException("name", "Recipe name is required.");
         var built = await _generator.BuildAsync(request.Name, request.Servings);
-        return await CreateRecipeAsync(userId, built);
+        return await CreateRecipeAsync(userId, built, RecipeSourceKind.AiGenerated);
+    }
+
+    public async Task<RecipeVersionDto> GetOrGenerateAsync(string userId, string name, int servings, MealKind kind = MealKind.FreshCook)
+    {
+        var existing = (await GetUserRecipesAsync(userId))
+            .FirstOrDefault(r =>
+                r.NameEl.Equals(name, StringComparison.OrdinalIgnoreCase)
+                && RecipeGenerationService.HasUsableSteps(r)
+                && !RecipeGenerationService.HasPlaceholderIngredient(r)
+                && !RecipeGenerationService.IsGenericMealName(r.NameEl));
+        if (existing != null)
+            return existing;
+
+        var built = await _generator.BuildAsync(name, servings, kind);
+        return await CreateRecipeAsync(userId, built, RecipeSourceKind.Curated);
     }
 
     public async Task<CookReadyDto> EnsureSlotRecipeAsync(string userId, string planId, string slotId)
@@ -121,11 +144,13 @@ public class RecipeService
         if (ObjectId.TryParse(slot.RecipeVersionId, out _))
             recipe = await GetRecipeByIdAsync(slot.RecipeVersionId!, userId);
 
-        if (recipe == null || !RecipeGenerationService.HasUsableSteps(recipe))
+        if (recipe == null
+            || !RecipeGenerationService.HasUsableSteps(recipe)
+            || RecipeGenerationService.HasPlaceholderIngredient(recipe))
         {
             var dish = string.IsNullOrWhiteSpace(slot.RecipeName) ? slot.Slot.ToString() : slot.RecipeName;
-            var built = await _generator.BuildAsync(dish, slot.Servings);
-            recipe = await CreateRecipeAsync(userId, built);
+            var built = await _generator.BuildAsync(dish, slot.Servings, slot.Kind);
+            recipe = await CreateRecipeAsync(userId, built, RecipeSourceKind.AiGenerated);
 
             slot.RecipeVersionId = recipe.Id;
             slot.RecipeName = recipe.NameEl;
@@ -148,7 +173,10 @@ public class RecipeService
     {
         var recipes = await GetUserRecipesAsync(userId);
         var list = recipes
-            .Where(r => r.Id != excludeRecipeId && RecipeGenerationService.HasUsableSteps(r))
+            .Where(r => r.Id != excludeRecipeId
+                && RecipeGenerationService.HasUsableSteps(r)
+                && !RecipeGenerationService.HasPlaceholderIngredient(r)
+                && !RecipeGenerationService.IsGenericMealName(r.NameEl))
             .Take(20)
             .ToList();
 

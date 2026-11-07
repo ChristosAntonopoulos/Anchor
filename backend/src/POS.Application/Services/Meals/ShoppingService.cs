@@ -60,23 +60,32 @@ public class ShoppingService
             .Distinct()
             .ToList();
 
-        var recipeClauses = new List<FilterDefinition<RecipeVersion>>
-        {
+        var ownerFilter = Builders<RecipeVersion>.Filter.Or(
             Builders<RecipeVersion>.Filter.Eq(r => r.UserId, userId),
-            Builders<RecipeVersion>.Filter.Eq(r => r.UserId, "system")
-        };
+            Builders<RecipeVersion>.Filter.Eq(r => r.UserId, "system"));
+
+        var matchClauses = new List<FilterDefinition<RecipeVersion>>();
         if (recipeIds.Count > 0)
-            recipeClauses.Add(Builders<RecipeVersion>.Filter.In(r => r.Id, recipeIds));
+            matchClauses.Add(Builders<RecipeVersion>.Filter.In(r => r.Id, recipeIds));
         if (recipeNames.Count > 0)
         {
-            recipeClauses.Add(Builders<RecipeVersion>.Filter.In(r => r.NameEl, recipeNames));
-            recipeClauses.Add(Builders<RecipeVersion>.Filter.In(r => r.NameEn, recipeNames));
+            matchClauses.Add(Builders<RecipeVersion>.Filter.In(r => r.NameEl, recipeNames));
+            matchClauses.Add(Builders<RecipeVersion>.Filter.In(r => r.NameEn, recipeNames));
         }
 
-        var recipeFilter = Builders<RecipeVersion>.Filter.And(
-            Builders<RecipeVersion>.Filter.Eq(r => r.IsActive, true),
-            Builders<RecipeVersion>.Filter.Or(recipeClauses));
-        var recipes = await _context.RecipeVersions.Find(recipeFilter).ToListAsync();
+        List<RecipeVersion> recipes;
+        if (matchClauses.Count == 0)
+        {
+            recipes = new List<RecipeVersion>();
+        }
+        else
+        {
+            var recipeFilter = Builders<RecipeVersion>.Filter.And(
+                Builders<RecipeVersion>.Filter.Eq(r => r.IsActive, true),
+                ownerFilter,
+                Builders<RecipeVersion>.Filter.Or(matchClauses));
+            recipes = await _context.RecipeVersions.Find(recipeFilter).ToListAsync();
+        }
         var recipeMap = recipes
             .GroupBy(r => r.Id)
             .ToDictionary(g => g.Key, g => g.First());
@@ -160,7 +169,7 @@ public class ShoppingService
                 IngredientId = line.IngredientId,
                 Amount = line.BoughtAmount ?? line.RequiredAmount,
                 Unit = line.Unit,
-                Location = "Fridge",
+                Location = IngredientUnits.StorageLocationFor(line.RawName),
                 PurchasedAt = DateTime.UtcNow,
                 DateType = "Unknown",
                 IdempotencyKey = $"trip-{trip.Id}-line-{line.Id}",
@@ -177,7 +186,9 @@ public class ShoppingService
     {
         var demands = new Dictionary<string, (decimal amount, string unit, List<string> reasons)>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var slot in slots.Where(s => s.State == MealSlotState.Planned))
+        foreach (var slot in slots.Where(s => s.State == MealSlotState.Planned
+                     && s.Kind != MealKind.Leftovers
+                     && s.Kind != MealKind.EatingOut))
         {
             var recipe = ResolveRecipe(slot, recipeMap);
             var reason = $"{slot.LocalDate} {slot.Slot}";
@@ -215,9 +226,7 @@ public class ShoppingService
             var rawName = parts[0];
             var unit = parts.Length > 1 ? parts[1] : "unit";
 
-            var availableAmount = inventory
-                .Where(b => b.RawName.Equals(rawName, StringComparison.OrdinalIgnoreCase) && b.Unit == unit)
-                .Sum(b => b.CurrentAmount);
+            var availableAmount = IngredientUnits.AvailableIn(inventory, rawName, unit);
 
             var toBuy = Math.Max(0, demand.amount - availableAmount);
             if (toBuy <= 0) continue;
@@ -225,7 +234,7 @@ public class ShoppingService
             lines.Add(new ShoppingLine
             {
                 RawName = rawName,
-                RequiredAmount = Math.Round(toBuy, 0),
+                RequiredAmount = IngredientUnits.QuantityToBuy(toBuy),
                 Unit = unit,
                 WhyNeeded = string.Join(", ", demand.reasons),
                 IsCheckAtHome = availableAmount > 0,

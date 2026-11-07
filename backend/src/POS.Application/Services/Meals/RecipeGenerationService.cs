@@ -2,6 +2,8 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using POS.Application.DTOs.Meals;
 using POS.Application.Services.Execution;
+using POS.Core.Entities.Meals;
+using POS.Core.Exceptions;
 
 namespace POS.Application.Services.Meals;
 
@@ -26,12 +28,23 @@ public class RecipeGenerationService
         _logger = logger;
     }
 
-    public async Task<CreateRecipeRequest> BuildAsync(string dishName, int servings, CancellationToken ct = default)
+    public async Task<CreateRecipeRequest> BuildAsync(
+        string dishName,
+        int servings,
+        MealKind kind = MealKind.FreshCook,
+        CancellationToken ct = default)
     {
         servings = servings <= 0 ? 2 : servings;
-        var name = string.IsNullOrWhiteSpace(dishName) ? "Γεύμα της ημέρας" : dishName.Trim();
+        if (string.IsNullOrWhiteSpace(dishName))
+            throw new ValidationException("name", "Recipe name is required.");
+        var name = dishName.Trim();
 
-        if (_model.IsConfigured)
+        if (kind == MealKind.EatingOut)
+            return Catalog.EatingOut(name, servings);
+        if (kind == MealKind.Leftovers)
+            return Catalog.Reheat(name, servings);
+
+        if (_model.IsConfigured && kind != MealKind.NoCook)
         {
             try
             {
@@ -63,12 +76,13 @@ public class RecipeGenerationService
                     - isActive=false means hands-on work; still set durationMinutes.
                     - Use dependsOnSteps so independent work can run in parallel (e.g. sauce while pasta water boils).
                     - Actions in Greek. Realistic times. No empty ingredients.
+                    - Never use a placeholder ingredient name like "κύριο υλικό". Use the real food.
                     """,
                     JsonSerializer.Serialize(new { dishName = name, servings }),
                     ct);
 
                 var parsed = TryParse(json);
-                if (parsed != null && HasUsableSteps(parsed))
+                if (parsed != null && HasUsableSteps(parsed) && !HasPlaceholderIngredient(parsed))
                 {
                     parsed.YieldServings = servings;
                     Normalize(parsed, name, servings);
@@ -81,7 +95,7 @@ public class RecipeGenerationService
             }
         }
 
-        var fallback = Catalog.Match(name, servings);
+        var fallback = Catalog.Match(name, servings, kind == MealKind.NoCook);
         Normalize(fallback, name, servings);
         return fallback;
     }
@@ -91,6 +105,19 @@ public class RecipeGenerationService
 
     public static bool HasUsableSteps(RecipeVersionDto recipe) =>
         recipe.Steps.Count >= 2 && recipe.Steps.Any(s => (s.DurationMinutes ?? 0) > 0);
+
+    public static bool HasPlaceholderIngredient(CreateRecipeRequest recipe) =>
+        recipe.Ingredients.Any(i => IsPlaceholderName(i.RawName));
+
+    public static bool HasPlaceholderIngredient(RecipeVersionDto recipe) =>
+        recipe.Ingredients.Any(i => IsPlaceholderName(i.RawName));
+
+    public static bool IsPlaceholderName(string? rawName) =>
+        string.Equals(rawName?.Trim(), "κύριο υλικό", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(rawName?.Trim(), "main ingredient", StringComparison.OrdinalIgnoreCase);
+
+    public static bool IsGenericMealName(string? name) =>
+        string.Equals(name?.Trim(), "Γεύμα της ημέρας", StringComparison.OrdinalIgnoreCase);
 
     private static CreateRecipeRequest? TryParse(string? json)
     {
@@ -135,11 +162,13 @@ public class RecipeGenerationService
         recipe.Equipment ??= new List<string>();
         recipe.Tags ??= new List<string>();
         recipe.Ingredients ??= new List<RecipeIngredientDto>();
+        foreach (var ingredient in recipe.Ingredients.Where(i => IsPlaceholderName(i.RawName)))
+            ingredient.RawName = name;
     }
 
     private static class Catalog
     {
-        public static CreateRecipeRequest Match(string name, int servings)
+        public static CreateRecipeRequest Match(string name, int servings, bool noCook)
         {
             var key = name.ToLowerInvariant();
             if (ContainsAny(key, "φακ", "lentil"))
@@ -152,6 +181,14 @@ public class RecipeGenerationService
                 return RiceBowl(name, servings);
             if (ContainsAny(key, "σαλάτ", "salad"))
                 return Salad(name, servings);
+            if (ContainsAny(key, "γιαούρτ", "yogurt", "yoghurt"))
+                return Yogurt(name, servings);
+            if (ContainsAny(key, "ομελέτ", "omelet", "omelette"))
+                return Omelette(name, servings);
+            if (ContainsAny(key, "αυγ", "egg", "μάτια"))
+                return Eggs(name, servings);
+            if (noCook || ContainsAny(key, "nocook", "χωρίς μαγείρεμα"))
+                return NoCookPlate(name, servings);
             return Skillet(name, servings);
         }
 
@@ -281,6 +318,8 @@ public class RecipeGenerationService
             Ingredients = new()
             {
                 I("σαλάτα", 1, "bowl"),
+                I("ντομάτα", 150 * servings, "g"),
+                I("αγγούρι", 1, "pcs"),
                 I("ελαιόλαδο", 2, "tbsp"),
                 I("λεμόνι", 1, "pcs"),
                 I("αλάτι", 1, "tsp"),
@@ -290,6 +329,136 @@ public class RecipeGenerationService
                 S(1, "Πλύνε και κόψε τα λαχανικά.", 6, false, Array.Empty<int>(), "board"),
                 S(2, "Φτιάξε λαδολέμονο.", 2, false, Array.Empty<int>(), "bowl"),
                 S(3, "Ανακάτεψε, δοκίμασε αλάτι, σερβίρισε.", 2, false, new[] { 1, 2 }),
+            }
+        };
+
+        private static CreateRecipeRequest Yogurt(string name, int servings) => new()
+        {
+            NameEl = name,
+            NameEn = "Yogurt honey",
+            YieldServings = servings,
+            HandsonMinutes = 5,
+            TotalMinutes = 5,
+            Equipment = new() { "bowl" },
+            Tags = new() { "nocook", "breakfast" },
+            Ingredients = new()
+            {
+                I("γιαούρτι", 200 * servings, "g"),
+                I("μέλι", 1 * servings, "tbsp"),
+                I("καρύδια", 1, "handful", true),
+            },
+            Steps = new()
+            {
+                S(1, "Βάλε το γιαούρτι στο μπολ.", 1, false, Array.Empty<int>(), "bowl"),
+                S(2, "Περίχυσε με μέλι.", 1, false, new[] { 1 }),
+                S(3, "Πρόσθεσε καρύδια αν θες και σερβίρισε.", 1, false, new[] { 2 }),
+            }
+        };
+
+        private static CreateRecipeRequest Eggs(string name, int servings) => new()
+        {
+            NameEl = name,
+            NameEn = "Fried eggs",
+            YieldServings = servings,
+            HandsonMinutes = 8,
+            TotalMinutes = 10,
+            Equipment = new() { "pan" },
+            Tags = new() { "breakfast" },
+            Ingredients = new()
+            {
+                I("αυγά", 2 * servings, "pcs"),
+                I("ελαιόλαδο", 1, "tbsp"),
+                I("αλάτι", 1, "tsp"),
+            },
+            Steps = new()
+            {
+                S(1, "Ζέστανε το τηγάνι με ελαιόλαδο.", 2, true, Array.Empty<int>(), "pan"),
+                S(2, "Σπάσε τα αυγά στο τηγάνι.", 1, false, new[] { 1 }, "pan"),
+                S(3, "Ψήσε μέχρι το ασπράδι να δέσει.", 4, true, new[] { 2 }, "pan"),
+                S(4, "Αλάτι και σερβίρισε.", 1, false, new[] { 3 }),
+            }
+        };
+
+        private static CreateRecipeRequest Omelette(string name, int servings) => new()
+        {
+            NameEl = name,
+            NameEn = "Omelette",
+            YieldServings = servings,
+            HandsonMinutes = 10,
+            TotalMinutes = 12,
+            Equipment = new() { "pan", "bowl" },
+            Tags = new() { "breakfast" },
+            Ingredients = new()
+            {
+                I("αυγά", 2 * servings, "pcs"),
+                I("κρεμμύδι", 0.5m, "pcs"),
+                I("ελαιόλαδο", 1, "tbsp"),
+                I("αλάτι", 1, "tsp"),
+            },
+            Steps = new()
+            {
+                S(1, "Χτύπα τα αυγά με αλάτι.", 2, false, Array.Empty<int>(), "bowl"),
+                S(2, "Σοτάρισε το κρεμμύδι στο ελαιόλαδο.", 3, true, Array.Empty<int>(), "pan"),
+                S(3, "Ρίξε τα αυγά και δίπλωσε την ομελέτα.", 4, true, new[] { 1, 2 }, "pan"),
+                S(4, "Σερβίρισε ζεστή.", 1, false, new[] { 3 }),
+            }
+        };
+
+        public static CreateRecipeRequest NoCookPlate(string name, int servings) => new()
+        {
+            NameEl = name,
+            NameEn = name,
+            YieldServings = servings,
+            HandsonMinutes = 5,
+            TotalMinutes = 5,
+            Equipment = new() { "plate" },
+            Tags = new() { "nocook" },
+            Ingredients = new()
+            {
+                I(name, servings, "item"),
+            },
+            Steps = new()
+            {
+                S(1, $"Ετοίμασε {name} στο πιάτο.", 3, false, Array.Empty<int>(), "plate"),
+                S(2, "Δοκίμασε αλάτι/μέλι αν χρειάζεται και σερβίρισε.", 2, false, new[] { 1 }),
+            }
+        };
+
+        public static CreateRecipeRequest Reheat(string name, int servings) => new()
+        {
+            NameEl = name,
+            NameEn = "Leftovers",
+            YieldServings = servings,
+            HandsonMinutes = 5,
+            TotalMinutes = 8,
+            Equipment = new() { "pan" },
+            Tags = new() { "leftovers" },
+            Ingredients = new()
+            {
+                I(name, servings, "portions", true),
+            },
+            Steps = new()
+            {
+                S(1, "Βγάλε τα υπολείμματα από το ψυγείο.", 1, false, Array.Empty<int>()),
+                S(2, "Ζέστανε σε χαμηλή φωτιά μέχρι να ζεσταθούν.", 5, true, new[] { 1 }, "pan"),
+                S(3, "Δοκίμασε και σερβίρισε.", 2, false, new[] { 2 }),
+            }
+        };
+
+        public static CreateRecipeRequest EatingOut(string name, int servings) => new()
+        {
+            NameEl = name,
+            NameEn = "Eating out",
+            YieldServings = servings,
+            HandsonMinutes = 0,
+            TotalMinutes = 5,
+            Equipment = new(),
+            Tags = new() { "eating-out" },
+            Ingredients = new(),
+            Steps = new()
+            {
+                S(1, "Σημείωσε πού θα φας έξω.", 2, false, Array.Empty<int>()),
+                S(2, "Καμία εστία στο σπίτι για αυτό το γεύμα.", 1, false, new[] { 1 }),
             }
         };
 
@@ -304,7 +473,7 @@ public class RecipeGenerationService
             Tags = new() { "weeknight" },
             Ingredients = new()
             {
-                I("κύριο υλικό", 250 * servings / 2m, "g"),
+                I(name, 250 * servings / 2m, "g"),
                 I("κρεμμύδι", 1, "pcs"),
                 I("ελαιόλαδο", 2, "tbsp"),
                 I("αλάτι", 1, "tsp"),
@@ -314,7 +483,7 @@ public class RecipeGenerationService
                 S(1, "Κόψε όλα τα υλικά και ετοίμασε τα δίπλα στην εστία.", 6, false, Array.Empty<int>(), "board"),
                 S(2, "Ζέστανε το τηγάνι με ελαιόλαδο.", 2, true, Array.Empty<int>(), "pan"),
                 S(3, "Σοτάρισε το κρεμμύδι μέχρι να γυαλίσει.", 5, true, new[] { 1, 2 }, "pan"),
-                S(4, "Πρόσθεσε το κύριο υλικό και μαγείρεψε μέχρι να είναι έτοιμο.", 12, true, new[] { 3 }, "pan"),
+                S(4, $"Πρόσθεσε {name} και μαγείρεψε μέχρι να είναι έτοιμο.", 12, true, new[] { 3 }, "pan"),
                 S(5, "Διόρθωσε αλάτι και σερβίρισε.", 3, false, new[] { 4 }),
             }
         };
