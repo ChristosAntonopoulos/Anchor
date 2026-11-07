@@ -210,6 +210,18 @@ stages:
 
     - script: |
         set -euo pipefail
+        export JAVA_HOME="${JAVA_HOME}"
+        export PATH="${JAVA_HOME}/bin:$PATH"
+        if [ ! -x "${JAVA_HOME}/bin/java" ]; then
+          echo "ERROR: JAVA_HOME from the previous step is not usable: ${JAVA_HOME:-unset}"
+          exit 1
+        fi
+        bash mobile/scripts/ensure-android-sdk.sh
+      displayName: 'Accept Android SDK licenses and install NDK'
+      timeoutInMinutes: 30
+
+    - script: |
+        set -euo pipefail
         cd mobile
         export EXPO_PUBLIC_API_URL="http://185.193.66.50:31247/api"
         export JAVA_HOME="${JAVA_HOME}"
@@ -221,27 +233,22 @@ stages:
         echo "Using JAVA_HOME=$JAVA_HOME"
         java -version
 
-        if [ -z "${ANDROID_HOME:-}${ANDROID_SDK_ROOT:-}" ]; then
-          for candidate in "$HOME/Android/Sdk" /opt/android-sdk /usr/lib/android-sdk; do
-            if [ -d "$candidate" ]; then
-              export ANDROID_HOME="$candidate"
-              break
-            fi
-          done
-          if [ -z "${ANDROID_HOME:-}" ] && [ -n "${LOCALAPPDATA:-}" ] && [ -d "${LOCALAPPDATA}/Android/Sdk" ]; then
-            export ANDROID_HOME="${LOCALAPPDATA}/Android/Sdk"
-          fi
-        fi
         export ANDROID_HOME="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
         export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
         if [ -z "$ANDROID_HOME" ] || [ ! -d "$ANDROID_HOME" ]; then
-          echo "ERROR: ANDROID_HOME is not set and no Android SDK was found on this agent."
-          echo "Install the Android SDK on the Default pool machine, then rerun."
+          echo "ERROR: ANDROID_HOME is not set. The NDK step must run first."
           exit 1
         fi
         SDK_DIR="${ANDROID_HOME//\\//}"
-        printf 'sdk.dir=%s\n' "$SDK_DIR" > android/local.properties
+        {
+          printf 'sdk.dir=%s\n' "$SDK_DIR"
+          if [ -n "${ANDROID_NDK_HOME:-}" ] && [ -d "$ANDROID_NDK_HOME" ]; then
+            NDK_DIR="${ANDROID_NDK_HOME//\\//}"
+            printf 'ndk.dir=%s\n' "$NDK_DIR"
+          fi
+        } > android/local.properties
         echo "Using Android SDK at $ANDROID_HOME"
+        cat android/local.properties
 
         if [ ! -f android/app/update.keystore ]; then
           echo "ERROR: android/app/update.keystore is missing. Sideload updates need a stable signing key."
@@ -252,8 +259,7 @@ stages:
 
         chmod +x android/gradlew
         if ! (cd android && ./gradlew assembleRelease --no-daemon); then
-          echo "=== Expo Android autolinking JSON ==="
-          node --no-warnings --eval "require('expo/bin/autolinking')" expo-modules-autolinking resolve --platform android --json || true
+          echo "Gradle assembleRelease failed. See the error above."
           exit 1
         fi
         GRADLE_APK="$(find android/app/build/outputs/apk -name '*.apk' -type f | head -1)"
