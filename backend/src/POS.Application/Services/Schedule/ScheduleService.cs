@@ -1,76 +1,339 @@
 using AutoMapper;
 using Microsoft.Extensions.Logging;
+using MongoDB.Driver;
 using POS.Application.DTOs.Schedule;
+using POS.Application.Services.Day;
 using POS.Core.Entities.Schedule;
 using POS.Core.Exceptions;
-using POS.Core.Repositories;
+using POS.Core.Schedule;
+using POS.Infrastructure.Data;
 
 namespace POS.Application.Services.Schedule;
 
 /// <summary>
-/// Manages schedule block definitions and today's block instances.
+/// Service for managing schedule blocks
 /// </summary>
 public class ScheduleService
 {
-    private readonly IRepository<ScheduleBlockInstance> _instanceRepository;
-    private readonly IRepository<ScheduleBlockDefinition> _definitionRepository;
+    private readonly MongoDbContext _context;
     private readonly IMapper _mapper;
+    private readonly DayBootstrapService _dayBootstrapService;
+    private readonly UserDayClock _dayClock;
     private readonly ILogger<ScheduleService> _logger;
 
     public ScheduleService(
-        IRepository<ScheduleBlockInstance> instanceRepository,
-        IRepository<ScheduleBlockDefinition> definitionRepository,
+        MongoDbContext context,
         IMapper mapper,
+        DayBootstrapService dayBootstrapService,
+        UserDayClock dayClock,
         ILogger<ScheduleService> logger)
     {
-        _instanceRepository = instanceRepository;
-        _definitionRepository = definitionRepository;
+        _context = context;
         _mapper = mapper;
+        _dayBootstrapService = dayBootstrapService;
+        _dayClock = dayClock;
         _logger = logger;
     }
 
+    /// <summary>
+    /// Get all schedule blocks for today
+    /// </summary>
     public async Task<List<ScheduleBlockInstanceDto>> GetTodayScheduleAsync(string userId)
     {
         _logger.LogInformation("Getting today's schedule for user {UserId}", userId);
 
-        var today = DateTime.UtcNow.Date;
-        var blocks = await _instanceRepository.FindAsync(sb => sb.UserId == userId && sb.Date == today);
+        await _dayBootstrapService.EnsureDayBootstrapAsync(userId);
 
-        return _mapper.Map<List<ScheduleBlockInstanceDto>>(
-            blocks.OrderBy(sb => sb.StartTime).ToList());
+        var today = await _dayClock.GetTodayAsync(userId);
+        var filter = Builders<ScheduleBlockInstance>.Filter.And(
+            Builders<ScheduleBlockInstance>.Filter.Eq(sb => sb.UserId, userId),
+            Builders<ScheduleBlockInstance>.Filter.Eq(sb => sb.Date, today)
+        );
+        
+        var blocks = await _context.ScheduleBlockInstances.Find(filter)
+            .SortBy(sb => sb.StartTime)
+            .ToListAsync();
+
+        foreach (var block in blocks)
+            await EnsureChecklistItemsAsync(block);
+
+        return await MapBlocksAsync(blocks);
     }
 
-    public async Task<ScheduleBlockDefinitionDto> CreateDefinitionAsync(
-        CreateScheduleBlockDefinitionDto dto, string userId)
+    /// <summary>
+    /// Toggle completion on a checklist item for today's block instance.
+    /// </summary>
+    public async Task<ScheduleBlockInstanceDto> UpdateChecklistItemAsync(
+        string blockId,
+        string itemId,
+        UpdateScheduleChecklistItemRequest request,
+        string userId)
     {
-        _logger.LogInformation("Creating schedule block definition for user {UserId}", userId);
+        var block = await GetBlockEntityAsync(blockId, userId);
+        await EnsureChecklistItemsAsync(block);
 
-        var definition = _mapper.Map<ScheduleBlockDefinition>(dto);
-        definition.UserId = userId;
+        var item = block.ChecklistItems?.FirstOrDefault(i => i.Id == itemId)
+            ?? throw new NotFoundException("ScheduleChecklistItem", itemId);
 
-        var created = await _definitionRepository.CreateAsync(definition);
-        return _mapper.Map<ScheduleBlockDefinitionDto>(created);
-    }
+        item.Completed = request.Completed;
+        block.UpdatedAt = DateTime.UtcNow;
 
-    public async Task<ScheduleBlockInstanceDto> UpdateBlockAsync(
-        UpdateScheduleBlockRequest request, string userId)
-    {
-        _logger.LogInformation("Updating schedule block {BlockId} for user {UserId}", request.Id, userId);
-
-        var block = await _instanceRepository.GetByIdAsync(request.Id, userId)
-                    ?? throw new NotFoundException("ScheduleBlock", request.Id);
-
-        if (!string.IsNullOrEmpty(request.Title)) block.Title = request.Title;
-        if (!string.IsNullOrEmpty(request.StartTime)) block.StartTime = request.StartTime;
-        if (!string.IsNullOrEmpty(request.EndTime)) block.EndTime = request.EndTime;
-
-        await _instanceRepository.UpdateAsync(block);
+        await SaveBlockAsync(block);
         return _mapper.Map<ScheduleBlockInstanceDto>(block);
     }
 
+    private async Task<ScheduleBlockInstance> GetBlockEntityAsync(string blockId, string userId)
+    {
+        var filter = Builders<ScheduleBlockInstance>.Filter.And(
+            Builders<ScheduleBlockInstance>.Filter.Eq(sb => sb.Id, blockId),
+            Builders<ScheduleBlockInstance>.Filter.Eq(sb => sb.UserId, userId));
+
+        return await _context.ScheduleBlockInstances.Find(filter).FirstOrDefaultAsync()
+            ?? throw new NotFoundException("ScheduleBlock", blockId);
+    }
+
+    private async Task EnsureChecklistItemsAsync(ScheduleBlockInstance block)
+    {
+        var needsBuild = block.ChecklistItems is not { Count: > 0 };
+        var needsUpgrade = block.ChecklistVersion < ScheduleChecklistBuilder.CurrentChecklistVersion
+            || (block.ChecklistItems is { Count: > 0 } checkItems
+                && ScheduleChecklistBuilder.LooksLikeLegacyEqualSplit(checkItems));
+
+        if (!needsBuild && !needsUpgrade)
+            return;
+
+        block.ChecklistItems = ScheduleChecklistBuilder.RebuildPreservingCompletion(
+            block,
+            block.ChecklistItems);
+        block.ChecklistVersion = ScheduleChecklistBuilder.CurrentChecklistVersion;
+        block.UpdatedAt = DateTime.UtcNow;
+        await SaveBlockAsync(block);
+        _logger.LogInformation(
+            "Generated {Count} checklist items for schedule block {BlockId} (v{Version})",
+            block.ChecklistItems.Count, block.Id, block.ChecklistVersion);
+    }
+
+    private async Task SaveBlockAsync(ScheduleBlockInstance block)
+    {
+        var filter = Builders<ScheduleBlockInstance>.Filter.Eq(sb => sb.Id, block.Id);
+        await _context.ScheduleBlockInstances.ReplaceOneAsync(filter, block);
+    }
+
+    /// <summary>
+    /// Create a schedule block definition
+    /// </summary>
+    public async Task<ScheduleBlockDefinitionDto> CreateDefinitionAsync(CreateScheduleBlockDefinitionDto dto, string userId)
+    {
+        _logger.LogInformation("Creating schedule block definition for user {UserId}", userId);
+        
+        var definition = _mapper.Map<ScheduleBlockDefinition>(dto);
+        definition.UserId = userId;
+        
+        await _context.ScheduleBlockDefinitions.InsertOneAsync(definition);
+        return _mapper.Map<ScheduleBlockDefinitionDto>(definition);
+    }
+
+    /// <summary>
+    /// Update a schedule block instance
+    /// </summary>
+    public async Task<ScheduleBlockInstanceDto> UpdateBlockAsync(UpdateScheduleBlockRequest request, string userId)
+    {
+        _logger.LogInformation("Updating schedule block {BlockId} for user {UserId}", request.Id, userId);
+        
+        var filter = Builders<ScheduleBlockInstance>.Filter.And(
+            Builders<ScheduleBlockInstance>.Filter.Eq(sb => sb.Id, request.Id),
+            Builders<ScheduleBlockInstance>.Filter.Eq(sb => sb.UserId, userId)
+        );
+        
+        var block = await _context.ScheduleBlockInstances.Find(filter).FirstOrDefaultAsync();
+        if (block == null)
+        {
+            throw new NotFoundException("ScheduleBlock", request.Id);
+        }
+
+        if (!string.IsNullOrEmpty(request.Title))
+            block.Title = request.Title;
+        if (!string.IsNullOrEmpty(request.StartTime))
+            block.StartTime = request.StartTime;
+        if (!string.IsNullOrEmpty(request.EndTime))
+            block.EndTime = request.EndTime;
+        if (request.TaskId != null)
+            block.TaskId = string.IsNullOrWhiteSpace(request.TaskId) ? null : request.TaskId;
+        if (request.EntryAction != null)
+            block.EntryAction = request.EntryAction;
+        if (request.StartMinutes.HasValue)
+            block.StartMinutes = request.StartMinutes;
+        if (request.WindowKind != null)
+            block.WindowKind = request.WindowKind;
+        if (request.ManualCue != null)
+            block.ManualCue = request.ManualCue;
+
+        block.UpdatedAt = DateTime.UtcNow;
+        await _context.ScheduleBlockInstances.ReplaceOneAsync(filter, block);
+        
+        return _mapper.Map<ScheduleBlockInstanceDto>(block);
+    }
+
+    /// <summary>
+    /// Delete a schedule block instance
+    /// </summary>
     public async Task<bool> DeleteBlockAsync(string id, string userId)
     {
         _logger.LogInformation("Deleting schedule block {BlockId} for user {UserId}", id, userId);
-        return await _instanceRepository.DeleteAsync(id, userId);
+        
+        var filter = Builders<ScheduleBlockInstance>.Filter.And(
+            Builders<ScheduleBlockInstance>.Filter.Eq(sb => sb.Id, id),
+            Builders<ScheduleBlockInstance>.Filter.Eq(sb => sb.UserId, userId)
+        );
+        
+        var result = await _context.ScheduleBlockInstances.DeleteOneAsync(filter);
+        return result.DeletedCount > 0;
+    }
+
+    /// <summary>
+    /// Get schedule block instance by ID
+    /// </summary>
+    public async Task<ScheduleBlockInstanceDto?> GetBlockInstanceByIdAsync(string id, string userId)
+    {
+        _logger.LogInformation("Getting schedule block instance {BlockId} for user {UserId}", id, userId);
+        
+        var filter = Builders<ScheduleBlockInstance>.Filter.And(
+            Builders<ScheduleBlockInstance>.Filter.Eq(sb => sb.Id, id),
+            Builders<ScheduleBlockInstance>.Filter.Eq(sb => sb.UserId, userId)
+        );
+        
+        var block = await _context.ScheduleBlockInstances.Find(filter).FirstOrDefaultAsync();
+        return block != null ? _mapper.Map<ScheduleBlockInstanceDto>(block) : null;
+    }
+
+    /// <summary>
+    /// Get all schedule block definitions
+    /// </summary>
+    public async Task<List<ScheduleBlockDefinitionDto>> GetAllDefinitionsAsync(string userId)
+    {
+        _logger.LogInformation("Getting all schedule block definitions for user {UserId}", userId);
+        
+        var filter = Builders<ScheduleBlockDefinition>.Filter.Eq(d => d.UserId, userId);
+        var sort = Builders<ScheduleBlockDefinition>.Sort.Ascending(d => d.Priority).Ascending(d => d.Title);
+        
+        var definitions = await _context.ScheduleBlockDefinitions
+            .Find(filter)
+            .Sort(sort)
+            .ToListAsync();
+        
+        return _mapper.Map<List<ScheduleBlockDefinitionDto>>(definitions);
+    }
+
+    /// <summary>
+    /// Get schedule block definition by ID
+    /// </summary>
+    public async Task<ScheduleBlockDefinitionDto?> GetDefinitionByIdAsync(string id, string userId)
+    {
+        _logger.LogInformation("Getting schedule block definition {DefinitionId} for user {UserId}", id, userId);
+        
+        var filter = Builders<ScheduleBlockDefinition>.Filter.And(
+            Builders<ScheduleBlockDefinition>.Filter.Eq(d => d.Id, id),
+            Builders<ScheduleBlockDefinition>.Filter.Eq(d => d.UserId, userId)
+        );
+        
+        var definition = await _context.ScheduleBlockDefinitions.Find(filter).FirstOrDefaultAsync();
+        return definition != null ? _mapper.Map<ScheduleBlockDefinitionDto>(definition) : null;
+    }
+
+    /// <summary>
+    /// Update schedule block definition
+    /// </summary>
+    public async Task<ScheduleBlockDefinitionDto?> UpdateDefinitionAsync(string id, UpdateScheduleBlockDefinitionRequest request, string userId)
+    {
+        _logger.LogInformation("Updating schedule block definition {DefinitionId} for user {UserId}", id, userId);
+        
+        var filter = Builders<ScheduleBlockDefinition>.Filter.And(
+            Builders<ScheduleBlockDefinition>.Filter.Eq(d => d.Id, id),
+            Builders<ScheduleBlockDefinition>.Filter.Eq(d => d.UserId, userId)
+        );
+        
+        var existing = await _context.ScheduleBlockDefinitions.Find(filter).FirstOrDefaultAsync();
+        if (existing == null)
+        {
+            return null;
+        }
+        
+        var updateBuilder = Builders<ScheduleBlockDefinition>.Update
+            .Set(d => d.UpdatedAt, DateTime.UtcNow);
+        
+        if (request.Title != null) updateBuilder = updateBuilder.Set(d => d.Title, request.Title);
+        if (request.Kind != null) updateBuilder = updateBuilder.Set(d => d.Kind, Enum.Parse<ScheduleBlockKind>(request.Kind, true));
+        if (request.Recurrence != null) updateBuilder = updateBuilder.Set(d => d.Recurrence, Enum.Parse<RecurrenceType>(request.Recurrence, true));
+        if (request.DaysOfWeek != null) updateBuilder = updateBuilder.Set(d => d.DaysOfWeek, request.DaysOfWeek);
+        if (request.MinPerWeek.HasValue) updateBuilder = updateBuilder.Set(d => d.MinPerWeek, request.MinPerWeek.Value);
+        if (request.MaxPerWeek.HasValue) updateBuilder = updateBuilder.Set(d => d.MaxPerWeek, request.MaxPerWeek.Value);
+        if (request.FixedStartTime != null) updateBuilder = updateBuilder.Set(d => d.FixedStartTime, request.FixedStartTime);
+        if (request.FixedEndTime != null) updateBuilder = updateBuilder.Set(d => d.FixedEndTime, request.FixedEndTime);
+        if (request.PreferredTimeTag != null) updateBuilder = updateBuilder.Set(d => d.PreferredTimeTag, request.PreferredTimeTag);
+        if (request.DurationMinutes.HasValue) updateBuilder = updateBuilder.Set(d => d.DurationMinutes, request.DurationMinutes.Value);
+        if (request.Energy != null) updateBuilder = updateBuilder.Set(d => d.Energy, Enum.Parse<EnergyLevel>(request.Energy, true));
+        if (request.Tags != null) updateBuilder = updateBuilder.Set(d => d.Tags, request.Tags);
+        if (request.Enabled.HasValue) updateBuilder = updateBuilder.Set(d => d.Enabled, request.Enabled.Value);
+        if (request.Priority.HasValue) updateBuilder = updateBuilder.Set(d => d.Priority, request.Priority.Value);
+        if (request.RoutineActivities != null) updateBuilder = updateBuilder.Set(d => d.RoutineActivities, request.RoutineActivities);
+        
+        await _context.ScheduleBlockDefinitions.UpdateOneAsync(filter, updateBuilder);
+        
+        var updated = await _context.ScheduleBlockDefinitions.Find(filter).FirstOrDefaultAsync();
+        return updated != null ? _mapper.Map<ScheduleBlockDefinitionDto>(updated) : null;
+    }
+
+    /// <summary>
+    /// Delete schedule block definition
+    /// </summary>
+    public async Task<bool> DeleteDefinitionAsync(string id, string userId)
+    {
+        _logger.LogInformation("Deleting schedule block definition {DefinitionId} for user {UserId}", id, userId);
+        
+        var filter = Builders<ScheduleBlockDefinition>.Filter.And(
+            Builders<ScheduleBlockDefinition>.Filter.Eq(d => d.Id, id),
+            Builders<ScheduleBlockDefinition>.Filter.Eq(d => d.UserId, userId)
+        );
+        
+        var result = await _context.ScheduleBlockDefinitions.DeleteOneAsync(filter);
+        return result.DeletedCount > 0;
+    }
+
+    private async Task<List<ScheduleBlockInstanceDto>> MapBlocksAsync(List<ScheduleBlockInstance> blocks)
+    {
+        var dtos = _mapper.Map<List<ScheduleBlockInstanceDto>>(blocks);
+        var taskIds = blocks.Select(b => b.TaskId).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
+        var tasks = taskIds.Count == 0
+            ? []
+            : await _context.Tasks.Find(t => taskIds.Contains(t.Id)).ToListAsync();
+        var byId = tasks.ToDictionary(t => t.Id);
+        var definitionIds = blocks.Select(b => b.DefinitionId).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
+        var definitions = definitionIds.Count == 0
+            ? []
+            : await _context.ScheduleBlockDefinitions.Find(d => definitionIds.Contains(d.Id)).ToListAsync();
+        var definitionsById = definitions.ToDictionary(d => d.Id);
+
+        for (var i = 0; i < dtos.Count; i++)
+        {
+            var block = blocks[i];
+            var dto = dtos[i];
+            if (!string.IsNullOrWhiteSpace(block.TaskId) && byId.TryGetValue(block.TaskId, out var task))
+            {
+                dto.TaskTitle = task.Title;
+                dto.EntryAction ??= task.NextAction?.Text;
+            }
+
+            if (!string.IsNullOrWhiteSpace(block.DefinitionId) && definitionsById.TryGetValue(block.DefinitionId, out var definition))
+            {
+                dto.ShorterRoutineActivities = definition.ShorterRoutineActivities;
+                dto.IsRoutine = definition.Kind == ScheduleBlockKind.Routine || (definition.RoutineActivities?.Count ?? 0) > 0;
+            }
+            else
+            {
+                dto.IsRoutine = (block.RoutineActivities?.Count ?? 0) > 0;
+            }
+        }
+
+        return dtos;
     }
 }

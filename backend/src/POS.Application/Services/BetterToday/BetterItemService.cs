@@ -1,73 +1,115 @@
 using AutoMapper;
 using Microsoft.Extensions.Logging;
+using MongoDB.Driver;
 using POS.Application.DTOs.BetterToday;
 using POS.Core.Entities.BetterToday;
 using POS.Core.Exceptions;
-using POS.Core.Repositories;
+using POS.Infrastructure.Data;
 
 namespace POS.Application.Services.BetterToday;
 
 /// <summary>
-/// Manages user interactions with AI-proposed better items.
+/// Service for managing better items
 /// </summary>
 public class BetterItemService
 {
-    private readonly IRepository<BetterItem> _betterItemRepository;
+    private readonly MongoDbContext _context;
     private readonly IMapper _mapper;
     private readonly ILogger<BetterItemService> _logger;
 
-    public BetterItemService(
-        IRepository<BetterItem> betterItemRepository,
-        IMapper mapper,
-        ILogger<BetterItemService> logger)
+    public BetterItemService(MongoDbContext context, IMapper mapper, ILogger<BetterItemService> logger)
     {
-        _betterItemRepository = betterItemRepository;
+        _context = context;
         _mapper = mapper;
         _logger = logger;
     }
 
+    /// <summary>
+    /// Complete a better item
+    /// </summary>
     public async Task CompleteItemAsync(CompleteBetterItemRequest request, string userId)
     {
         _logger.LogInformation("Completing better item {ItemId} for user {UserId}", request.Id, userId);
-
-        var item = await _betterItemRepository.GetByIdAsync(request.Id, userId)
-                   ?? throw new NotFoundException("BetterItem", request.Id);
-
-        item.Completed = true;
-        await _betterItemRepository.UpdateAsync(item);
+        
+        var filter = Builders<BetterItem>.Filter.And(
+            Builders<BetterItem>.Filter.Eq(bi => bi.Id, request.Id),
+            Builders<BetterItem>.Filter.Eq(bi => bi.UserId, userId)
+        );
+        
+        var update = Builders<BetterItem>.Update
+            .Set(bi => bi.Completed, true)
+            .Set(bi => bi.UpdatedAt, DateTime.UtcNow);
+        
+        var result = await _context.BetterItems.UpdateOneAsync(filter, update);
+        if (result.MatchedCount == 0)
+        {
+            throw new NotFoundException("BetterItem", request.Id);
+        }
     }
 
+    /// <summary>
+    /// Accept a better item (mark as accepted, ready to work on)
+    /// </summary>
     public async Task AcceptItemAsync(AcceptBetterItemRequest request, string userId)
     {
         _logger.LogInformation("Accepting better item {ItemId} for user {UserId}", request.Id, userId);
-
-        var item = await _betterItemRepository.GetByIdAsync(request.Id, userId)
-                   ?? throw new NotFoundException("BetterItem", request.Id);
-
-        item.Completed = false;
-        await _betterItemRepository.UpdateAsync(item);
+        
+        var filter = Builders<BetterItem>.Filter.And(
+            Builders<BetterItem>.Filter.Eq(bi => bi.Id, request.Id),
+            Builders<BetterItem>.Filter.Eq(bi => bi.UserId, userId)
+        );
+        
+        var update = Builders<BetterItem>.Update
+            .Set(bi => bi.Completed, false)
+            .Set(bi => bi.UpdatedAt, DateTime.UtcNow);
+        
+        var result = await _context.BetterItems.UpdateOneAsync(filter, update);
+        if (result.MatchedCount == 0)
+        {
+            throw new NotFoundException("BetterItem", request.Id);
+        }
     }
 
+    /// <summary>
+    /// Edit a better item title
+    /// </summary>
     public async Task EditItemAsync(EditBetterItemRequest request, string userId)
     {
         _logger.LogInformation("Editing better item {ItemId} for user {UserId}", request.Id, userId);
-
-        var item = await _betterItemRepository.GetByIdAsync(request.Id, userId)
-                   ?? throw new NotFoundException("BetterItem", request.Id);
-
-        item.Title = request.Title;
-        await _betterItemRepository.UpdateAsync(item);
+        
+        var filter = Builders<BetterItem>.Filter.And(
+            Builders<BetterItem>.Filter.Eq(bi => bi.Id, request.Id),
+            Builders<BetterItem>.Filter.Eq(bi => bi.UserId, userId)
+        );
+        
+        var update = Builders<BetterItem>.Update
+            .Set(bi => bi.Title, request.Title)
+            .Set(bi => bi.UpdatedAt, DateTime.UtcNow);
+        
+        var result = await _context.BetterItems.UpdateOneAsync(filter, update);
+        if (result.MatchedCount == 0)
+        {
+            throw new NotFoundException("BetterItem", request.Id);
+        }
     }
 
+    /// <summary>
+    /// Reject a better item (delete it)
+    /// </summary>
     public async Task RejectItemAsync(RejectBetterItemRequest request, string userId)
     {
         _logger.LogInformation("Rejecting better item {ItemId} for user {UserId}", request.Id, userId);
-
-        var exists = await _betterItemRepository.ExistsAsync(request.Id, userId);
-        if (!exists)
+        
+        var filter = Builders<BetterItem>.Filter.And(
+            Builders<BetterItem>.Filter.Eq(bi => bi.Id, request.Id),
+            Builders<BetterItem>.Filter.Eq(bi => bi.UserId, userId)
+        );
+        
+        var result = await _context.BetterItems.DeleteOneAsync(filter);
+        if (result.DeletedCount == 0)
+        {
             throw new NotFoundException("BetterItem", request.Id);
-
-        await _betterItemRepository.DeleteAsync(request.Id, userId);
+        }
     }
 
     /// <summary>

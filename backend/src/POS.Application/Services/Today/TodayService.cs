@@ -1,55 +1,55 @@
+using AutoMapper;
 using Microsoft.Extensions.Logging;
+using MongoDB.Driver;
+using POS.Application.DTOs.Day;
 using POS.Application.DTOs.Diet;
 using POS.Application.DTOs.Discipline;
+using POS.Application.DTOs.Schedule;
 using POS.Application.DTOs.Today;
 using POS.Application.Services.AIBrief;
-using POS.Application.Services.Diet;
-using POS.Application.Services.Discipline;
+using POS.Application.Services.Day;
+using POS.Application.Services.Tasks;
 using POS.Core.Entities;
 using POS.Core.Entities.BetterToday;
 using POS.Core.Entities.Deadlines;
+using DayEntity = POS.Core.Entities.Day;
+using POS.Core.Entities.Diet;
+using POS.Core.Entities.Discipline;
 using POS.Core.Entities.Schedule;
-using POS.Core.Repositories;
-using TaskEntity = POS.Core.Entities.Tasks.Task;
+using POS.Core.Entities.Tasks;
+using POS.Infrastructure.Data;
+using static POS.Core.Entities.Deadlines.DeadlineStatus;
 
 namespace POS.Application.Services.Today;
 
 /// <summary>
-/// Aggregates all daily data into a single response.
-/// Each domain's data is owned by its own service or repository;
-/// TodayService only orchestrates and shapes the response.
+/// Service for aggregating today's data
 /// </summary>
 public class TodayService
 {
-    private readonly IRepository<Day> _dayRepository;
-    private readonly IRepository<BetterItem> _betterItemRepository;
-    private readonly IRepository<TaskEntity> _taskRepository;
-    private readonly IRepository<ScheduleBlockInstance> _scheduleRepository;
-    private readonly IRepository<Deadline> _deadlineRepository;
-    private readonly DietService _dietService;
-    private readonly DisciplineService _disciplineService;
+    private readonly MongoDbContext _context;
+    private readonly TaskService _taskService;
+    private readonly DayBootstrapService _dayBootstrapService;
     private readonly DayStartPlanService _dayStartPlanService;
+    private readonly UserDayClock _dayClock;
+    private readonly IMapper _mapper;
     private readonly ILogger<TodayService> _logger;
 
     public TodayService(
-        IRepository<Day> dayRepository,
-        IRepository<BetterItem> betterItemRepository,
-        IRepository<TaskEntity> taskRepository,
-        IRepository<ScheduleBlockInstance> scheduleRepository,
-        IRepository<Deadline> deadlineRepository,
-        DietService dietService,
-        DisciplineService disciplineService,
+        MongoDbContext context,
+        TaskService taskService,
+        DayBootstrapService dayBootstrapService,
         DayStartPlanService dayStartPlanService,
+        UserDayClock dayClock,
+        IMapper mapper,
         ILogger<TodayService> logger)
     {
-        _dayRepository = dayRepository;
-        _betterItemRepository = betterItemRepository;
-        _taskRepository = taskRepository;
-        _scheduleRepository = scheduleRepository;
-        _deadlineRepository = deadlineRepository;
-        _dietService = dietService;
-        _disciplineService = disciplineService;
+        _context = context;
+        _taskService = taskService;
+        _dayBootstrapService = dayBootstrapService;
         _dayStartPlanService = dayStartPlanService;
+        _dayClock = dayClock;
+        _mapper = mapper;
         _logger = logger;
     }
 
@@ -57,55 +57,194 @@ public class TodayService
     {
         _logger.LogInformation("Getting today's data for user {UserId}", userId);
 
-        var today = DateTime.UtcNow.Date;
+        var dayBootstrap = await _dayBootstrapService.EnsureDayBootstrapAsync(userId);
+        var today = await _dayClock.GetTodayAsync(userId);
         var todayResponse = new TodayResponseDto
         {
-            Day = new DayDto { Date = today.ToString("yyyy-MM-dd") }
+            Day = new DayDto
+            {
+                Date = today.ToString("yyyy-MM-dd")
+            },
+            DayBootstrap = dayBootstrap
         };
 
-        // Ensure a Day record exists
-        var dayExists = await _dayRepository.ExistsAsync(d => d.UserId == userId && d.Date == today);
-        if (!dayExists)
-            await _dayRepository.CreateAsync(new Day { UserId = userId, Date = today });
+        // Get or create Day entity
+        var dayFilter = Builders<DayEntity>.Filter.And(
+            Builders<DayEntity>.Filter.Eq(d => d.UserId, userId),
+            Builders<DayEntity>.Filter.Eq(d => d.Date, today)
+        );
+        var day = await _context.Days.Find(dayFilter).FirstOrDefaultAsync();
+        
+        if (day == null)
+        {
+            day = new DayEntity
+            {
+                UserId = userId,
+                Date = today
+            };
+            await _context.Days.InsertOneAsync(day);
+        }
+        todayResponse.Day.Date = day.Date.ToString("yyyy-MM-dd");
 
-        // Better Items
-        var betterItems = await _betterItemRepository.FindAsync(bi => bi.UserId == userId && bi.Date == today);
+        // Get Better Items for today
+        var betterItemsFilter = Builders<BetterItem>.Filter.And(
+            Builders<BetterItem>.Filter.Eq(bi => bi.UserId, userId),
+            Builders<BetterItem>.Filter.Eq(bi => bi.Date, today)
+        );
+        var betterItems = await _context.BetterItems.Find(betterItemsFilter).ToListAsync();
         todayResponse.BetterItems = betterItems.Select(bi => new BetterItemDto
         {
             Id = bi.Id,
             Title = bi.Title,
             Category = bi.Category,
-            Completed = bi.Completed,
+            Completed = bi.Completed
         }).ToList();
 
-        // Tasks
-        var tasks = await _taskRepository.FindAsync(t => t.UserId == userId && t.Date == today);
-        todayResponse.Tasks = tasks.Select(t => new TaskDto
+        // Get today's focus tasks (full DTO)
+        todayResponse.Tasks = await _taskService.GetTodayFocusTasksAsync(userId);
+
+        // Get Discipline Entry for today
+        DisciplineEntry? discipline = null;
+        var disciplineFilter = Builders<DisciplineEntry>.Filter.And(
+            Builders<DisciplineEntry>.Filter.Eq(d => d.UserId, userId),
+            Builders<DisciplineEntry>.Filter.Eq(d => d.Date, today)
+        );
+        
+        try
         {
-            Id = t.Id,
-            Title = t.Title,
-            Category = t.Category,
-            Completed = t.Completed,
-        }).ToList();
-
-        // Discipline and Diet — owned by their services (get-or-create lives there)
-        todayResponse.Discipline = await _disciplineService.GetTodayDisciplineAsync(userId);
-        todayResponse.Diet = await _dietService.GetTodayDietAsync(userId);
-
-        // Current schedule block (the block whose window contains the current time)
-        var now = DateTime.UtcNow;
-        var blocks = await _scheduleRepository.FindAsync(sb => sb.UserId == userId && sb.Date == today);
-        var currentBlock = blocks
-            .Where(sb =>
+            discipline = await _context.DisciplineEntries.Find(disciplineFilter).FirstOrDefaultAsync();
+        }
+        catch (Exception ex)
+        {
+            // If deserialization fails (old structure data), delete the old entry
+            _logger.LogWarning(ex, "Failed to deserialize discipline entry (likely old structure). Deleting and recreating.");
+            try
             {
-                var start = TimeSpan.Parse(sb.StartTime);
-                var end = TimeSpan.Parse(sb.EndTime);
-                return start <= now.TimeOfDay && now.TimeOfDay < end;
+                await _context.DisciplineEntries.DeleteManyAsync(disciplineFilter);
+            }
+            catch
+            {
+                // Ignore delete errors
+            }
+            discipline = null;
+        }
+        
+        if (discipline != null)
+        {
+            // Ensure blocks are initialized
+            if (discipline.Blocks == null || discipline.Blocks.Count == 0)
+            {
+                // Initialize default blocks (same as in DisciplineService)
+                discipline.Blocks = CreateDefaultBlocks();
+                discipline.UpdatedAt = DateTime.UtcNow;
+                try
+                {
+                    await _context.DisciplineEntries.ReplaceOneAsync(disciplineFilter, discipline);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to update discipline entry. Will create new one.");
+                    discipline = null;
+                }
+            }
+            
+            if (discipline != null)
+            {
+                try
+                {
+                    todayResponse.Discipline = _mapper.Map<DisciplineEntryDto>(discipline);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to map discipline entry. Creating new one.");
+                    // Delete the problematic entry and create a new one
+                    try
+                    {
+                        await _context.DisciplineEntries.DeleteManyAsync(disciplineFilter);
+                    }
+                    catch
+                    {
+                        // Ignore
+                    }
+                    discipline = null;
+                }
+            }
+        }
+        
+        if (discipline == null)
+        {
+            // Create default discipline entry with blocks
+            var newDiscipline = new DisciplineEntry
+            {
+                UserId = userId,
+                Date = today,
+                Blocks = CreateDefaultBlocks(),
+                CreatedAt = DateTime.UtcNow
+            };
+            try
+            {
+                await _context.DisciplineEntries.InsertOneAsync(newDiscipline);
+                todayResponse.Discipline = _mapper.Map<DisciplineEntryDto>(newDiscipline);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create new discipline entry. Creating empty DTO.");
+                todayResponse.Discipline = new DisciplineEntryDto
+                {
+                    Blocks = new List<DisciplineBlockDto>(),
+                    Date = today
+                };
+            }
+        }
+
+        // Get Diet Entry for today
+        var dietFilter = Builders<DietEntry>.Filter.And(
+            Builders<DietEntry>.Filter.Eq(d => d.UserId, userId),
+            Builders<DietEntry>.Filter.Eq(d => d.Date, today)
+        );
+        var diet = await _context.DietEntries.Find(dietFilter).FirstOrDefaultAsync();
+        
+        if (diet != null)
+        {
+            todayResponse.Diet = new DietEntryDto
+            {
+                Compliant = diet.Compliant,
+                PhotoUri = diet.PhotoUri,
+                Note = diet.Note
+            };
+        }
+        else
+        {
+            // Create default diet entry
+            var newDiet = new DietEntry
+            {
+                UserId = userId,
+                Date = today
+            };
+            await _context.DietEntries.InsertOneAsync(newDiet);
+            todayResponse.Diet = new DietEntryDto();
+        }
+
+        // Get current schedule block (first block that hasn't ended)
+        var now = DateTime.UtcNow;
+        var scheduleBlocksFilter = Builders<ScheduleBlockInstance>.Filter.And(
+            Builders<ScheduleBlockInstance>.Filter.Eq(sb => sb.UserId, userId),
+            Builders<ScheduleBlockInstance>.Filter.Eq(sb => sb.Date, today)
+        );
+        var scheduleBlocks = await _context.ScheduleBlockInstances.Find(scheduleBlocksFilter).ToListAsync();
+        
+        var currentBlock = scheduleBlocks
+            .Where(sb => 
+            {
+                var startTime = TimeSpan.Parse(sb.StartTime);
+                var endTime = TimeSpan.Parse(sb.EndTime);
+                var currentTime = now.TimeOfDay;
+                return startTime <= currentTime && endTime > currentTime;
             })
             .OrderBy(sb => sb.StartTime)
             .FirstOrDefault();
-
-        if (currentBlock is not null)
+        
+        if (currentBlock != null)
         {
             todayResponse.CurrentBlock = new ScheduleBlockDto
             {
@@ -113,32 +252,93 @@ public class TodayService
                 Title = currentBlock.Title,
                 StartTime = currentBlock.StartTime,
                 EndTime = currentBlock.EndTime,
+                RoutineActivities = currentBlock.RoutineActivities,
+                TaskId = currentBlock.TaskId,
+                EntryAction = currentBlock.EntryAction,
+                StartMinutes = currentBlock.StartMinutes,
+                RoutineVersion = currentBlock.RoutineVersion,
+                ChecklistItems = currentBlock.ChecklistItems?
+                    .OrderBy(item => item.Order)
+                    .Select(item => new ScheduleChecklistItemDto
+                    {
+                        Id = item.Id,
+                        Title = item.Title,
+                        DurationMinutes = item.DurationMinutes,
+                        Completed = item.Completed,
+                        Order = item.Order
+                    })
+                    .ToList()
             };
         }
 
-        // Deadline warning: nearest non-completed deadline due within 3 days
+        // Get deadline warning (deadlines due within 3 days)
         var threeDaysFromNow = today.AddDays(3);
-        var urgentDeadlines = await _deadlineRepository.FindAsync(d =>
-            d.UserId == userId &&
-            d.DueDate >= today &&
-            d.DueDate <= threeDaysFromNow &&
-            d.Status != DeadlineStatus.Completed);
-
-        var urgentDeadline = urgentDeadlines.OrderBy(d => d.DueDate).FirstOrDefault();
-        if (urgentDeadline is not null)
+        var deadlineFilter = Builders<Deadline>.Filter.And(
+            Builders<Deadline>.Filter.Eq(d => d.UserId, userId),
+            Builders<Deadline>.Filter.Gte(d => d.DueDate, today),
+            Builders<Deadline>.Filter.Lte(d => d.DueDate, threeDaysFromNow),
+            Builders<Deadline>.Filter.Ne(d => d.Status, Completed)
+        );
+        var urgentDeadlines = await _context.Deadlines.Find(deadlineFilter).ToListAsync();
+        
+        var urgentDeadline = urgentDeadlines
+            .OrderBy(d => d.DueDate)
+            .FirstOrDefault();
+        
+        if (urgentDeadline != null)
         {
+            var daysLeft = (urgentDeadline.DueDate.Date - today).Days;
             todayResponse.DeadlineWarning = new DeadlineWarningDto
             {
                 Id = urgentDeadline.Id,
                 Title = urgentDeadline.Title,
-                DaysLeft = (urgentDeadline.DueDate.Date - today).Days,
-                Status = urgentDeadline.Status == DeadlineStatus.Behind ? "behind" : "on track",
+                DaysLeft = daysLeft,
+                Status = urgentDeadline.Status == DeadlineStatus.Behind ? "behind" : "on track"
             };
         }
 
-        // AI Brief — generated by BotSystem's day-start bot; null until bot runs
         todayResponse.AiBrief = await _dayStartPlanService.GetTodayBriefAsync(userId);
 
         return todayResponse;
+    }
+
+    /// <summary>
+    /// Create default blocks (75 Hard and Habit Tracking)
+    /// Same as in DisciplineService
+    /// </summary>
+    private List<DisciplineBlock> CreateDefaultBlocks()
+    {
+        return new List<DisciplineBlock>
+        {
+            // 75 Hard Block
+            new DisciplineBlock
+            {
+                BlockId = "75Hard",
+                BlockName = "75 Hard",
+                Order = 0,
+                Items = new List<DisciplineItem>
+                {
+                    new DisciplineItem { ItemId = "DietFollowed", ItemName = "Diet followed (no cheat meals, no alcohol)", Type = DisciplineItemType.Toggle, ToggleValue = false },
+                    new DisciplineItem { ItemId = "Workout1", ItemName = "Workout #1 (45 min)", Type = DisciplineItemType.Toggle, ToggleValue = false },
+                    new DisciplineItem { ItemId = "Workout2", ItemName = "Workout #2 (45 min – outdoor)", Type = DisciplineItemType.Toggle, ToggleValue = false },
+                    new DisciplineItem { ItemId = "GallonWater", ItemName = "1 gallon water", Type = DisciplineItemType.Toggle, ToggleValue = false },
+                    new DisciplineItem { ItemId = "Read10Pages", ItemName = "Read 10 pages nonfiction", Type = DisciplineItemType.Toggle, ToggleValue = false },
+                    new DisciplineItem { ItemId = "ProgressPhoto", ItemName = "Progress photo", Type = DisciplineItemType.Toggle, ToggleValue = false }
+                }
+            },
+            // Habit Tracking Block
+            new DisciplineBlock
+            {
+                BlockId = "HabitTracking",
+                BlockName = "Habit Tracking",
+                Order = 1,
+                Items = new List<DisciplineItem>
+                {
+                    new DisciplineItem { ItemId = "PrivateActivity", ItemName = "Private Activity", Type = DisciplineItemType.Counter, CounterValue = 0 },
+                    new DisciplineItem { ItemId = "Cigarettes", ItemName = "Cigarettes", Type = DisciplineItemType.Counter, CounterValue = 0 },
+                    new DisciplineItem { ItemId = "Coffee", ItemName = "Coffee", Type = DisciplineItemType.Counter, CounterValue = 0 }
+                }
+            }
+        };
     }
 }

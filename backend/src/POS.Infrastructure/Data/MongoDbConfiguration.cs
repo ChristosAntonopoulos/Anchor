@@ -5,20 +5,18 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
-using POS.Core.Entities.CBT;
-using POS.Core.Entities.Deadlines;
-using POS.Core.Entities.Schedule;
-using TaskEntity = POS.Core.Entities.Tasks.Task;
 using POS.Core.Entities;
+using POS.Core.Entities.AIBrief;
 using POS.Core.Entities.BetterToday;
+using POS.Core.Entities.CBT;
 using POS.Core.Entities.Deadlines;
 using POS.Core.Entities.Diet;
 using POS.Core.Entities.Discipline;
+using POS.Core.Entities.Meals;
 using POS.Core.Entities.Money;
 using POS.Core.Entities.Schedule;
-using POS.Core.Entities.Tasks;
-using POS.Core.Entities.AIBrief;
 using POS.Core.Entities.WeeklyReview;
+using TaskEntity = POS.Core.Entities.Tasks.Task;
 using POS.Core.Repositories;
 using POS.Infrastructure.Repositories;
 
@@ -159,8 +157,29 @@ public static class MongoDbConfiguration
             new MongoRepository<WeeklyReview>(database.GetCollection<WeeklyReview>("weeklyReviews")));
 
         // AI Brief (written by BotSystem's day-start bot)
-        services.AddScoped<IDayAnchoredRepository<DayStartPlan>>(sp =>
-            new DayAnchoredRepository<DayStartPlan>(database.GetCollection<DayStartPlan>("dayStartPlans")));
+        services.AddScoped<IDayAnchoredRepository<POS.Core.Entities.AIBrief.DayStartPlan>>(sp =>
+            new DayAnchoredRepository<POS.Core.Entities.AIBrief.DayStartPlan>(
+                database.GetCollection<POS.Core.Entities.AIBrief.DayStartPlan>("dayStartPlans")));
+
+        // Meals
+        services.AddScoped<IRepository<FoodProfile>>(sp =>
+            new MongoRepository<FoodProfile>(database.GetCollection<FoodProfile>("mealFoodProfiles")));
+        services.AddScoped<IRepository<Ingredient>>(sp =>
+            new MongoRepository<Ingredient>(database.GetCollection<Ingredient>("mealIngredients")));
+        services.AddScoped<IRepository<InventoryBatch>>(sp =>
+            new MongoRepository<InventoryBatch>(database.GetCollection<InventoryBatch>("mealInventoryBatches")));
+        services.AddScoped<IRepository<InventoryMovement>>(sp =>
+            new MongoRepository<InventoryMovement>(database.GetCollection<InventoryMovement>("mealInventoryMovements")));
+        services.AddScoped<IRepository<RecipeVersion>>(sp =>
+            new MongoRepository<RecipeVersion>(database.GetCollection<RecipeVersion>("mealRecipeVersions")));
+        services.AddScoped<IRepository<MealPlan>>(sp =>
+            new MongoRepository<MealPlan>(database.GetCollection<MealPlan>("mealPlans")));
+        services.AddScoped<IRepository<ShoppingTrip>>(sp =>
+            new MongoRepository<ShoppingTrip>(database.GetCollection<ShoppingTrip>("mealShoppingTrips")));
+        services.AddScoped<IRepository<CookEvent>>(sp =>
+            new MongoRepository<CookEvent>(database.GetCollection<CookEvent>("mealCookEvents")));
+        services.AddScoped<IRepository<PreferenceMemory>>(sp =>
+            new MongoRepository<PreferenceMemory>(database.GetCollection<PreferenceMemory>("mealPreferenceMemories")));
     }
 
     private static void CreateIndexes(IMongoDatabase database)
@@ -176,14 +195,6 @@ public static class MongoDbConfiguration
             new CreateIndexModel<Day>(
                 Builders<Day>.IndexKeys.Ascending(x => x.UserId).Ascending(x => x.Date),
                 new CreateIndexOptions { Unique = true }));
-
-        var dayStartPlansCollection = database.GetCollection<DayStartPlan>("dayStartPlans");
-        dayStartPlansCollection.Indexes.CreateOne(
-            new CreateIndexModel<DayStartPlan>(
-                Builders<DayStartPlan>.IndexKeys
-                    .Ascending(x => x.UserId)
-                    .Ascending(x => x.Date)
-                    .Descending(x => x.CreatedAt)));
 
         // AIJobRun indexes
         var aiJobRunsCollection = database.GetCollection<AIJobRun>("aiJobRuns");
