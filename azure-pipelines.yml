@@ -94,7 +94,15 @@ stages:
       inputs:
         versionSpec: '20.x'
 
-    - script: 'cd mobile && npm install'
+    - script: |
+        set -euo pipefail
+        cd mobile
+        if [ -f package-lock.json ]; then
+          npm ci
+        else
+          echo "WARNING: package-lock.json is missing. CI needs a lockfile so Gradle autolinking sees the same Expo modules."
+          npm install
+        fi
       displayName: 'Install mobile dependencies'
 
     - script: |
@@ -240,8 +248,14 @@ stages:
           exit 1
         fi
 
+        node scripts/ensure-expo-android-publication.js
+
         chmod +x android/gradlew
-        (cd android && ./gradlew assembleRelease --no-daemon)
+        if ! (cd android && ./gradlew assembleRelease --no-daemon); then
+          echo "=== Expo Android autolinking JSON ==="
+          node --no-warnings --eval "require('expo/bin/autolinking')" expo-modules-autolinking resolve --platform android --json || true
+          exit 1
+        fi
         GRADLE_APK="$(find android/app/build/outputs/apk -name '*.apk' -type f | head -1)"
         if [ -z "$GRADLE_APK" ]; then
           echo "ERROR: Gradle did not produce an APK."

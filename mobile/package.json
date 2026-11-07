@@ -9,32 +9,33 @@
     "start:production": "cross-env EXPO_PUBLIC_API_URL=http://185.193.66.50:31247/api expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "postinstall": "node scripts/ensure-expo-android-publication.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
     "axios": "^1.13.4",
     "expo": "~54.0.33",
-    "expo-constants": "^18.0.13",
-    "expo-image-picker": "^17.0.10",
-    "expo-linear-gradient": "^15.0.8",
-    "expo-notifications": "~0.32.16",
-    "expo-linking": "^8.0.11",
+    "expo-build-properties": "~1.0.10",
+    "expo-constants": "~18.0.14",
+    "expo-image-picker": "~17.0.11",
+    "expo-linear-gradient": "~15.0.8",
+    "expo-linking": "~8.0.12",
     "expo-location": "~19.0.8",
-    "expo-router": "^6.0.23",
+    "expo-notifications": "~0.32.17",
+    "expo-router": "~6.0.24",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
-    "react-native-svg": "15.12.1",
-    "react-native-safe-area-context": "^5.6.2",
+    "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
+    "react-native-svg": "15.12.1",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@types/react": "~19.1.10",
     "cross-env": "^7.0.3",
-    "expo-build-properties": "^1.0.10",
     "typescript": "~5.9.2"
   },
   "private": true
