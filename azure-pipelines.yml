@@ -162,6 +162,59 @@ stages:
           exit 1
         fi
 
+        if [ -z "${JAVA_HOME:-}" ] || [ ! -x "${JAVA_HOME}/bin/java" ]; then
+          for candidate in \
+            /usr/lib/jvm/java-17-openjdk-amd64 \
+            /usr/lib/jvm/java-17-openjdk \
+            /usr/lib/jvm/temurin-17-jdk-amd64 \
+            /usr/lib/jvm/jdk-17 \
+            "$HOME/jdk-17" \
+            "$HOME/android-studio/jbr" \
+            /opt/android-studio/jbr \
+            /usr/lib/jvm/java-21-openjdk-amd64
+          do
+            if [ -x "$candidate/bin/java" ]; then
+              export JAVA_HOME="$candidate"
+              break
+            fi
+          done
+        fi
+
+        if [ -z "${JAVA_HOME:-}" ] || [ ! -x "${JAVA_HOME}/bin/java" ]; then
+          if command -v java >/dev/null 2>&1; then
+            JAVA_BIN="$(command -v java)"
+            JAVA_BIN="$(readlink -f "$JAVA_BIN" 2>/dev/null || echo "$JAVA_BIN")"
+            export JAVA_HOME="$(dirname "$(dirname "$JAVA_BIN")")"
+          fi
+        fi
+
+        if [ -z "${JAVA_HOME:-}" ] || [ ! -x "${JAVA_HOME}/bin/java" ]; then
+          echo "No JDK on PATH. Installing Eclipse Temurin 17 into $HOME/jdk-17 for this agent."
+          INSTALL_DIR="$HOME/jdk-17"
+          if [ ! -x "$INSTALL_DIR/bin/java" ]; then
+            curl -fsSL -o /tmp/jdk17.tgz \
+              "https://api.adoptium.net/v3/binary/latest/17/ga/linux/x64/jdk/hotspot/normal/eclipse?project=jdk"
+            rm -rf /tmp/jdk17-extract
+            mkdir -p /tmp/jdk17-extract
+            tar -xzf /tmp/jdk17.tgz -C /tmp/jdk17-extract
+            EXTRACTED="$(find /tmp/jdk17-extract -maxdepth 1 -mindepth 1 -type d | head -1)"
+            rm -rf "$INSTALL_DIR"
+            mv "$EXTRACTED" "$INSTALL_DIR"
+            rm -f /tmp/jdk17.tgz
+          fi
+          export JAVA_HOME="$INSTALL_DIR"
+        fi
+
+        if [ ! -x "${JAVA_HOME}/bin/java" ]; then
+          echo "ERROR: JAVA_HOME is not usable: ${JAVA_HOME:-unset}"
+          echo "Install JDK 17 on the Default agent or allow outbound download to api.adoptium.net."
+          exit 1
+        fi
+
+        export PATH="$JAVA_HOME/bin:$PATH"
+        echo "Using JAVA_HOME=$JAVA_HOME"
+        java -version
+
         chmod +x android/gradlew
         (cd android && ./gradlew assembleRelease --no-daemon)
         GRADLE_APK="$(find android/app/build/outputs/apk -name '*.apk' -type f | head -1)"
