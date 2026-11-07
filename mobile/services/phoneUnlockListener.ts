@@ -1,0 +1,358 @@
+// Phone Unlock Listener Service for Android
+// Bridges native PhoneUnlockModule to React Native
+
+import { Linking, NativeModules, NativeEventEmitter, Platform } from 'react-native';
+import { hasPhoneUnlockModule, isExpoGo } from '../utils/nativeModuleSupport';
+
+const { PhoneUnlockModule } = NativeModules;
+
+const isAndroid = Platform.OS === 'android';
+
+let eventEmitter: NativeEventEmitter | null = null;
+
+function getEventEmitter(): NativeEventEmitter | null {
+  if (!isAndroid || !PhoneUnlockModule) return null;
+  if (!eventEmitter) {
+    try {
+      eventEmitter = new NativeEventEmitter(PhoneUnlockModule);
+    } catch (error) {
+      console.warn('[PhoneUnlockListener] Failed to create event emitter:', error);
+      return null;
+    }
+  }
+  return eventEmitter;
+}
+
+if (__DEV__ && isAndroid && !isExpoGo && !hasPhoneUnlockModule) {
+  console.log('[PhoneUnlockListener] Module unavailable — use: npx expo run:android');
+}
+
+export interface PhoneUnlockListenerService {
+  /**
+   * Start listening for phone unlock events
+   */
+  startListening(callback: (unlockTime: number) => void): () => void;
+
+  /**
+   * Stop listening for phone unlock events
+   */
+  stopListening(): void;
+
+  /**
+   * Get pending unlock time if app was opened from notification
+   */
+  getPendingUnlockTime(): Promise<number | null>;
+
+  /**
+   * Clear pending unlock time
+   */
+  clearPendingUnlockTime(): void;
+
+  setApiUrl(url: string): void;
+}
+
+class PhoneUnlockListenerServiceImpl implements PhoneUnlockListenerService {
+  private subscription: any = null;
+
+  startListening(callback: (unlockTime: number) => void): () => void {
+    console.log('[PhoneUnlockListener] startListening() called');
+    
+    if (!isAndroid) {
+      console.log('[PhoneUnlockListener] Not Android platform, returning no-op unsubscribe');
+      return () => {};
+    }
+    
+    if (!PhoneUnlockModule) {
+      console.warn('[PhoneUnlockListener] PhoneUnlockModule is not available!');
+      console.warn('[PhoneUnlockListener] Make sure the native module is properly registered in MainApplication.kt');
+      return () => {};
+    }
+    
+    try {
+      // Start native listener
+      console.log('[PhoneUnlockListener] Starting native unlock listener...');
+      PhoneUnlockModule.startListening();
+      
+      // Subscribe to events
+      const emitter = getEventEmitter();
+      if (!emitter) {
+        console.warn('[PhoneUnlockListener] Event emitter not available, cannot subscribe to unlock events');
+        return () => {};
+      }
+
+      console.log('[PhoneUnlockListener] Subscribing to onPhoneUnlock events');
+      this.subscription = emitter.addListener('onPhoneUnlock', (event: { unlockTime: number }) => {
+        console.log('[PhoneUnlockListener] Phone unlock event received:', event.unlockTime);
+        callback(event.unlockTime);
+      });
+      
+      return () => {
+        console.log('[PhoneUnlockListener] Unsubscribing from onPhoneUnlock events');
+        if (this.subscription) {
+          this.subscription.remove();
+          this.subscription = null;
+        }
+      };
+    } catch (error: any) {
+      console.error('[PhoneUnlockListener] Error starting unlock listener:', error);
+      return () => {};
+    }
+  }
+
+  stopListening(): void {
+    console.log('[PhoneUnlockListener] stopListening() called');
+    
+    if (!isAndroid || !PhoneUnlockModule) {
+      return;
+    }
+    
+    try {
+      // Remove subscription
+      if (this.subscription) {
+        this.subscription.remove();
+        this.subscription = null;
+      }
+      
+      // Stop native listener
+      PhoneUnlockModule.stopListening();
+      console.log('[PhoneUnlockListener] Stopped listening for unlock events');
+    } catch (error: any) {
+      console.error('[PhoneUnlockListener] Error stopping unlock listener:', error);
+    }
+  }
+
+  async getPendingUnlockTime(): Promise<number | null> {
+    console.log('[PhoneUnlockListener] getPendingUnlockTime() called');
+    
+    if (!isAndroid || !PhoneUnlockModule) {
+      return null;
+    }
+    
+    try {
+      const time = await PhoneUnlockModule.getPendingUnlockTime();
+      console.log('[PhoneUnlockListener] Pending unlock time:', time);
+      return time ? Number(time) : null;
+    } catch (error: any) {
+      console.error('[PhoneUnlockListener] Error getting pending unlock time:', error);
+      return null;
+    }
+  }
+
+  setApiUrl(url: string): void {
+    if (!isAndroid || !PhoneUnlockModule || typeof PhoneUnlockModule.setApiUrl !== 'function') {
+      return;
+    }
+    PhoneUnlockModule.setApiUrl(url);
+  }
+
+  clearPendingUnlockTime(): void {
+    console.log('[PhoneUnlockListener] clearPendingUnlockTime() called');
+    
+    if (!isAndroid) {
+      console.log('[PhoneUnlockListener] Not Android, skipping clear');
+      return;
+    }
+    
+    if (!PhoneUnlockModule) {
+      console.log('[PhoneUnlockListener] PhoneUnlockModule not available, skipping clear');
+      return;
+    }
+    
+    // Check if the method exists before calling
+    if (typeof PhoneUnlockModule.clearPendingUnlockTime !== 'function') {
+      console.log('[PhoneUnlockListener] clearPendingUnlockTime method not available, skipping');
+      return;
+    }
+    
+    try {
+      // Call the native method - wrap in try-catch to prevent any crashes
+      PhoneUnlockModule.clearPendingUnlockTime();
+      console.log('[PhoneUnlockListener] Cleared pending unlock time');
+    } catch (error: any) {
+      // Log but don't throw - this is not critical
+      console.log('[PhoneUnlockListener] Error clearing pending unlock time (non-critical):', error?.message || 'Unknown error');
+      // Don't re-throw - we don't want this to crash the app
+    }
+  }
+}
+
+export const phoneUnlockListener: PhoneUnlockListenerService = new PhoneUnlockListenerServiceImpl();
+
+export function cacheCurrentBlock(block?: {
+  id?: string | null;
+  title?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  taskId?: string | null;
+  taskTitle?: string | null;
+  entryAction?: string | null;
+  startMinutes?: number | null;
+  isRoutine?: boolean | null;
+  checklistItems?: Array<{ title?: string | null; completed?: boolean | null; order?: number | null }> | null;
+  routineActivities?: Array<string | null> | null;
+} | null): void {
+  if (!isAndroid || !PhoneUnlockModule || typeof PhoneUnlockModule.setCurrentBlock !== 'function') {
+    return;
+  }
+  try {
+    const items = (block?.checklistItems ?? [])
+      .slice()
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((item) => ({
+        title: item.title?.trim() ?? '',
+        completed: Boolean(item.completed),
+      }))
+      .filter((item) => item.title.length > 0);
+    const fallback = (block?.routineActivities ?? [])
+      .map((title) => ({ title: title?.trim() ?? '', completed: false }))
+      .filter((item) => item.title.length > 0);
+    const extras: Record<string, string | number | boolean> = {};
+    if (block?.id) extras.id = block.id;
+    if (block?.taskId) extras.taskId = block.taskId;
+    if (block?.taskTitle) extras.taskTitle = block.taskTitle;
+    if (block?.entryAction) extras.entryAction = block.entryAction;
+    if (block?.startMinutes && block.startMinutes > 0) extras.startMinutes = block.startMinutes;
+    extras.isRoutine = Boolean(block?.isRoutine);
+    PhoneUnlockModule.setCurrentBlock(
+      block?.title ?? null,
+      block?.startTime ?? null,
+      block?.endTime ?? null,
+      JSON.stringify(items.length > 0 ? items : fallback),
+      JSON.stringify(extras),
+    );
+  } catch {
+    // Cached for the native overlay; failure is non-critical.
+  }
+}
+
+export async function getUnlockStats(): Promise<{
+  todayCount: number;
+  totalCount: number;
+  averageDurationMs: number | null;
+  todayDurationMs: number | null;
+  mostCommonIntention: string | null;
+} | null> {
+  if (!isAndroid || !PhoneUnlockModule || typeof PhoneUnlockModule.getUnlockStats !== 'function') {
+    return null;
+  }
+  try {
+    const stats = await PhoneUnlockModule.getUnlockStats();
+    return {
+      todayCount: Number(stats?.todayCount ?? 0),
+      totalCount: Number(stats?.totalCount ?? 0),
+      averageDurationMs:
+        stats?.averageDurationMs == null ? null : Number(stats.averageDurationMs),
+      todayDurationMs: stats?.todayDurationMs == null ? null : Number(stats.todayDurationMs),
+      mostCommonIntention:
+        typeof stats?.mostCommonIntention === 'string' ? stats.mostCommonIntention : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function isLockAdminActive(): Promise<boolean> {
+  if (!isAndroid || !PhoneUnlockModule || typeof PhoneUnlockModule.isLockAdminActive !== 'function') {
+    return false;
+  }
+  try {
+    return Boolean(await PhoneUnlockModule.isLockAdminActive());
+  } catch {
+    return false;
+  }
+}
+
+export async function requestLockAdmin(): Promise<boolean> {
+  if (!isAndroid) {
+    return false;
+  }
+  try {
+    if (PhoneUnlockModule && typeof PhoneUnlockModule.requestLockAdmin === 'function') {
+      await PhoneUnlockModule.requestLockAdmin();
+      return true;
+    }
+  } catch (error) {
+    console.warn('[PhoneUnlockListener] Native lock admin request failed', error);
+  }
+  try {
+    await Linking.sendIntent('android.settings.SECURITY_SETTINGS');
+    return true;
+  } catch {
+    try {
+      await Linking.openSettings();
+    } catch {
+      // Native and settings fallbacks both failed.
+    }
+    return false;
+  }
+}
+
+export async function isUsageAccessGranted(): Promise<boolean> {
+  if (!isAndroid || !PhoneUnlockModule || typeof PhoneUnlockModule.isUsageAccessGranted !== 'function') {
+    return false;
+  }
+  try {
+    return Boolean(await PhoneUnlockModule.isUsageAccessGranted());
+  } catch {
+    return false;
+  }
+}
+
+export async function requestUsageAccess(): Promise<boolean> {
+  if (!isAndroid) {
+    return false;
+  }
+  try {
+    if (PhoneUnlockModule && typeof PhoneUnlockModule.requestUsageAccess === 'function') {
+      await PhoneUnlockModule.requestUsageAccess();
+      return true;
+    }
+  } catch (error) {
+    console.warn('[PhoneUnlockListener] Native usage access request failed', error);
+  }
+  try {
+    await Linking.sendIntent('android.settings.USAGE_ACCESS_SETTINGS');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function lockPhone(): Promise<'lock_requested' | 'overlay_dismissed' | 'failed'> {
+  if (!isAndroid || !PhoneUnlockModule || typeof PhoneUnlockModule.lockPhone !== 'function') {
+    return 'overlay_dismissed';
+  }
+  try {
+    const result = await PhoneUnlockModule.lockPhone();
+    if (result === 'lock_requested' || result === 'failed') {
+      return result;
+    }
+    return 'overlay_dismissed';
+  } catch {
+    return 'failed';
+  }
+}
+
+export async function consumePendingCheckInOffer(): Promise<string | null> {
+  if (!isAndroid || !PhoneUnlockModule || typeof PhoneUnlockModule.consumePendingCheckInOffer !== 'function') {
+    return null;
+  }
+  try {
+    const value = await PhoneUnlockModule.consumePendingCheckInOffer();
+    return typeof value === 'string' && value.length > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function consumePendingWorkBlock(): Promise<string | null> {
+  if (!isAndroid || !PhoneUnlockModule || typeof PhoneUnlockModule.consumePendingWorkBlock !== 'function') {
+    return null;
+  }
+  try {
+    const value = await PhoneUnlockModule.consumePendingWorkBlock();
+    return typeof value === 'string' && value.length > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}

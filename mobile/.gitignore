@@ -36,6 +36,21 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-# generated native folders
+# generated native folders (for managed Expo workflow)
+# Note: /android is kept for custom native modules
 /ios
-/android
+
+# Android build artifacts (keep source files and config)
+# Ignore build outputs
+/android/app/build/
+/android/build/
+/android/.gradle/
+/android/local.properties
+/android/app/debug.keystore
+/android/app/.cxx/
+/android/app/src/debug/
+/android/app/src/debugOptimized/# But explicitly allow all source files, config files, and gradle wrapper
+# (These are tracked in git and needed for EAS builds)
+# Source files: /android/app/src/main/** (allowed by default)
+# Config files: build.gradle, settings.gradle, gradle.properties, gradlew, etc. (allowed by default)
+# Gradle wrapper: /android/gradle/wrapper/** (allowed by default)

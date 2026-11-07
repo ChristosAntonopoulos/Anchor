@@ -19,7 +19,7 @@ export function ReviewQuestionInput({
     <View style={styles.container}>
       <Text style={styles.question}>{question}</Text>
       <LinearGradient
-        colors={['#1E2530', '#252B38']}
+        colors={[colors.surface, colors.surface]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.inputWrapper}

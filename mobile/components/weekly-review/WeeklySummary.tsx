@@ -10,12 +10,12 @@ export function WeeklySummary({ summary }: WeeklySummaryProps) {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#1E2530', '#252B38']}
+        colors={[colors.aiContainer, colors.aiContainer]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
-        <Text style={styles.label}>AI Summary</Text>
+        <Text style={styles.label}>Suggested review</Text>
         <View style={styles.divider} />
         <Text style={styles.summary}>{summary}</Text>
       </LinearGradient>
@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: typography.fontSize.caption,
-    color: colors.textSecondary,
+    color: colors.aiAccent,
     marginBottom: spacing.s,
     textTransform: 'uppercase',
     letterSpacing: 1,

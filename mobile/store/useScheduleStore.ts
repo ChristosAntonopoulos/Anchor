@@ -6,9 +6,10 @@ interface ScheduleStore {
   blocks: ScheduleBlock[];
   loading: boolean;
   error: string | null;
-  
+
   fetchSchedule: () => Promise<void>;
   updateBlock: (id: string, updates: { title?: string; startTime?: string; endTime?: string }) => Promise<void>;
+  completeChecklistItem: (blockId: string, itemId: string) => Promise<void>;
   reset: () => void;
 }
 
@@ -23,25 +24,44 @@ export const useScheduleStore = create<ScheduleStore>((set, get) => ({
       const blocks = await apiClient.getSchedule();
       set({ blocks, loading: false });
     } catch (error) {
-      set({ 
+      set({
         error: error instanceof Error ? error.message : 'Failed to load schedule',
-        loading: false 
+        loading: false,
       });
     }
   },
 
-  updateBlock: async (id: string, updates: { title?: string; startTime?: string; endTime?: string }) => {
+  updateBlock: async (id, updates) => {
     try {
       await apiClient.updateScheduleBlock({ id, ...updates });
-      const currentBlocks = get().blocks;
-      const updatedBlocks = currentBlocks.map(block =>
-        block.id === id ? { ...block, ...updates } : block
-      );
-      set({ blocks: updatedBlocks });
+      await get().fetchSchedule();
     } catch (error) {
-      set({ 
-        error: error instanceof Error ? error.message : 'Failed to update schedule block'
+      set({
+        error: error instanceof Error ? error.message : 'Failed to update schedule block',
       });
+    }
+  },
+
+  completeChecklistItem: async (blockId, itemId) => {
+    try {
+      await apiClient.updateScheduleChecklistItem(blockId, itemId, true);
+      set((state) => ({
+        blocks: state.blocks.map((block) =>
+          block.id !== blockId
+            ? block
+            : {
+                ...block,
+                checklistItems: block.checklistItems?.map((item) =>
+                  item.id === itemId ? { ...item, completed: true } : item
+                ),
+              }
+        ),
+      }));
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to update checklist',
+      });
+      throw error;
     }
   },
 

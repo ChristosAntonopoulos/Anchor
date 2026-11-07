@@ -1,22 +1,39 @@
 import { TouchableOpacity, Text, StyleSheet, Alert, TextInput, View } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
-import type { Category } from '../../types';
+import { useCategoryStore } from '../../store/useCategoryStore';
+import type { CategoryName } from '../../types';
 
 interface AddTaskButtonProps {
-  onAddTask: (title: string, category: Category) => void;
-  disabled: boolean;
+  onAddTask: (title: string, category: CategoryName) => void;
+  disabled?: boolean;
+  /** Shown on the button when collapsed */
+  label?: string;
+  /** Alert when disabled and user taps */
+  limitMessage?: string;
 }
 
-export function AddTaskButton({ onAddTask, disabled }: AddTaskButtonProps) {
+export function AddTaskButton({
+  onAddTask,
+  disabled = false,
+  label = '+ Add Task',
+  limitMessage = 'Limit reached.',
+}: AddTaskButtonProps) {
+  const { categories, fetchCategories } = useCategoryStore();
   const [showInput, setShowInput] = useState(false);
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState<Category>('work');
+  const [category, setCategory] = useState<CategoryName>('work');
+
+  useEffect(() => {
+    if (categories.length === 0) {
+      fetchCategories();
+    }
+  }, [categories.length, fetchCategories]);
 
   const handlePress = () => {
     if (disabled) {
-      Alert.alert('Limit Reached', 'Maximum 5 tasks allowed per day.');
+      Alert.alert('Limit Reached', limitMessage);
       return;
     }
     setShowInput(true);
@@ -35,18 +52,25 @@ export function AddTaskButton({ onAddTask, disabled }: AddTaskButtonProps) {
     setShowInput(false);
   };
 
-  const categories: { value: Category; label: string; color: string }[] = [
-    { value: 'work', label: 'Work', color: colors.category.work },
-    { value: 'leverage', label: 'Leverage', color: colors.category.leverage },
-    { value: 'health', label: 'Health', color: colors.category.health },
-    { value: 'stability', label: 'Stability', color: colors.category.stability },
-  ];
+  // Use categories from store, fallback to empty array if not loaded
+  const categoryList = categories.length > 0 
+    ? categories.map(cat => ({
+        value: cat.name,
+        label: cat.displayName,
+        color: cat.color,
+      }))
+    : [
+        { value: 'work', label: 'Work', color: colors.category.work },
+        { value: 'leverage', label: 'Leverage', color: colors.category.leverage },
+        { value: 'health', label: 'Health', color: colors.category.health },
+        { value: 'stability', label: 'Stability', color: colors.category.stability },
+      ];
 
   if (showInput) {
     return (
       <View style={styles.inputContainer}>
         <LinearGradient
-          colors={['#1E2530', '#252B38']}
+          colors={[colors.surface, colors.surface]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.inputWrapper}
@@ -62,28 +86,17 @@ export function AddTaskButton({ onAddTask, disabled }: AddTaskButtonProps) {
           <View style={styles.categoryContainer}>
             <Text style={styles.categoryLabel}>Category:</Text>
             <View style={styles.categoryChips}>
-              {categories.map((cat) => (
+              {categoryList.map((cat) => (
                 <TouchableOpacity
                   key={cat.value}
                   onPress={() => setCategory(cat.value)}
                   activeOpacity={0.7}
                 >
-                  {category === cat.value ? (
-                    <LinearGradient
-                      colors={[cat.color, cat.color + 'CC']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.categoryChipActive}
-                    >
-                      <Text style={styles.categoryChipTextActive}>{cat.label}</Text>
-                    </LinearGradient>
-                  ) : (
-                    <View style={[styles.categoryChip, { borderColor: cat.color + '40' }]}>
-                      <Text style={[styles.categoryChipText, { color: cat.color }]}>
-                        {cat.label}
-                      </Text>
-                    </View>
-                  )}
+                  <View style={[styles.categoryChip, category === cat.value && styles.categoryChipActive]}>
+                    <Text style={[styles.categoryChipText, category === cat.value && styles.categoryChipTextActive]}>
+                      {cat.label}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               ))}
             </View>
@@ -99,7 +112,7 @@ export function AddTaskButton({ onAddTask, disabled }: AddTaskButtonProps) {
             disabled={!title.trim()}
           >
             <LinearGradient
-              colors={!title.trim() ? [colors.border, colors.border] : [colors.category.work, colors.category.work + 'CC']}
+              colors={!title.trim() ? [colors.border, colors.border] : [colors.primary, colors.primary]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.submitGradient}
@@ -119,13 +132,13 @@ export function AddTaskButton({ onAddTask, disabled }: AddTaskButtonProps) {
       disabled={disabled}
     >
       <LinearGradient
-        colors={disabled ? [colors.border, colors.border] : [colors.category.work, colors.category.work + 'CC']}
+        colors={disabled ? [colors.border, colors.border] : [colors.primary, colors.primary]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.buttonGradient}
       >
         <Text style={[styles.buttonText, disabled && styles.buttonTextDisabled]}>
-          + Add Task
+          {label}
         </Text>
       </LinearGradient>
     </TouchableOpacity>
@@ -150,7 +163,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
   buttonTextDisabled: {
     color: colors.textSecondary,
@@ -204,7 +217,7 @@ const styles = StyleSheet.create({
   submitText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
   categoryContainer: {
     marginTop: spacing.m,
@@ -227,20 +240,20 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.round,
     borderWidth: 1,
-    backgroundColor: colors.surface,
+    borderColor: colors.borderControl,
+    backgroundColor: colors.surfaceRaised,
   },
   categoryChipActive: {
-    paddingHorizontal: spacing.m,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.round,
+    backgroundColor: colors.primaryContainer,
+    borderColor: colors.primary,
   },
   categoryChipText: {
     fontSize: typography.fontSize.caption,
     fontWeight: typography.fontWeight.regular,
+    color: colors.textPrimary,
   },
   categoryChipTextActive: {
-    fontSize: typography.fontSize.caption,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.textPrimary,
   },
 });

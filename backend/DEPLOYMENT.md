@@ -129,6 +129,9 @@ See `k8s/README.md` for instructions on deploying MongoDB StatefulSet.
    - `DOCKER_USERNAME` - Your Docker Hub username
    - `DOCKER_PASSWORD` - Your Docker Hub password/token
    - `MONGO_CONNECTION_STRING` - MongoDB connection string with credentials
+     - Format: `mongodb://tradingbot:YourtradingbotPassword123@185.193.66.50:27017/pos?authSource=tradingbot`
+     - Database: `pos` (will be created automatically on first connection)
+     - See `backend/MONGODB_SETUP.md` for details
 
 #### Update Pipeline Variables
 
@@ -211,9 +214,9 @@ After deployment, get the LoadBalancer IP:
 kubectl get service pos-api-service -n pos
 ```
 
-**Production Server**: `http://185.193.66.50:35555/api`
+**Production Server**: `http://185.193.66.50:31247/api`
 
-The service is exposed on port `35555` (not the default 80) to avoid conflicts with other services.
+The service is exposed on port `31247` (NodePort) to avoid conflicts with other services.
 
 ## Deployment Process
 
@@ -247,18 +250,18 @@ kubectl rollout status deployment/pos-api -n pos
 
 ### For Expo Go
 
-**Production API URL**: `http://185.193.66.50:35555/api`
+**Production API URL**: `http://185.193.66.50:31247/api`
 
 1. **Update Mobile Config**:
    
    Option A: Set environment variable when running:
    ```bash
-   EXPO_PUBLIC_API_URL=http://185.193.66.50:35555/api npx expo start
+   EXPO_PUBLIC_API_URL=http://185.193.66.50:31247/api npx expo start
    ```
    
    Option B: Update `mobile/constants/apiConfig.ts` (already configured):
    ```typescript
-   const PROD_API_BASE_URL = 'http://185.193.66.50:35555/api';
+   const PROD_API_BASE_URL = 'http://185.193.66.50:31247/api';
    ```
 
 3. **Test Connection**:
@@ -270,8 +273,8 @@ kubectl rollout status deployment/pos-api -n pos
 
 Set `EXPO_PUBLIC_API_URL` during build:
 ```bash
-expo build:android --env EXPO_PUBLIC_API_URL=http://185.193.66.50:35555/api
-expo build:ios --env EXPO_PUBLIC_API_URL=http://185.193.66.50:35555/api
+expo build:android --env EXPO_PUBLIC_API_URL=http://185.193.66.50:31247/api
+expo build:ios --env EXPO_PUBLIC_API_URL=http://185.193.66.50:31247/api
 ```
 
 ## Troubleshooting
@@ -325,7 +328,7 @@ kubectl get service pos-api-service -n pos
 kubectl get endpoints pos-api-service -n pos
 
 # Port forward for testing
-kubectl port-forward service/pos-api-service 8080:35555 -n pos
+kubectl port-forward service/pos-api-service 8080:31247 -n pos
 # Test: curl http://localhost:8080/health
 ```
 

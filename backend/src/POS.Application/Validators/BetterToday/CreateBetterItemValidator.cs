@@ -5,10 +5,16 @@ using POS.Application.Validators;
 namespace POS.Application.Validators.BetterToday;
 
 /// <summary>
-/// Validator for CreateBetterItemDto
+/// Validator for CreateBetterItemDto.
+/// Category checks stay synchronous — FluentValidation auto-validation cannot run MustAsync.
 /// </summary>
 public class CreateBetterItemValidator : BaseValidator<CreateBetterItemDto>
 {
+    private static readonly HashSet<string> AllowedCategories = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "work", "leverage", "health", "stability"
+    };
+
     public CreateBetterItemValidator()
     {
         RuleFor(x => x.Title)
@@ -17,7 +23,7 @@ public class CreateBetterItemValidator : BaseValidator<CreateBetterItemDto>
 
         RuleFor(x => x.Category)
             .NotEmpty().WithMessage("Category is required")
-            .Must(c => c == "work" || c == "leverage" || c == "health" || c == "stability")
-            .WithMessage("Category must be 'work', 'leverage', 'health', or 'stability'");
+            .Must(category => AllowedCategories.Contains(category))
+            .WithMessage("Category must be one of: work, leverage, health, stability");
     }
 }

@@ -16,8 +16,13 @@ public class DayAnchoredRepository<T> : MongoRepository<T>, IDayAnchoredReposito
 
     public virtual async Task<T?> GetByDayAsync(string userId, DateTime date)
     {
-        var dateOnly = date.Date;
-        return await _collection.Find(x => x.UserId == userId && x.Date.Date == dateOnly).FirstOrDefaultAsync();
+        var dateOnly = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
+        var filter = Builders<T>.Filter.And(
+            Builders<T>.Filter.Eq(x => x.UserId, userId),
+            Builders<T>.Filter.Eq(x => x.Date, dateOnly));
+        return await _collection.Find(filter)
+            .SortByDescending(x => x.CreatedAt)
+            .FirstOrDefaultAsync();
     }
 
     public virtual async Task<IEnumerable<T>> GetByDateRangeAsync(string userId, DateTime startDate, DateTime endDate)

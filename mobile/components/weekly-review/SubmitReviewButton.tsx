@@ -17,13 +17,13 @@ export function SubmitReviewButton({ onPress, loading, disabled }: SubmitReviewB
       activeOpacity={0.7}
     >
       <LinearGradient
-        colors={disabled ? [colors.border, colors.border] : [colors.category.stability, colors.category.stability + 'CC']}
+        colors={disabled ? [colors.border, colors.border] : [colors.primary, colors.primary]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
         {loading ? (
-          <ActivityIndicator color={colors.background} />
+          <ActivityIndicator color={colors.onPrimary} />
         ) : (
           <Text style={styles.buttonText}>Submit Review</Text>
         )}
@@ -51,6 +51,6 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
 });

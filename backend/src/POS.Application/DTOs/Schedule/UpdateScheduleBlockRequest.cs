@@ -9,4 +9,9 @@ public class UpdateScheduleBlockRequest
     public string? Title { get; set; }
     public string? StartTime { get; set; } // HH:mm format
     public string? EndTime { get; set; } // HH:mm format
+    public string? TaskId { get; set; }
+    public string? EntryAction { get; set; }
+    public int? StartMinutes { get; set; }
+    public string? WindowKind { get; set; }
+    public string? ManualCue { get; set; }
 }

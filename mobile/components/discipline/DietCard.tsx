@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet, Image, TextInput } from 'react-native';
 import { useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 import type { DietEntry } from '../../types';
@@ -42,13 +42,16 @@ export function DietCard({ diet, onToggle, onUpdate }: DietCardProps) {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#1E2530', '#252B38']}
+        colors={[colors.surface, colors.surface]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Diet</Text>
+          <View style={styles.titleRow}>
+            <AppIcon name="nutrition" size={22} />
+            <Text style={styles.title}>Diet</Text>
+          </View>
           <TouchableOpacity
             onPress={onToggle}
             activeOpacity={0.7}
@@ -56,7 +59,7 @@ export function DietCard({ diet, onToggle, onUpdate }: DietCardProps) {
           >
             {diet.compliant ? (
               <LinearGradient
-                colors={[colors.category.leverage, colors.category.leverage + 'CC']}
+                colors={[colors.primary, colors.primary]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.toggleCompliant}
@@ -78,7 +81,7 @@ export function DietCard({ diet, onToggle, onUpdate }: DietCardProps) {
               style={styles.removePhotoButton}
               onPress={() => onUpdate({ photoUri: undefined })}
             >
-              <Ionicons name="close-circle" size={24} color={colors.error} />
+              <AppIcon name="close-circle" size={24} color={colors.error} />
             </TouchableOpacity>
           </View>
         )}
@@ -109,7 +112,7 @@ export function DietCard({ diet, onToggle, onUpdate }: DietCardProps) {
                 onPress={handleSaveNote}
               >
                 <LinearGradient
-                  colors={[colors.category.leverage, colors.category.leverage + 'CC']}
+                  colors={[colors.primary, colors.primary]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.saveNoteGradient}
@@ -125,7 +128,7 @@ export function DietCard({ diet, onToggle, onUpdate }: DietCardProps) {
               style={styles.actionButton}
               onPress={() => setShowNoteInput(true)}
             >
-              <Ionicons name="create-outline" size={18} color={colors.textSecondary} />
+              <AppIcon name="create-outline" size={18} color={colors.textSecondary} />
               <Text style={styles.actionText}>
                 {diet.note ? 'Edit Note' : 'Add Note'}
               </Text>
@@ -134,7 +137,7 @@ export function DietCard({ diet, onToggle, onUpdate }: DietCardProps) {
               style={styles.actionButton}
               onPress={pickImage}
             >
-              <Ionicons name="camera-outline" size={18} color={colors.textSecondary} />
+              <AppIcon name="camera-outline" size={18} color={colors.textSecondary} />
               <Text style={styles.actionText}>
                 {diet.photoUri ? 'Change Photo' : 'Add Photo'}
               </Text>
@@ -169,6 +172,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.s,
+  },
   title: {
     fontSize: typography.fontSize.title,
     fontWeight: typography.fontWeight.semibold,
@@ -196,7 +204,7 @@ const styles = StyleSheet.create({
   },
   toggleTextCompliant: {
     fontSize: typography.fontSize.caption,
-    color: colors.background,
+    color: colors.onPrimary,
     fontWeight: typography.fontWeight.semibold,
   },
   photoContainer: {
@@ -281,7 +289,7 @@ const styles = StyleSheet.create({
   saveNoteText: {
     fontSize: typography.fontSize.caption,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
   noteDisplay: {
     marginTop: spacing.m,

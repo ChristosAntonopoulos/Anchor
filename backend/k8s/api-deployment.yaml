@@ -7,7 +7,7 @@ metadata:
     app: pos-api
     version: v1
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: pos-api
@@ -46,6 +46,27 @@ spec:
             secretKeyRef:
               name: pos-api-secrets
               key: ConnectionStrings__MongoDb
+        - name: AppRelease__UploadToken
+          valueFrom:
+            secretKeyRef:
+              name: pos-api-secrets
+              key: AppRelease__UploadToken
+              optional: true
+        - name: BotSystem__BaseUrl
+          valueFrom:
+            configMapKeyRef:
+              name: pos-api-config
+              key: BotSystem__BaseUrl
+        - name: BotSystem__IntakeBotKey
+          valueFrom:
+            configMapKeyRef:
+              name: pos-api-config
+              key: BotSystem__IntakeBotKey
+        - name: BotSystem__DayStartBotKey
+          valueFrom:
+            configMapKeyRef:
+              name: pos-api-config
+              key: BotSystem__DayStartBotKey
         resources:
           requests:
             memory: "256Mi"
@@ -55,7 +76,7 @@ spec:
             cpu: "500m"
         livenessProbe:
           httpGet:
-            path: /health
+            path: /api/health
             port: 5000
           initialDelaySeconds: 30
           periodSeconds: 10
@@ -63,7 +84,7 @@ spec:
           failureThreshold: 3
         readinessProbe:
           httpGet:
-            path: /health
+            path: /api/health
             port: 5000
           initialDelaySeconds: 10
           periodSeconds: 5

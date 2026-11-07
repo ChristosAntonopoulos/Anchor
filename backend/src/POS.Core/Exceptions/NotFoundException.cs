@@ -8,6 +8,13 @@ public class NotFoundException : Exception
     public string ResourceType { get; }
     public string ResourceId { get; }
 
+    public NotFoundException(string message)
+        : base(message)
+    {
+        ResourceType = "Resource";
+        ResourceId = string.Empty;
+    }
+
     public NotFoundException(string resourceType, string resourceId)
         : base($"{resourceType} with id '{resourceId}' was not found.")
     {

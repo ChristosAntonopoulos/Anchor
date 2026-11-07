@@ -1,15 +1,23 @@
 import { Tabs } from 'expo-router';
 import { Platform, TouchableOpacity, View, StyleSheet } from 'react-native';
-import { useState } from 'react';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useState, useEffect } from 'react';
+import { AppIcon } from '../../components/icons/AppIcon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, typography, spacing, borderRadius, shadows } from '../../constants/designTokens';
+import { colors, typography, shadows } from '../../constants/designTokens';
 import { MenuModal } from '../../components/navigation/MenuModal';
+import { YesterdayAssessmentModal } from '../../components/day/YesterdayAssessmentModal';
+import { useDayBootstrap } from '../../hooks/useDayBootstrap';
+import { useTodayStore } from '../../store/useTodayStore';
 
 export default function TabLayout() {
   const [menuVisible, setMenuVisible] = useState(false);
   const insets = useSafeAreaInsets();
+  const { data, fetchToday } = useTodayStore();
+  const { bootstrap, showAssessment, dismissAssessment } = useDayBootstrap(data?.dayBootstrap);
+
+  useEffect(() => {
+    void fetchToday();
+  }, [fetchToday]);
 
   // Custom menu button component (larger, centered)
   const MenuTabButton = ({ onPress, accessibilityState }: any) => {
@@ -22,18 +30,13 @@ export default function TabLayout() {
         activeOpacity={0.7}
       >
         <View style={[styles.menuButton, focused && styles.menuButtonFocused]}>
-          <LinearGradient
-            colors={focused ? [colors.category.stability, colors.category.stability + 'CC'] : ['#1E2530', '#252B38']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.menuButtonGradient}
-          >
-            <Ionicons
-              name="grid-outline"
+          <View style={[styles.menuButtonGradient, focused && styles.menuButtonGradientFocused]}>
+            <AppIcon
+              name="growth"
               size={28}
-              color={focused ? colors.background : colors.textPrimary}
+              color={focused ? colors.primary : colors.textSecondary}
             />
-          </LinearGradient>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -58,7 +61,7 @@ export default function TabLayout() {
           },
           headerShadowVisible: false,
           headerTitleAlign: 'left',
-          tabBarActiveTintColor: colors.category.work,
+          tabBarActiveTintColor: colors.primary,
           tabBarInactiveTintColor: colors.textSecondary,
           tabBarStyle: {
             backgroundColor: colors.surface,
@@ -79,8 +82,10 @@ export default function TabLayout() {
           options={{
             title: 'Dashboard',
             tabBarLabel: 'Dashboard',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="speedometer-outline" size={size} color={color} />
+            tabBarIcon: ({ size, focused }) => (
+              <View style={focused ? styles.tabSelected : undefined}>
+                <AppIcon name="dashboard" size={size} color={focused ? colors.primary : colors.textSecondary} />
+              </View>
             ),
           }}
         />
@@ -89,8 +94,10 @@ export default function TabLayout() {
           options={{
             title: 'Tasks',
             tabBarLabel: 'Tasks',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="checkmark-circle-outline" size={size} color={color} />
+            tabBarIcon: ({ size, focused }) => (
+              <View style={focused ? styles.tabSelected : undefined}>
+                <AppIcon name="tasks" size={size} color={focused ? colors.primary : colors.textSecondary} />
+              </View>
             ),
           }}
         />
@@ -108,23 +115,45 @@ export default function TabLayout() {
           options={{
             title: 'Schedule',
             tabBarLabel: 'Schedule',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="calendar-outline" size={size} color={color} />
+            tabBarIcon: ({ size, focused }) => (
+              <View style={focused ? styles.tabSelected : undefined}>
+                <AppIcon name="calendar" size={size} color={focused ? colors.primary : colors.textSecondary} />
+              </View>
             ),
+          }}
+        />
+        <Tabs.Screen
+          name="cbt"
+          options={{
+            title: 'Check-in',
+            tabBarLabel: 'Check-in',
+            tabBarIcon: ({ size, focused }) => (
+              <View style={focused ? styles.tabSelected : undefined}>
+                <AppIcon name="mood" size={size} color={focused ? colors.primary : colors.textSecondary} />
+              </View>
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="unlocks"
+          options={{
+            title: 'Unlocks',
+            href: null, // Hide from tab bar - accessible through menu
           }}
         />
         <Tabs.Screen
           name="discipline"
           options={{
-            title: 'Discipline',
-            tabBarLabel: 'Discipline',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="star-outline" size={size} color={color} />
-            ),
+            href: null, // Hide from tab bar
           }}
         />
       </Tabs>
       <MenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} />
+      <YesterdayAssessmentModal
+        visible={showAssessment}
+        bootstrap={bootstrap}
+        onDismiss={dismissAssessment}
+      />
     </>
   );
 }
@@ -141,9 +170,7 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     ...shadows.medium,
   },
-  menuButtonFocused: {
-    ...shadows.glow.stability,
-  },
+  menuButtonFocused: {},
   menuButtonGradient: {
     width: 64,
     height: 64,
@@ -151,6 +178,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: colors.border,
+    borderColor: colors.borderControl,
+    backgroundColor: colors.surfaceRaised,
+  },
+  menuButtonGradientFocused: {
+    backgroundColor: colors.primaryContainer,
+    borderColor: colors.primary,
+  },
+  tabSelected: {
+    backgroundColor: colors.primaryContainer,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
 });

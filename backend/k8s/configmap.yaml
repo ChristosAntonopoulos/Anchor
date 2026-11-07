@@ -7,6 +7,9 @@ data:
   ASPNETCORE_ENVIRONMENT: "Production"
   ASPNETCORE_URLS: "http://+:5000"
   MongoDb__DatabaseName: "pos"
+  BotSystem__BaseUrl: "http://botsystem-api-service.botsystem.svc.cluster.local"
+  BotSystem__IntakeBotKey: "anchor.intake"
+  BotSystem__DayStartBotKey: "anchor.day-start"
   # MongoDB connection string without credentials (credentials in secrets)
   # Format: mongodb://mongodb-service:27017/pos
   # Or for external MongoDB: mongodb://host:port/database
