@@ -50,24 +50,46 @@ public class ShoppingService
             .ToList();
 
         var recipeIds = plan.Slots
-            .Where(s => s.RecipeVersionId != null)
+            .Where(s => !string.IsNullOrWhiteSpace(s.RecipeVersionId))
             .Select(s => s.RecipeVersionId!)
             .Distinct()
             .ToList();
+        var recipeNames = plan.Slots
+            .Where(s => !string.IsNullOrWhiteSpace(s.RecipeName))
+            .Select(s => s.RecipeName!)
+            .Distinct()
+            .ToList();
 
-        var recipeFilter = Builders<RecipeVersion>.Filter.In(r => r.Id, recipeIds);
+        var recipeClauses = new List<FilterDefinition<RecipeVersion>>
+        {
+            Builders<RecipeVersion>.Filter.Eq(r => r.UserId, userId),
+            Builders<RecipeVersion>.Filter.Eq(r => r.UserId, "system")
+        };
+        if (recipeIds.Count > 0)
+            recipeClauses.Add(Builders<RecipeVersion>.Filter.In(r => r.Id, recipeIds));
+        if (recipeNames.Count > 0)
+        {
+            recipeClauses.Add(Builders<RecipeVersion>.Filter.In(r => r.NameEl, recipeNames));
+            recipeClauses.Add(Builders<RecipeVersion>.Filter.In(r => r.NameEn, recipeNames));
+        }
+
+        var recipeFilter = Builders<RecipeVersion>.Filter.And(
+            Builders<RecipeVersion>.Filter.Eq(r => r.IsActive, true),
+            Builders<RecipeVersion>.Filter.Or(recipeClauses));
         var recipes = await _context.RecipeVersions.Find(recipeFilter).ToListAsync();
-        var recipeMap = recipes.ToDictionary(r => r.Id);
+        var recipeMap = recipes
+            .GroupBy(r => r.Id)
+            .ToDictionary(g => g.Key, g => g.First());
 
         var lines = CalculateShoppingLines(plan.Slots, recipeMap, allInventory);
 
-        // Archive previous planned trips for this plan
         var archiveFilter = Builders<ShoppingTrip>.Filter.And(
             Builders<ShoppingTrip>.Filter.Eq(t => t.UserId, userId),
             Builders<ShoppingTrip>.Filter.Eq(t => t.MealPlanId, planId),
-            Builders<ShoppingTrip>.Filter.Eq(t => t.Status, ShoppingTripStatus.Planned));
+            Builders<ShoppingTrip>.Filter.In(t => t.Status,
+                new[] { ShoppingTripStatus.Planned, ShoppingTripStatus.InProgress }));
         await _context.ShoppingTrips.UpdateManyAsync(archiveFilter,
-            Builders<ShoppingTrip>.Update.Set(t => t.Status, ShoppingTripStatus.Planned));
+            Builders<ShoppingTrip>.Update.Set(t => t.Status, ShoppingTripStatus.Completed));
 
         var trip = new ShoppingTrip
         {
@@ -155,27 +177,34 @@ public class ShoppingService
     {
         var demands = new Dictionary<string, (decimal amount, string unit, List<string> reasons)>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var slot in slots.Where(s => s.RecipeVersionId != null && s.State == MealSlotState.Planned))
+        foreach (var slot in slots.Where(s => s.State == MealSlotState.Planned))
         {
-            if (!recipeMap.TryGetValue(slot.RecipeVersionId!, out var recipe)) continue;
+            var recipe = ResolveRecipe(slot, recipeMap);
+            var reason = $"{slot.LocalDate} {slot.Slot}";
+
+            if (recipe == null)
+            {
+                var fallbackName = string.IsNullOrWhiteSpace(slot.RecipeName) ? null : slot.RecipeName.Trim();
+                if (fallbackName == null) continue;
+                AddDemand(demands, fallbackName, 1m, "item", reason);
+                continue;
+            }
 
             var scaleFactor = recipe.YieldServings > 0 ? (decimal)slot.Servings / recipe.YieldServings : 1m;
+            var ingredients = recipe.Ingredients
+                .Where(i => !string.IsNullOrWhiteSpace(i.RawName) && !i.IsOptional)
+                .ToList();
 
-            foreach (var ingredient in recipe.Ingredients.Where(i => i.Amount.HasValue))
+            if (ingredients.Count == 0)
             {
-                var key = $"{ingredient.RawName.ToLower()}|{ingredient.Unit ?? "unit"}";
-                var scaledAmount = ingredient.Amount!.Value * scaleFactor;
+                AddDemand(demands, recipe.NameEl, 1m, "item", reason);
+                continue;
+            }
 
-                if (demands.TryGetValue(key, out var existing))
-                {
-                    demands[key] = (existing.amount + scaledAmount, existing.unit,
-                        existing.reasons.Concat(new[] { $"{slot.LocalDate} {slot.Slot}" }).ToList());
-                }
-                else
-                {
-                    demands[key] = (scaledAmount, ingredient.Unit ?? "unit",
-                        new List<string> { $"{slot.LocalDate} {slot.Slot}" });
-                }
+            foreach (var ingredient in ingredients)
+            {
+                var scaledAmount = (ingredient.Amount ?? 1m) * scaleFactor;
+                AddDemand(demands, ingredient.RawName, scaledAmount, ingredient.Unit ?? "unit", reason);
             }
         }
 
@@ -204,6 +233,39 @@ public class ShoppingService
         }
 
         return lines;
+    }
+
+    private static RecipeVersion? ResolveRecipe(MealSlot slot, Dictionary<string, RecipeVersion> recipeMap)
+    {
+        if (!string.IsNullOrWhiteSpace(slot.RecipeVersionId) &&
+            recipeMap.TryGetValue(slot.RecipeVersionId, out var byId))
+            return byId;
+
+        if (string.IsNullOrWhiteSpace(slot.RecipeName))
+            return null;
+
+        return recipeMap.Values.FirstOrDefault(r =>
+            r.NameEl.Equals(slot.RecipeName, StringComparison.OrdinalIgnoreCase) ||
+            r.NameEn.Equals(slot.RecipeName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static void AddDemand(
+        Dictionary<string, (decimal amount, string unit, List<string> reasons)> demands,
+        string rawName,
+        decimal amount,
+        string unit,
+        string reason)
+    {
+        var key = $"{rawName.Trim().ToLowerInvariant()}|{unit}";
+        if (demands.TryGetValue(key, out var existing))
+        {
+            demands[key] = (existing.amount + amount, existing.unit,
+                existing.reasons.Concat(new[] { reason }).Distinct().ToList());
+        }
+        else
+        {
+            demands[key] = (amount, unit, new List<string> { reason });
+        }
     }
 
     private static ShoppingTripDto MapToDto(ShoppingTrip trip)

@@ -15,5 +15,6 @@ public class YesterdayAssessmentDto
     public List<string> Misses { get; set; } = new();
     public List<string> CarryForward { get; set; } = new();
     public string? MoodNote { get; set; }
+    public string? DietNote { get; set; }
     public DateTime? GeneratedAt { get; set; }
 }

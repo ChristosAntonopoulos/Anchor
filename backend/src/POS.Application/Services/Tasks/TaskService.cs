@@ -1,9 +1,11 @@
 using AutoMapper;
 using Microsoft.Extensions.Logging;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using POS.Application.DTOs.Tasks;
 using POS.Application.Services.Day;
 using POS.Core.Constants;
+using POS.Core.Entities.Execution;
 using POS.Core.Entities.Tasks;
 using POS.Core.Exceptions;
 using POS.Infrastructure.Data;
@@ -191,26 +193,39 @@ public class TaskService
         if (targetStatus == TaskStatus.Today)
             await EnsureTodayCapacityAsync(userId, additional: 1);
 
-        var task = _mapper.Map<TaskEntity>(request);
-        task.UserId = userId;
-        task.Source = "user";
-        task.Status = targetStatus;
-        task.Completed = false;
-        task.CreatedAt = DateTime.UtcNow;
-        task.UpdatedAt = DateTime.UtcNow;
-
-        if (targetStatus == TaskStatus.Today)
+        var todayUtc = DateTime.SpecifyKind(today, DateTimeKind.Utc);
+        var task = new TaskEntity
         {
-            task.Date = today;
-            task.PlannedDate = today;
-            task.FocusRank = await NextFocusRankAsync(userId);
-        }
-        else
-        {
-            task.Date = today;
-            task.PlannedDate = null;
-            task.FocusRank = null;
-        }
+            Id = ObjectId.GenerateNewId().ToString(),
+            UserId = userId,
+            Title = request.Title.Trim(),
+            Category = request.Category,
+            Notes = request.Notes,
+            PrivateNotes = request.PrivateNotes,
+            Subtasks = request.Subtasks?.Select(s => new Subtask
+            {
+                Id = string.IsNullOrWhiteSpace(s.Id) ? Guid.NewGuid().ToString() : s.Id,
+                Title = s.Title,
+                Completed = s.Completed,
+                Order = s.Order
+            }).ToList(),
+            Location = request.Location == null ? null : _mapper.Map<Location>(request.Location),
+            DueDate = request.DueDate,
+            Priority = request.Priority,
+            Recurrence = request.Recurrence == null ? null : _mapper.Map<RecurrencePattern>(request.Recurrence),
+            Tags = request.Tags,
+            EstimatedMinutes = request.EstimatedMinutes,
+            Reminders = request.Reminders == null ? null : _mapper.Map<List<Reminder>>(request.Reminders),
+            Order = request.Order,
+            Source = "user",
+            Status = targetStatus,
+            Completed = false,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            Date = todayUtc,
+            PlannedDate = targetStatus == TaskStatus.Today ? todayUtc : null,
+            FocusRank = targetStatus == TaskStatus.Today ? await NextFocusRankAsync(userId) : null
+        };
 
         await _context.Tasks.InsertOneAsync(task);
         return _mapper.Map<TaskDto>(task);

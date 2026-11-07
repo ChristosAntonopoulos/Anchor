@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using POS.Application.DTOs.Meals;
 using POS.Core.Entities.Meals;
@@ -35,6 +36,9 @@ public class RecipeService
 
     public async Task<RecipeVersionDto?> GetRecipeByIdAsync(string id, string userId)
     {
+        if (!ObjectId.TryParse(id, out _))
+            return null;
+
         var filter = Builders<RecipeVersion>.Filter.And(
             Builders<RecipeVersion>.Filter.Eq(r => r.Id, id),
             Builders<RecipeVersion>.Filter.Or(

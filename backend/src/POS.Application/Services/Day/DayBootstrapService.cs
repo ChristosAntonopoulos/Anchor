@@ -1,14 +1,18 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using POS.Application.Configuration;
 using POS.Application.DTOs.Day;
+using POS.Application.Services.AIBrief;
 using POS.Application.Services.Tasks;
 using POS.Core.Constants;
 using POS.Core.Entities;
 using POS.Infrastructure.Data;
 using POS.Infrastructure.Services;
 using DayEntity = POS.Core.Entities.Day;
+using AiDayStartPlan = POS.Core.Entities.AIBrief.DayStartPlan;
 
 namespace POS.Application.Services.Day;
 
@@ -110,16 +114,7 @@ public class DayBootstrapService
                 if (currentDay == null)
                     return;
 
-                var applied = await TryApplyPendingPlanAsync(userIdCopy, todayCopy, currentDay, CancellationToken.None);
-                if (!applied)
-                {
-                    await UpdateDayStatusAsync(
-                        userIdCopy,
-                        todayCopy,
-                        DayBootstrapStatus.Failed,
-                        error: "Day-start produced no plan",
-                        ct: CancellationToken.None);
-                }
+                await TryApplyPendingPlanAsync(userIdCopy, todayCopy, currentDay, CancellationToken.None);
             }
             catch (Exception ex)
             {
@@ -151,8 +146,8 @@ public class DayBootstrapService
                 day = await UpdateDayStatusAsync(
                     userId,
                     today,
-                    DayBootstrapStatus.Failed,
-                    error: "Day-start timed out",
+                    DayBootstrapStatus.Ready,
+                    clearError: true,
                     ct: ct);
             }
             else
@@ -184,41 +179,98 @@ public class DayBootstrapService
     private async Task<bool> TryApplyPendingPlanAsync(
         string userId,
         DateTime today,
-        DayEntity day,
+        DayEntity _,
         CancellationToken ct)
     {
-        var planFilter = Builders<DayStartPlan>.Filter.And(
-            Builders<DayStartPlan>.Filter.Eq(p => p.UserId, userId),
-            Builders<DayStartPlan>.Filter.Eq(p => p.Date, today),
-            Builders<DayStartPlan>.Filter.Eq(p => p.Applied, false));
+        var plan = await FindPendingPlanAsync(userId, today, ct);
 
-        var plan = await _context.DayStartPlans.Find(planFilter)
-            .SortByDescending(p => p.CreatedAt)
-            .FirstOrDefaultAsync(ct);
-
-        if (plan == null)
-            return false;
-
+        var assessment = MapAssessment(plan?.YesterdayAssessment);
         var dayUpdate = Builders<DayEntity>.Update
-            .Set(d => d.YesterdayAssessment, plan.YesterdayAssessment)
             .Set(d => d.BootstrapStatus, DayBootstrapStatus.Ready)
             .Set(d => d.BootstrappedAt, DateTime.UtcNow)
             .Set(d => d.BootstrapError, null)
             .Set(d => d.UpdatedAt, DateTime.UtcNow);
 
-        if (!string.IsNullOrWhiteSpace(plan.FocusCategory))
+        if (assessment != null)
+            dayUpdate = dayUpdate.Set(d => d.YesterdayAssessment, assessment);
+
+        if (!string.IsNullOrWhiteSpace(plan?.FocusCategory))
             dayUpdate = dayUpdate.Set(d => d.FocusCategory, plan.FocusCategory);
 
         await _context.Days.UpdateOneAsync(DayFilter(userId, today), dayUpdate, cancellationToken: ct);
 
-        var planUpdate = Builders<DayStartPlan>.Update.Set(p => p.Applied, true);
-        await _context.DayStartPlans.UpdateOneAsync(
-            Builders<DayStartPlan>.Filter.Eq(p => p.Id, plan.Id),
-            planUpdate,
-            cancellationToken: ct);
+        if (plan != null && !string.IsNullOrWhiteSpace(plan.Id))
+        {
+            var planUpdate = Builders<AiDayStartPlan>.Update.Set(p => p.Applied, true);
+            await _context.DayStartPlans.UpdateOneAsync(
+                Builders<AiDayStartPlan>.Filter.Eq(p => p.Id, plan.Id),
+                planUpdate,
+                cancellationToken: ct);
+        }
 
-        _logger.LogInformation("Applied day-start plan for user {UserId} on {Date}", userId, today);
+        _logger.LogInformation(
+            "Day bootstrap ready for user {UserId} on {Date} (plan {PlanId})",
+            userId, today, plan?.Id ?? "none");
         return true;
+    }
+
+    private async Task<AiDayStartPlan?> FindPendingPlanAsync(string userId, DateTime today, CancellationToken ct)
+    {
+        try
+        {
+            var typed = await _context.DayStartPlans
+                .Find(Builders<AiDayStartPlan>.Filter.Eq(p => p.UserId, userId))
+                .SortByDescending(p => p.CreatedAt)
+                .ToListAsync(ct);
+            var match = typed.FirstOrDefault(p => !p.Applied && p.Date.Date == today.Date)
+                ?? typed.FirstOrDefault(p => p.Date.Date == today.Date);
+            if (match != null)
+                return match;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Typed dayStartPlans lookup failed during bootstrap for {UserId}", userId);
+        }
+
+        var docs = await _context.DayStartPlansRaw
+            .Find(Builders<BsonDocument>.Filter.Eq("userId", userId))
+            .Sort(Builders<BsonDocument>.Sort.Descending("createdAt"))
+            .ToListAsync(ct);
+
+        foreach (var doc in docs)
+        {
+            if (!DayStartPlanService.DateMatches(doc.GetValue("date", BsonNull.Value), today))
+                continue;
+
+            try
+            {
+                return BsonSerializer.Deserialize<AiDayStartPlan>(doc);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not deserialize dayStartPlan during bootstrap");
+            }
+        }
+
+        return null;
+    }
+
+    private static YesterdayAssessment? MapAssessment(POS.Core.Entities.AIBrief.YesterdayAssessment? src)
+    {
+        if (src == null)
+            return null;
+
+        return new YesterdayAssessment
+        {
+            Summary = src.Summary ?? string.Empty,
+            Wins = src.Wins ?? new List<string>(),
+            Misses = src.Misses ?? new List<string>(),
+            CarryForward = src.CarryForward ?? new List<string>(),
+            MoodNote = src.MoodNote,
+            DietNote = src.DietNote,
+            GeneratedAt = src.GeneratedAt,
+            Source = string.IsNullOrWhiteSpace(src.Source) ? "day-start" : src.Source
+        };
     }
 
     private async Task<DayEntity> GetOrCreateDayAsync(string userId, DateTime today, CancellationToken ct)
@@ -294,6 +346,7 @@ public class DayBootstrapService
                     Misses = day.YesterdayAssessment.Misses,
                     CarryForward = day.YesterdayAssessment.CarryForward,
                     MoodNote = day.YesterdayAssessment.MoodNote,
+                    DietNote = day.YesterdayAssessment.DietNote,
                     GeneratedAt = day.YesterdayAssessment.GeneratedAt
                 }
         };

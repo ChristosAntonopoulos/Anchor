@@ -41,6 +41,15 @@ public abstract class BaseController : ControllerBase
     }
 
     /// <summary>
+    /// 201 with the same ApiResponse envelope as Success().
+    /// Do not pass Success() into Created() — that serializes the IActionResult wrapper.
+    /// </summary>
+    protected IActionResult CreatedSuccess<T>(T data, string? message = null)
+    {
+        return StatusCode(StatusCodes.Status201Created, ApiResponse<T>.SuccessResponse(data, message));
+    }
+
+    /// <summary>
     /// Creates a standardized error response
     /// </summary>
     protected IActionResult Error(string message, List<ErrorDetail>? errors = null, int statusCode = 400)

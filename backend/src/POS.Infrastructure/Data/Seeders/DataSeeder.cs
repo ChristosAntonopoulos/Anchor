@@ -62,7 +62,7 @@ public class DataSeeder
             await _context.DeadlineStatusSnapshots.DeleteManyAsync(Builders<DeadlineStatusSnapshot>.Filter.Empty);
             await _context.DietRuleSets.DeleteManyAsync(Builders<DietRuleSet>.Filter.Empty);
             await _context.Days.DeleteManyAsync(Builders<Day>.Filter.Empty);
-            await _context.DayStartPlans.DeleteManyAsync(Builders<DayStartPlan>.Filter.Empty);
+            await _context.DayStartPlans.DeleteManyAsync(Builders<POS.Core.Entities.AIBrief.DayStartPlan>.Filter.Empty);
             await _context.Users.DeleteManyAsync(Builders<User>.Filter.Empty);
             await _context.Categories.DeleteManyAsync(Builders<Category>.Filter.Empty);
             await _context.AIInputs.DeleteManyAsync(Builders<AIInput>.Filter.Empty);

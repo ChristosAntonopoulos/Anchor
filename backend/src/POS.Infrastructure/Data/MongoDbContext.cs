@@ -1,5 +1,7 @@
+using MongoDB.Bson;
 using MongoDB.Driver;
 using POS.Core.Entities;
+using AiDayStartPlan = POS.Core.Entities.AIBrief.DayStartPlan;
 using POS.Core.Entities.AIInput;
 using POS.Core.Entities.BetterToday;
 using POS.Core.Entities.CBT;
@@ -31,8 +33,10 @@ public class MongoDbContext
     // Core collections
     public IMongoCollection<User> Users => _database.GetCollection<User>("users");
     public IMongoCollection<Day> Days => _database.GetCollection<Day>("days");
-    public IMongoCollection<DayStartPlan> DayStartPlans =>
-        _database.GetCollection<DayStartPlan>("dayStartPlans");
+    public IMongoCollection<AiDayStartPlan> DayStartPlans =>
+        _database.GetCollection<AiDayStartPlan>("dayStartPlans");
+    public IMongoCollection<BsonDocument> DayStartPlansRaw =>
+        _database.GetCollection<BsonDocument>("dayStartPlans");
     public IMongoCollection<AIJobRun> AIJobRuns => _database.GetCollection<AIJobRun>("aiJobRuns");
 
     // Schedule collections

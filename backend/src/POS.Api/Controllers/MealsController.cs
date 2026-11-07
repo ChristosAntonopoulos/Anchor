@@ -59,7 +59,7 @@ public class MealsController : BaseController
     public async Task<IActionResult> AddBatch([FromBody] AddInventoryBatchRequest request)
     {
         var batch = await _inventoryService.AddBatchAsync(GetUserId(), request);
-        return Created($"api/meals/inventory/{batch.Id}", Success(batch, "Item added"));
+        return CreatedSuccess(batch, "Item added");
     }
 
     [HttpPatch("inventory/{id}")]
@@ -99,7 +99,7 @@ public class MealsController : BaseController
     public async Task<IActionResult> CreateRecipe([FromBody] CreateRecipeRequest request)
     {
         var recipe = await _recipeService.CreateRecipeAsync(GetUserId(), request);
-        return Created($"api/meals/recipes/{recipe.Id}", Success(recipe, "Recipe created"));
+        return CreatedSuccess(recipe, "Recipe created");
     }
 
     // ── Meal Plans ──────────────────────────────────────────────────────────────
@@ -116,7 +116,7 @@ public class MealsController : BaseController
     public async Task<IActionResult> CreatePlan([FromBody] CreateMealPlanRequest request)
     {
         var plan = await _planService.CreatePlanAsync(GetUserId(), request);
-        return Created($"api/meals/plans/{plan.Id}", Success(plan, "Plan created"));
+        return CreatedSuccess(plan, "Plan created");
     }
 
     [HttpPost("plans/{id}/activate")]
@@ -155,7 +155,7 @@ public class MealsController : BaseController
     public async Task<IActionResult> GenerateShoppingTrip(string planId)
     {
         var trip = await _shoppingService.GenerateTripAsync(GetUserId(), planId);
-        return Created($"api/meals/plans/{planId}/shopping", Success(trip, "Shopping list generated"));
+        return CreatedSuccess(trip, "Shopping list generated");
     }
 
     [HttpPatch("shopping/{tripId}/lines/{lineId}")]

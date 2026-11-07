@@ -61,6 +61,8 @@ public class UpdateMealSlotRequest
     public int? Servings { get; set; }
     public bool? Locked { get; set; }
     public string? State { get; set; }
+    public int? HandsonMinutes { get; set; }
+    public int? TotalMinutes { get; set; }
     public string? IdempotencyKey { get; set; }
 }
 

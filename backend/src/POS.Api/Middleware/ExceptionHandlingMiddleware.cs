@@ -61,6 +61,11 @@ public class ExceptionHandlingMiddleware
                 message = argEx.Message;
                 break;
 
+            case FormatException:
+                code = HttpStatusCode.BadRequest;
+                message = "Invalid identifier.";
+                break;
+
             case UnauthorizedAccessException:
                 code = HttpStatusCode.Unauthorized;
                 message = "You are not authorized to perform this action.";

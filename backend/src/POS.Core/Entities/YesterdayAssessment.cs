@@ -22,6 +22,9 @@ public class YesterdayAssessment
     [BsonElement("moodNote")]
     public string? MoodNote { get; set; }
 
+    [BsonElement("dietNote")]
+    public string? DietNote { get; set; }
+
     [BsonElement("generatedAt")]
     [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
     public DateTime? GeneratedAt { get; set; }

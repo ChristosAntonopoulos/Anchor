@@ -94,8 +94,12 @@ public class NotificationService
         var sort = Builders<Notification>.Sort.Descending(n => n.PostTime);
 
         var totalCount = await _context.Notifications.CountDocumentsAsync(combinedFilter);
+        var projection = Builders<Notification>.Projection
+            .Exclude(n => n.AppIcon)
+            .Exclude(n => n.BigPicture);
         var notifications = await _context.Notifications
             .Find(combinedFilter)
+            .Project<Notification>(projection)
             .Sort(sort)
             .Skip((page - 1) * limit)
             .Limit(limit)
