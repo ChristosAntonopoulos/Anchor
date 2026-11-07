@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using MongoDB.Driver;
 using POS.Application.DTOs.Diet;
 using POS.Application.DTOs.Discipline;
 using POS.Application.DTOs.Today;
@@ -9,29 +8,42 @@ using POS.Core.Entities;
 using POS.Core.Entities.BetterToday;
 using POS.Core.Entities.Deadlines;
 using POS.Core.Entities.Schedule;
-using POS.Infrastructure.Data;
-using static POS.Core.Entities.Deadlines.DeadlineStatus;
+using POS.Core.Repositories;
+using TaskEntity = POS.Core.Entities.Tasks.Task;
 
 namespace POS.Application.Services.Today;
 
 /// <summary>
-/// Service for aggregating today's data into a single response.
-/// Delegates diet and discipline lookups to their own services to avoid duplication.
+/// Aggregates all daily data into a single response.
+/// Each domain's data is owned by its own service or repository;
+/// TodayService only orchestrates and shapes the response.
 /// </summary>
 public class TodayService
 {
-    private readonly MongoDbContext _context;
+    private readonly IRepository<Day> _dayRepository;
+    private readonly IRepository<BetterItem> _betterItemRepository;
+    private readonly IRepository<TaskEntity> _taskRepository;
+    private readonly IRepository<ScheduleBlockInstance> _scheduleRepository;
+    private readonly IRepository<Deadline> _deadlineRepository;
     private readonly DietService _dietService;
     private readonly DisciplineService _disciplineService;
     private readonly ILogger<TodayService> _logger;
 
     public TodayService(
-        MongoDbContext context,
+        IRepository<Day> dayRepository,
+        IRepository<BetterItem> betterItemRepository,
+        IRepository<TaskEntity> taskRepository,
+        IRepository<ScheduleBlockInstance> scheduleRepository,
+        IRepository<Deadline> deadlineRepository,
         DietService dietService,
         DisciplineService disciplineService,
         ILogger<TodayService> logger)
     {
-        _context = context;
+        _dayRepository = dayRepository;
+        _betterItemRepository = betterItemRepository;
+        _taskRepository = taskRepository;
+        _scheduleRepository = scheduleRepository;
+        _deadlineRepository = deadlineRepository;
         _dietService = dietService;
         _disciplineService = disciplineService;
         _logger = logger;
@@ -42,65 +54,44 @@ public class TodayService
         _logger.LogInformation("Getting today's data for user {UserId}", userId);
 
         var today = DateTime.UtcNow.Date;
-
         var todayResponse = new TodayResponseDto
         {
             Day = new DayDto { Date = today.ToString("yyyy-MM-dd") }
         };
 
-        // Ensure a Day record exists for today
-        var dayFilter = Builders<Day>.Filter.And(
-            Builders<Day>.Filter.Eq(d => d.UserId, userId),
-            Builders<Day>.Filter.Eq(d => d.Date, today)
-        );
-        if (await _context.Days.Find(dayFilter).FirstOrDefaultAsync() is null)
-        {
-            await _context.Days.InsertOneAsync(new Day { UserId = userId, Date = today });
-        }
+        // Ensure a Day record exists
+        var dayExists = await _dayRepository.ExistsAsync(d => d.UserId == userId && d.Date == today);
+        if (!dayExists)
+            await _dayRepository.CreateAsync(new Day { UserId = userId, Date = today });
 
         // Better Items
-        var betterItemsFilter = Builders<BetterItem>.Filter.And(
-            Builders<BetterItem>.Filter.Eq(bi => bi.UserId, userId),
-            Builders<BetterItem>.Filter.Eq(bi => bi.Date, today)
-        );
-        var betterItems = await _context.BetterItems.Find(betterItemsFilter).ToListAsync();
+        var betterItems = await _betterItemRepository.FindAsync(bi => bi.UserId == userId && bi.Date == today);
         todayResponse.BetterItems = betterItems.Select(bi => new BetterItemDto
         {
             Id = bi.Id,
             Title = bi.Title,
             Category = bi.Category,
-            Completed = bi.Completed
+            Completed = bi.Completed,
         }).ToList();
 
         // Tasks
-        var tasksFilter = Builders<POS.Core.Entities.Tasks.Task>.Filter.And(
-            Builders<POS.Core.Entities.Tasks.Task>.Filter.Eq(t => t.UserId, userId),
-            Builders<POS.Core.Entities.Tasks.Task>.Filter.Eq(t => t.Date, today)
-        );
-        var tasks = await _context.Tasks.Find(tasksFilter).ToListAsync();
+        var tasks = await _taskRepository.FindAsync(t => t.UserId == userId && t.Date == today);
         todayResponse.Tasks = tasks.Select(t => new TaskDto
         {
             Id = t.Id,
             Title = t.Title,
             Category = t.Category,
-            Completed = t.Completed
+            Completed = t.Completed,
         }).ToList();
 
-        // Discipline — delegate to DisciplineService (get-or-create lives there)
+        // Discipline and Diet — owned by their services (get-or-create lives there)
         todayResponse.Discipline = await _disciplineService.GetTodayDisciplineAsync(userId);
-
-        // Diet — delegate to DietService (get-or-create lives there)
         todayResponse.Diet = await _dietService.GetTodayDietAsync(userId);
 
         // Current schedule block (the block whose window contains the current time)
         var now = DateTime.UtcNow;
-        var scheduleFilter = Builders<ScheduleBlockInstance>.Filter.And(
-            Builders<ScheduleBlockInstance>.Filter.Eq(sb => sb.UserId, userId),
-            Builders<ScheduleBlockInstance>.Filter.Eq(sb => sb.Date, today)
-        );
-        var scheduleBlocks = await _context.ScheduleBlockInstances.Find(scheduleFilter).ToListAsync();
-
-        var currentBlock = scheduleBlocks
+        var blocks = await _scheduleRepository.FindAsync(sb => sb.UserId == userId && sb.Date == today);
+        var currentBlock = blocks
             .Where(sb =>
             {
                 var start = TimeSpan.Parse(sb.StartTime);
@@ -117,19 +108,17 @@ public class TodayService
                 Id = currentBlock.Id,
                 Title = currentBlock.Title,
                 StartTime = currentBlock.StartTime,
-                EndTime = currentBlock.EndTime
+                EndTime = currentBlock.EndTime,
             };
         }
 
         // Deadline warning: nearest non-completed deadline due within 3 days
         var threeDaysFromNow = today.AddDays(3);
-        var deadlineFilter = Builders<Deadline>.Filter.And(
-            Builders<Deadline>.Filter.Eq(d => d.UserId, userId),
-            Builders<Deadline>.Filter.Gte(d => d.DueDate, today),
-            Builders<Deadline>.Filter.Lte(d => d.DueDate, threeDaysFromNow),
-            Builders<Deadline>.Filter.Ne(d => d.Status, Completed)
-        );
-        var urgentDeadlines = await _context.Deadlines.Find(deadlineFilter).ToListAsync();
+        var urgentDeadlines = await _deadlineRepository.FindAsync(d =>
+            d.UserId == userId &&
+            d.DueDate >= today &&
+            d.DueDate <= threeDaysFromNow &&
+            d.Status != DeadlineStatus.Completed);
 
         var urgentDeadline = urgentDeadlines.OrderBy(d => d.DueDate).FirstOrDefault();
         if (urgentDeadline is not null)
@@ -139,7 +128,7 @@ public class TodayService
                 Id = urgentDeadline.Id,
                 Title = urgentDeadline.Title,
                 DaysLeft = (urgentDeadline.DueDate.Date - today).Days,
-                Status = urgentDeadline.Status == DeadlineStatus.Behind ? "behind" : "on track"
+                Status = urgentDeadline.Status == DeadlineStatus.Behind ? "behind" : "on track",
             };
         }
 

@@ -47,14 +47,46 @@ public static class MongoDbConfiguration
     private static void RegisterRepositories(IServiceCollection services, IMongoDatabase database)
     {
         // Core repositories
-        services.AddScoped<IRepository<User>>(sp => 
+        services.AddScoped<IRepository<User>>(sp =>
             new MongoRepository<User>(database.GetCollection<User>("users")));
-        services.AddScoped<IRepository<Day>>(sp => 
+        services.AddScoped<IRepository<Day>>(sp =>
             new MongoRepository<Day>(database.GetCollection<Day>("days")));
-        services.AddScoped<IRepository<AIJobRun>>(sp => 
+        services.AddScoped<IRepository<AIJobRun>>(sp =>
             new MongoRepository<AIJobRun>(database.GetCollection<AIJobRun>("aiJobRuns")));
 
-        // Additional repositories will be registered as entities are created
+        // BetterToday
+        services.AddScoped<IRepository<BetterItem>>(sp =>
+            new MongoRepository<BetterItem>(database.GetCollection<BetterItem>("betterItems")));
+
+        // Tasks
+        services.AddScoped<IRepository<POS.Core.Entities.Tasks.Task>>(sp =>
+            new MongoRepository<POS.Core.Entities.Tasks.Task>(database.GetCollection<POS.Core.Entities.Tasks.Task>("tasks")));
+
+        // Discipline
+        services.AddScoped<IDayAnchoredRepository<DisciplineEntry>>(sp =>
+            new DayAnchoredRepository<DisciplineEntry>(database.GetCollection<DisciplineEntry>("disciplineEntries")));
+
+        // Diet
+        services.AddScoped<IDayAnchoredRepository<DietEntry>>(sp =>
+            new DayAnchoredRepository<DietEntry>(database.GetCollection<DietEntry>("dietEntries")));
+
+        // Schedule
+        services.AddScoped<IRepository<ScheduleBlockInstance>>(sp =>
+            new MongoRepository<ScheduleBlockInstance>(database.GetCollection<ScheduleBlockInstance>("scheduleBlockInstances")));
+        services.AddScoped<IRepository<ScheduleBlockDefinition>>(sp =>
+            new MongoRepository<ScheduleBlockDefinition>(database.GetCollection<ScheduleBlockDefinition>("scheduleBlockDefinitions")));
+
+        // Money
+        services.AddScoped<IRepository<IncomeEntry>>(sp =>
+            new MongoRepository<IncomeEntry>(database.GetCollection<IncomeEntry>("incomeEntries")));
+
+        // Deadlines
+        services.AddScoped<IRepository<Deadline>>(sp =>
+            new MongoRepository<Deadline>(database.GetCollection<Deadline>("deadlines")));
+
+        // Weekly Review
+        services.AddScoped<IRepository<WeeklyReview>>(sp =>
+            new MongoRepository<WeeklyReview>(database.GetCollection<WeeklyReview>("weeklyReviews")));
     }
 
     private static void CreateIndexes(IMongoDatabase database)
