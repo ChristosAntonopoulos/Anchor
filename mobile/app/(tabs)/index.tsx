@@ -25,7 +25,7 @@ import { TodayMealCard } from '../../components/meals/TodayMealCard';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { data, loading, error, fetchToday, completeBetterItem, acceptBetterItem, editBetterItem, rejectBetterItem, submitAIInput } = useTodayStore();
+  const { data, loading, error, fetchToday, completeBetterItem, acceptBetterItem, editBetterItem, rejectBetterItem, submitAIInput, markAiBriefApplied } = useTodayStore();
   const { checkStatus, startListening } = useNotificationStore();
   const {
     now,
@@ -130,7 +130,7 @@ export default function HomeScreen() {
           {data.aiBrief && (
             <AiBriefCard
               brief={data.aiBrief}
-              onMarkApplied={() => {/* markAiBriefApplied wired via store */}}
+              onMarkApplied={markAiBriefApplied}
             />
           )}
 

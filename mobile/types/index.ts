@@ -481,14 +481,11 @@ export interface WeeklyReview {
   completed: boolean;
 }
 
-// AI Brief types — written by BotSystem's anchor.day-start bot
-export interface YesterdayAssessment {
-  summary?: string;
 // Day bootstrap / yesterday assessment
 export type DayBootstrapStatus = 'pending' | 'processing' | 'ready' | 'failed';
 
 export interface YesterdayAssessment {
-  summary: string;
+  summary?: string;
   wins: string[];
   misses: string[];
   carryForward: string[];
@@ -500,7 +497,7 @@ export interface YesterdayAssessment {
 export interface AiBrief {
   id: string;
   date: string;
-  focusCategory?: Category;
+  focusCategory?: string;
   applied: boolean;
   yesterdayAssessment?: YesterdayAssessment;
   todayFocusTasks: string[];

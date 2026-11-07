@@ -19,7 +19,7 @@ const menuItems: MenuItem[] = [
   { title: 'Discipline', icon: 'habits', route: '/(tabs)/discipline' },
   { title: 'Unlocks', icon: 'focus', route: '/(tabs)/unlocks' },
   { title: 'Notifications', icon: 'notification', route: '/more/notifications' },
-  { title: 'Meals', icon: 'food', route: '/more/meals' },
+  { title: 'Meals', icon: 'nutrition', route: '/more/meals' },
   { title: 'Money', icon: 'goals', route: '/more/money' },
   { title: 'Deadlines', icon: 'calendar', route: '/more/deadlines' },
   { title: 'Weekly Review', icon: 'journal', route: '/more/weekly-review' },

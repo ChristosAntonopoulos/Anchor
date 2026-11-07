@@ -276,6 +276,9 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
       set({
         error: error instanceof Error ? error.message : 'Failed to mark brief as applied',
       });
+    }
+  },
+
   submitAIInput: async (text: string) => {
     try {
       await submitIntakeAndRefresh(text);

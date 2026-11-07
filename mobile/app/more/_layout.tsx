@@ -80,6 +80,9 @@ export default function MoreLayout() {
         name="meals/slot/[id]"
         options={{
           headerShown: false,
+        }}
+      />
+      <Stack.Screen
         name="notifications"
         options={{
           title: 'Notifications',
