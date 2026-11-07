@@ -1,28 +1,29 @@
 using FluentValidation;
 using POS.Application.DTOs.Tasks;
-using POS.Application.Services.Category;
 using POS.Application.Validators;
 
 namespace POS.Application.Validators.Tasks;
 
 /// <summary>
-/// Validator for CreateTaskRequest
+/// Validator for CreateTaskRequest.
+/// Category checks stay synchronous — FluentValidation auto-validation cannot run MustAsync.
 /// </summary>
 public class CreateTaskValidator : BaseValidator<CreateTaskRequest>
 {
-    private readonly CategoryService _categoryService;
-
-    public CreateTaskValidator(CategoryService categoryService)
+    private static readonly HashSet<string> AllowedCategories = new(StringComparer.OrdinalIgnoreCase)
     {
-        _categoryService = categoryService;
+        "work", "leverage", "health", "stability"
+    };
 
+    public CreateTaskValidator()
+    {
         RuleFor(x => x.Title)
             .NotEmpty().WithMessage("Title is required")
             .MaximumLength(200).WithMessage("Title must not exceed 200 characters");
 
         RuleFor(x => x.Category)
             .NotEmpty().WithMessage("Category is required")
-            .MustAsync(async (category, cancellation) => await _categoryService.ValidateCategoryAsync(category))
-            .WithMessage("Category must be a valid active category");
+            .Must(category => AllowedCategories.Contains(category))
+            .WithMessage("Category must be one of: work, leverage, health, stability");
     }
 }

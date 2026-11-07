@@ -1,28 +1,29 @@
 using FluentValidation;
 using POS.Application.DTOs.BetterToday;
-using POS.Application.Services.Category;
 using POS.Application.Validators;
 
 namespace POS.Application.Validators.BetterToday;
 
 /// <summary>
-/// Validator for CreateBetterItemDto
+/// Validator for CreateBetterItemDto.
+/// Category checks stay synchronous — FluentValidation auto-validation cannot run MustAsync.
 /// </summary>
 public class CreateBetterItemValidator : BaseValidator<CreateBetterItemDto>
 {
-    private readonly CategoryService _categoryService;
-
-    public CreateBetterItemValidator(CategoryService categoryService)
+    private static readonly HashSet<string> AllowedCategories = new(StringComparer.OrdinalIgnoreCase)
     {
-        _categoryService = categoryService;
+        "work", "leverage", "health", "stability"
+    };
 
+    public CreateBetterItemValidator()
+    {
         RuleFor(x => x.Title)
             .NotEmpty().WithMessage("Title is required")
             .MaximumLength(200).WithMessage("Title must not exceed 200 characters");
 
         RuleFor(x => x.Category)
             .NotEmpty().WithMessage("Category is required")
-            .MustAsync(async (category, cancellation) => await _categoryService.ValidateCategoryAsync(category))
-            .WithMessage("Category must be a valid active category");
+            .Must(category => AllowedCategories.Contains(category))
+            .WithMessage("Category must be one of: work, leverage, health, stability");
     }
 }
