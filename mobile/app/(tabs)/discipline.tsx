@@ -79,7 +79,6 @@ export default function DisciplineScreen() {
                 [key]: !data.discipline[key],
               });
             }}
-            weeklyInsight="Weakest habit this week: Meditation. Try setting a daily reminder."
           />
           <DietCard
             diet={data.diet}

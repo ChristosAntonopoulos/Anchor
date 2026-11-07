@@ -1,8 +1,11 @@
+using POS.Application.DTOs.Diet;
+using POS.Application.DTOs.Discipline;
+
 namespace POS.Application.DTOs.Today;
 
 /// <summary>
-/// Today response DTO - aggregates all daily data
-/// Matches GET /api/today response structure exactly
+/// Today response DTO - aggregates all daily data.
+/// Matches GET /api/today response structure exactly.
 /// </summary>
 public class TodayResponseDto
 {

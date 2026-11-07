@@ -80,7 +80,7 @@ public class DietService
         if (request.Compliant.HasValue)
             diet.Compliant = request.Compliant.Value;
         if (request.PhotoUri != null)
-            diet.PhotoUrl = request.PhotoUri;
+            diet.PhotoUri = request.PhotoUri;
         if (request.Note != null)
             diet.Note = request.Note;
 

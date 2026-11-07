@@ -44,11 +44,14 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
       await apiClient.completeBetterItem({ id });
       const currentData = get().data;
       if (currentData) {
-        const item = currentData.betterItems.find(item => item.id === id);
-        if (item) {
-          item.completed = true;
-          set({ data: { ...currentData } });
-        }
+        set({
+          data: {
+            ...currentData,
+            betterItems: currentData.betterItems.map(item =>
+              item.id === id ? { ...item, completed: true } : item
+            ),
+          },
+        });
       }
     } catch (error) {
       set({ 
@@ -62,11 +65,14 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
       await apiClient.acceptBetterItem({ id });
       const currentData = get().data;
       if (currentData) {
-        const item = currentData.betterItems.find(item => item.id === id);
-        if (item) {
-          item.completed = true;
-          set({ data: { ...currentData } });
-        }
+        set({
+          data: {
+            ...currentData,
+            betterItems: currentData.betterItems.map(item =>
+              item.id === id ? { ...item, completed: true } : item
+            ),
+          },
+        });
       }
     } catch (error) {
       set({ 
@@ -80,11 +86,14 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
       await apiClient.editBetterItem({ id, title });
       const currentData = get().data;
       if (currentData) {
-        const item = currentData.betterItems.find(item => item.id === id);
-        if (item) {
-          item.title = title;
-          set({ data: { ...currentData } });
-        }
+        set({
+          data: {
+            ...currentData,
+            betterItems: currentData.betterItems.map(item =>
+              item.id === id ? { ...item, title } : item
+            ),
+          },
+        });
       }
     } catch (error) {
       set({ 
@@ -98,8 +107,12 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
       await apiClient.rejectBetterItem({ id });
       const currentData = get().data;
       if (currentData) {
-        currentData.betterItems = currentData.betterItems.filter(item => item.id !== id);
-        set({ data: { ...currentData } });
+        set({
+          data: {
+            ...currentData,
+            betterItems: currentData.betterItems.filter(item => item.id !== id),
+          },
+        });
       }
     } catch (error) {
       set({ 
@@ -124,11 +137,14 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
       await apiClient.completeTask({ id });
       const currentData = get().data;
       if (currentData) {
-        const task = currentData.tasks.find(task => task.id === id);
-        if (task) {
-          task.completed = true;
-          set({ data: { ...currentData } });
-        }
+        set({
+          data: {
+            ...currentData,
+            tasks: currentData.tasks.map(task =>
+              task.id === id ? { ...task, completed: true } : task
+            ),
+          },
+        });
       }
     } catch (error) {
       set({ 
@@ -142,8 +158,12 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
       await apiClient.updateDiscipline({ discipline });
       const currentData = get().data;
       if (currentData) {
-        currentData.discipline = { ...currentData.discipline, ...discipline };
-        set({ data: { ...currentData } });
+        set({
+          data: {
+            ...currentData,
+            discipline: { ...currentData.discipline, ...discipline },
+          },
+        });
       }
     } catch (error) {
       set({ 
@@ -157,8 +177,12 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
       await apiClient.updateDiet({ diet });
       const currentData = get().data;
       if (currentData) {
-        currentData.diet = { ...currentData.diet, ...diet };
-        set({ data: { ...currentData } });
+        set({
+          data: {
+            ...currentData,
+            diet: { ...currentData.diet, ...diet },
+          },
+        });
       }
     } catch (error) {
       set({ 

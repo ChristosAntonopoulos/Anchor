@@ -10,8 +10,8 @@ public class DietEntry : DayAnchoredEntity
     [BsonElement("compliant")]
     public bool Compliant { get; set; }
 
-    [BsonElement("photoUrl")]
-    public string? PhotoUrl { get; set; }
+    [BsonElement("photoUri")]
+    public string? PhotoUri { get; set; }
 
     [BsonElement("note")]
     public string? Note { get; set; }

@@ -11,13 +11,7 @@ public class DietMappingProfile : Profile
 {
     public DietMappingProfile()
     {
-        // DietEntry mappings
-        CreateMap<DietEntry, DietEntryDto>()
-            .ForMember(dest => dest.PhotoUri, opt => opt.MapFrom(src => src.PhotoUrl));
-        
-        CreateMap<DietEntryDto, DietEntry>()
-            .ForMember(dest => dest.PhotoUrl, opt => opt.MapFrom(src => src.PhotoUri));
-
-        // UpdateDietRequest is handled manually in service for partial updates
+        CreateMap<DietEntry, DietEntryDto>();
+        CreateMap<DietEntryDto, DietEntry>();
     }
 }
