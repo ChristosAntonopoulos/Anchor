@@ -40,6 +40,48 @@ export default function MoreLayout() {
           title: 'Settings',
         }}
       />
+      <Stack.Screen
+        name="meals"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="meals/index"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="meals/preferences"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="meals/add-item"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="meals/plan"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="meals/tonight"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="meals/slot/[id]"
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }

@@ -10,6 +10,7 @@ import { CurrentBlockIndicator } from '../../components/today/CurrentBlockIndica
 import { DisciplineQuickToggle } from '../../components/today/DisciplineQuickToggle';
 import { DeadlineWarningBanner } from '../../components/today/DeadlineWarningBanner';
 import { AiBriefCard } from '../../components/today/AiBriefCard';
+import { TodayMealCard } from '../../components/meals/TodayMealCard';
 
 export default function HomeScreen() {
   const { data, loading, error, fetchToday, completeBetterItem, acceptBetterItem, editBetterItem, rejectBetterItem, updateDiscipline, markAiBriefApplied } = useTodayStore();
@@ -122,6 +123,8 @@ export default function HomeScreen() {
           {data.deadlineWarning && (
             <DeadlineWarningBanner warning={data.deadlineWarning} />
           )}
+
+          <TodayMealCard />
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>

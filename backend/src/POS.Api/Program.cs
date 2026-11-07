@@ -6,6 +6,7 @@ using POS.Api.Middleware;
 using POS.Application.Mappings;
 using POS.Application.Services.AIBrief;
 using POS.Application.Services.BetterToday;
+using POS.Application.Services.Meals;
 using POS.Application.Services.Deadlines;
 using POS.Application.Services.Diet;
 using POS.Application.Services.Discipline;
@@ -61,6 +62,14 @@ builder.Services.AddScoped<DisciplineService>();
 builder.Services.AddScoped<DietService>();
 builder.Services.AddScoped<DayStartPlanService>();
 builder.Services.AddScoped<MoneyService>();
+
+// Meals services
+builder.Services.AddScoped<MealProfileService>();
+builder.Services.AddScoped<InventoryService>();
+builder.Services.AddScoped<MealPlanService>();
+builder.Services.AddScoped<RecipeService>();
+builder.Services.AddScoped<ShoppingService>();
+builder.Services.AddScoped<CookEventService>();
 builder.Services.AddScoped<DeadlineService>();
 builder.Services.AddScoped<WeeklyReviewService>();
 
