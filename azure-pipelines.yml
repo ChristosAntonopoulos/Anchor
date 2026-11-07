@@ -80,7 +80,7 @@ stages:
 
 - stage: MobileBuild
   displayName: 'Build Mobile APK'
-  dependsOn: Package
+  dependsOn: Deploy
   condition: succeeded()
   jobs:
   - job: BuildMobile
