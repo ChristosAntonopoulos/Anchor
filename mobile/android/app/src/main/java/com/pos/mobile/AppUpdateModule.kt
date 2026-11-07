@@ -108,11 +108,10 @@ class AppUpdateModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
     }
 
     private fun startOnUi(intent: Intent) {
-        val activity = currentActivity
-        if (activity != null) {
-            activity.runOnUiThread { activity.startActivity(intent) }
-        } else {
-            reactApplicationContext.startActivity(intent)
+        val context = reactApplicationContext
+        context.runOnUiQueueThread {
+            val host = context.currentActivity ?: context
+            host.startActivity(intent)
         }
     }
 

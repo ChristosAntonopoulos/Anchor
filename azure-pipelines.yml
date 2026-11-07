@@ -224,6 +224,7 @@ stages:
         set -euo pipefail
         cd mobile
         export EXPO_PUBLIC_API_URL="http://185.193.66.50:31247/api"
+        export NODE_ENV=production
         export JAVA_HOME="${JAVA_HOME}"
         export PATH="${JAVA_HOME}/bin:$PATH"
         if [ ! -x "${JAVA_HOME}/bin/java" ]; then
