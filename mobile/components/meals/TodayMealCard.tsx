@@ -17,6 +17,8 @@ export function TodayMealCard() {
   if (todayCardLoading || !todayCard) return null;
 
   const { nextMeal, actionableReminder, hasUnconfirmedIngredients } = todayCard;
+  const cookPath = nextMeal ? (`/more/meals/cook/${nextMeal.id}` as const) : null;
+  const changePath = nextMeal ? (`/more/meals/change/${nextMeal.id}` as const) : null;
 
   if (!nextMeal) {
     return (
@@ -56,7 +58,7 @@ export function TodayMealCard() {
   return (
     <TouchableOpacity
       style={styles.container}
-      onPress={() => router.push('/more/meals' as any)}
+      onPress={() => cookPath && router.push(cookPath as any)}
       activeOpacity={0.85}
     >
       <LinearGradient
@@ -104,7 +106,7 @@ export function TodayMealCard() {
         <View style={styles.actions}>
           <TouchableOpacity
             style={styles.actionBtn}
-            onPress={() => router.push('/more/meals' as any)}
+            onPress={() => cookPath && router.push(cookPath as any)}
             activeOpacity={0.8}
           >
             <Ionicons name="play" size={14} color={colors.background} />
@@ -112,7 +114,7 @@ export function TodayMealCard() {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.actionBtnSecondary}
-            onPress={() => router.push('/more/meals' as any)}
+            onPress={() => changePath && router.push(changePath as any)}
             activeOpacity={0.8}
           >
             <Text style={styles.actionBtnSecondaryText}>Αλλαγή</Text>

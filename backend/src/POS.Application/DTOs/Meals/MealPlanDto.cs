@@ -68,6 +68,7 @@ public class UpdateMealSlotRequest
 
 public class TodayMealCardDto
 {
+    public string? PlanId { get; set; }
     public MealSlotDto? NextMeal { get; set; }
     public string? ActionableReminder { get; set; }
     public bool HasUnconfirmedIngredients { get; set; }

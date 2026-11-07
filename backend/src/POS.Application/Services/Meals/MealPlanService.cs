@@ -156,6 +156,7 @@ public class MealPlanService
 
         return new TodayMealCardDto
         {
+            PlanId = plan.Id,
             NextMeal = dto,
             ActionableReminder = nextSlot.HandsonMinutes.HasValue
                 ? $"Ξεκινήστε στις {DateTime.UtcNow.AddHours(2).AddMinutes(-(nextSlot.TotalMinutes ?? 0)):HH:mm}"

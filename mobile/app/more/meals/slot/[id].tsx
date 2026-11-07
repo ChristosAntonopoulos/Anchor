@@ -32,7 +32,11 @@ const KIND_LABELS: Record<string, string> = {
 export default function MealSlotScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { activePlan } = useMealsStore();
+  const { activePlan, fetchActivePlan } = useMealsStore();
+
+  React.useEffect(() => {
+    if (!activePlan) void fetchActivePlan();
+  }, [activePlan, fetchActivePlan]);
 
   const slot = activePlan?.slots.find((s) => s.id === id);
 
@@ -106,17 +110,33 @@ export default function MealSlotScreen() {
 
               <View style={styles.actions}>
                 {slot.state === 'Planned' && (
-                  <TouchableOpacity style={styles.startBtn} activeOpacity={0.8}>
+                  <TouchableOpacity
+                    style={styles.startBtn}
+                    activeOpacity={0.8}
+                    onPress={() => router.push(`/more/meals/cook/${slot.id}` as any)}
+                  >
                     <Ionicons name="play" size={18} color={colors.background} />
                     <Text style={styles.startBtnText}>Ξεκίνα μαγείρεμα</Text>
                   </TouchableOpacity>
                 )}
-                <TouchableOpacity style={styles.changeBtn} activeOpacity={0.8}>
+                <TouchableOpacity
+                  style={styles.changeBtn}
+                  activeOpacity={0.8}
+                  onPress={() => router.push(`/more/meals/change/${slot.id}` as any)}
+                >
                   <Ionicons name="swap-horizontal" size={18} color={colors.category.work} />
                   <Text style={styles.changeBtnText}>Αλλαγή γεύματος</Text>
                 </TouchableOpacity>
                 {!slot.locked && (
-                  <TouchableOpacity style={styles.lockBtn} activeOpacity={0.8}>
+                  <TouchableOpacity
+                    style={styles.lockBtn}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      const plan = activePlan;
+                      if (!plan) return;
+                      void useMealsStore.getState().updateSlot(plan.id, slot.id, { locked: true });
+                    }}
+                  >
                     <Ionicons name="lock-closed-outline" size={18} color={colors.textSecondary} />
                     <Text style={styles.lockBtnText}>Κλείδωμα</Text>
                   </TouchableOpacity>

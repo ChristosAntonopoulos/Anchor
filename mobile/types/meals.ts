@@ -191,12 +191,26 @@ export interface UpdateMealSlotRequest {
   servings?: number;
   locked?: boolean;
   state?: string;
+  handsonMinutes?: number;
+  totalMinutes?: number;
 }
 
 export interface TodayMealCard {
+  planId?: string | null;
   nextMeal: MealSlot | null;
   actionableReminder: string | null;
   hasUnconfirmedIngredients: boolean;
+}
+
+export interface CookReady {
+  planId: string;
+  slot: MealSlot;
+  recipe: RecipeVersion;
+}
+
+export interface GenerateRecipeRequest {
+  name: string;
+  servings?: number;
 }
 
 export interface ShoppingLine {

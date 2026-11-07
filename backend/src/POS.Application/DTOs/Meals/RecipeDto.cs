@@ -55,3 +55,16 @@ public class CreateRecipeRequest
     public List<string> Tags { get; set; } = new();
     public string? IdempotencyKey { get; set; }
 }
+
+public class GenerateRecipeRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public int Servings { get; set; } = 2;
+}
+
+public class CookReadyDto
+{
+    public string PlanId { get; set; } = string.Empty;
+    public MealSlotDto Slot { get; set; } = new();
+    public RecipeVersionDto Recipe { get; set; } = new();
+}

@@ -91,6 +91,7 @@ builder.Services.AddScoped<WeeklyReviewService>();
 builder.Services.AddScoped<MealProfileService>();
 builder.Services.AddScoped<InventoryService>();
 builder.Services.AddScoped<MealPlanService>();
+builder.Services.AddScoped<RecipeGenerationService>();
 builder.Services.AddScoped<RecipeService>();
 builder.Services.AddScoped<ShoppingService>();
 builder.Services.AddScoped<CookEventService>();

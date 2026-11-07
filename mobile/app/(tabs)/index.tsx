@@ -22,6 +22,7 @@ import { useExecutionStore } from '../../store/useExecutionStore';
 import type { SessionLaunch } from '../../types/execution';
 import { AiBriefCard } from '../../components/today/AiBriefCard';
 import { TodayMealCard } from '../../components/meals/TodayMealCard';
+import { ActiveTimersBar } from '../../components/meals/ActiveTimersBar';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -134,6 +135,7 @@ export default function HomeScreen() {
             />
           )}
 
+          <ActiveTimersBar />
           <TodayMealCard />
 
           {now?.recovery && !now.activeSession ? (

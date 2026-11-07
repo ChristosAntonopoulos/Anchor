@@ -11,6 +11,8 @@ import type {
   CreateMealPlanRequest,
   TodayMealCard,
   ShoppingTrip,
+  CookReady,
+  UpdateMealSlotRequest,
 } from '../types/meals';
 
 interface MealsStore {
@@ -41,6 +43,11 @@ interface MealsStore {
   fetchActivePlan: () => Promise<void>;
   createPlan: (request: CreateMealPlanRequest) => Promise<MealPlan>;
   activatePlan: (id: string) => Promise<void>;
+  updateSlot: (planId: string, slotId: string, request: UpdateMealSlotRequest) => Promise<void>;
+  cookReady: (planId: string, slotId: string) => Promise<CookReady>;
+  generateRecipe: (name: string, servings?: number) => Promise<RecipeVersion>;
+  getAlternatives: (excludeId?: string) => Promise<RecipeVersion[]>;
+  completeCook: (slotId: string, recipeVersionId?: string) => Promise<void>;
 
   // Today card
   todayCard: TodayMealCard | null;
@@ -146,6 +153,31 @@ export const useMealsStore = create<MealsStore>((set, get) => ({
   activatePlan: async (id) => {
     const plan = await mealsApi.activatePlan(id);
     set({ activePlan: plan });
+  },
+
+  updateSlot: async (planId, slotId, request) => {
+    const plan = await mealsApi.updateSlot(planId, slotId, request);
+    set({ activePlan: plan });
+    await get().fetchTodayCard();
+  },
+
+  cookReady: (planId, slotId) => mealsApi.cookReady(planId, slotId),
+
+  generateRecipe: async (name, servings = 2) => {
+    const recipe = await mealsApi.generateRecipe({ name, servings });
+    await get().fetchRecipes();
+    return recipe;
+  },
+
+  getAlternatives: (excludeId) => mealsApi.getAlternatives(excludeId),
+
+  completeCook: async (slotId, recipeVersionId) => {
+    await mealsApi.completeCook({
+      mealSlotId: slotId,
+      recipeVersionId,
+      outcome: 'Cooked',
+    });
+    await Promise.all([get().fetchActivePlan(), get().fetchTodayCard()]);
   },
 
   // Today card

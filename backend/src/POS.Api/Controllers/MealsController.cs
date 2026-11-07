@@ -87,6 +87,13 @@ public class MealsController : BaseController
         return Success(recipes);
     }
 
+    [HttpGet("recipes/alternatives")]
+    public async Task<IActionResult> GetAlternatives([FromQuery] string? excludeId)
+    {
+        var recipes = await _recipeService.GetAlternativesAsync(GetUserId(), excludeId);
+        return Success(recipes);
+    }
+
     [HttpGet("recipes/{id}")]
     public async Task<IActionResult> GetRecipe(string id)
     {
@@ -100,6 +107,20 @@ public class MealsController : BaseController
     {
         var recipe = await _recipeService.CreateRecipeAsync(GetUserId(), request);
         return CreatedSuccess(recipe, "Recipe created");
+    }
+
+    [HttpPost("recipes/generate")]
+    public async Task<IActionResult> GenerateRecipe([FromBody] GenerateRecipeRequest request)
+    {
+        var recipe = await _recipeService.GenerateRecipeAsync(GetUserId(), request);
+        return CreatedSuccess(recipe, "Recipe generated");
+    }
+
+    [HttpPost("plans/{planId}/slots/{slotId}/cook-ready")]
+    public async Task<IActionResult> CookReady(string planId, string slotId)
+    {
+        var ready = await _recipeService.EnsureSlotRecipeAsync(GetUserId(), planId, slotId);
+        return Success(ready);
     }
 
     // ── Meal Plans ──────────────────────────────────────────────────────────────

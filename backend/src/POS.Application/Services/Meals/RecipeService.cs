@@ -11,11 +11,16 @@ namespace POS.Application.Services.Meals;
 public class RecipeService
 {
     private readonly MongoDbContext _context;
+    private readonly RecipeGenerationService _generator;
     private readonly ILogger<RecipeService> _logger;
 
-    public RecipeService(MongoDbContext context, ILogger<RecipeService> logger)
+    public RecipeService(
+        MongoDbContext context,
+        RecipeGenerationService generator,
+        ILogger<RecipeService> logger)
     {
         _context = context;
+        _generator = generator;
         _logger = logger;
     }
 
@@ -94,6 +99,85 @@ public class RecipeService
         _logger.LogInformation("Created recipe {RecipeId} for user {UserId}", recipe.RecipeId, userId);
         return MapToDto(recipe);
     }
+
+    public async Task<RecipeVersionDto> GenerateRecipeAsync(string userId, GenerateRecipeRequest request)
+    {
+        var built = await _generator.BuildAsync(request.Name, request.Servings);
+        return await CreateRecipeAsync(userId, built);
+    }
+
+    public async Task<CookReadyDto> EnsureSlotRecipeAsync(string userId, string planId, string slotId)
+    {
+        var planFilter = Builders<MealPlan>.Filter.And(
+            Builders<MealPlan>.Filter.Eq(p => p.Id, planId),
+            Builders<MealPlan>.Filter.Eq(p => p.UserId, userId));
+        var plan = await _context.MealPlans.Find(planFilter).FirstOrDefaultAsync()
+            ?? throw new NotFoundException("Meal plan not found.");
+
+        var slot = plan.Slots.FirstOrDefault(s => s.Id == slotId)
+            ?? throw new NotFoundException("Meal slot not found.");
+
+        RecipeVersionDto? recipe = null;
+        if (ObjectId.TryParse(slot.RecipeVersionId, out _))
+            recipe = await GetRecipeByIdAsync(slot.RecipeVersionId!, userId);
+
+        if (recipe == null || !RecipeGenerationService.HasUsableSteps(recipe))
+        {
+            var dish = string.IsNullOrWhiteSpace(slot.RecipeName) ? slot.Slot.ToString() : slot.RecipeName;
+            var built = await _generator.BuildAsync(dish, slot.Servings);
+            recipe = await CreateRecipeAsync(userId, built);
+
+            slot.RecipeVersionId = recipe.Id;
+            slot.RecipeName = recipe.NameEl;
+            slot.HandsonMinutes = recipe.HandsonMinutes;
+            slot.TotalMinutes = recipe.TotalMinutes;
+            plan.UpdatedAt = DateTime.UtcNow;
+            plan.Version++;
+            await _context.MealPlans.ReplaceOneAsync(planFilter, plan);
+        }
+
+        return new CookReadyDto
+        {
+            PlanId = plan.Id,
+            Slot = MapSlot(slot),
+            Recipe = recipe
+        };
+    }
+
+    public async Task<List<RecipeVersionDto>> GetAlternativesAsync(string userId, string? excludeRecipeId)
+    {
+        var recipes = await GetUserRecipesAsync(userId);
+        var list = recipes
+            .Where(r => r.Id != excludeRecipeId && RecipeGenerationService.HasUsableSteps(r))
+            .Take(20)
+            .ToList();
+
+        if (list.Count > 0)
+            return list;
+
+        foreach (var name in new[] { "Μακαρόνια με σάλτσα", "Κοτόπουλο λεμονάτο", "Ρύζι με λαχανικά" })
+            list.Add(await GenerateRecipeAsync(userId, new GenerateRecipeRequest { Name = name, Servings = 2 }));
+
+        return list;
+    }
+
+    private static MealSlotDto MapSlot(MealSlot slot) => new()
+    {
+        Id = slot.Id,
+        LocalDate = slot.LocalDate,
+        Slot = slot.Slot.ToString(),
+        Kind = slot.Kind.ToString(),
+        RecipeVersionId = slot.RecipeVersionId,
+        RecipeName = slot.RecipeName,
+        Servings = slot.Servings,
+        Locked = slot.Locked,
+        SourceMealSlotId = slot.SourceMealSlotId,
+        ReasonSummary = slot.ReasonSummary,
+        HandsonMinutes = slot.HandsonMinutes,
+        TotalMinutes = slot.TotalMinutes,
+        State = slot.State.ToString(),
+        CookEventId = slot.CookEventId,
+    };
 
     private static RecipeVersionDto MapToDto(RecipeVersion rv) => new()
     {

@@ -13,6 +13,9 @@ import type {
   TodayMealCard,
   ShoppingTrip,
   CompleteCookRequest,
+  CookReady,
+  GenerateRecipeRequest,
+  UpdateMealSlotRequest,
 } from '../types/meals';
 
 interface ApiResponse<T> {
@@ -84,6 +87,25 @@ class MealsApiClient {
 
   async getRecipe(id: string): Promise<RecipeVersion> {
     const r = await this.http.get<ApiResponse<RecipeVersion>>(`/recipes/${id}`);
+    return unwrap(r.data);
+  }
+
+  async generateRecipe(request: GenerateRecipeRequest): Promise<RecipeVersion> {
+    const r = await this.http.post<ApiResponse<RecipeVersion>>('/recipes/generate', request);
+    return unwrap(r.data);
+  }
+
+  async getAlternatives(excludeId?: string): Promise<RecipeVersion[]> {
+    const r = await this.http.get<ApiResponse<RecipeVersion[]>>('/recipes/alternatives', {
+      params: { excludeId },
+    });
+    return unwrap(r.data);
+  }
+
+  async cookReady(planId: string, slotId: string): Promise<CookReady> {
+    const r = await this.http.post<ApiResponse<CookReady>>(
+      `/plans/${planId}/slots/${slotId}/cook-ready`
+    );
     return unwrap(r.data);
   }
 
