@@ -1,50 +1,26 @@
-import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity } from 'react-native';
-import { useCallback, useState } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { View, Text, StyleSheet, ScrollView, Switch } from 'react-native';
+import { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, typography, gradients, borderRadius, shadows } from '../../constants/designTokens';
-import {
-  getUnlockPromptStatus,
-  openOverlaySettings,
-  requestUnlockNotificationPermission,
-  setUnlockPromptEnabled,
-  type UnlockPromptStatus,
-} from 'phone-unlock';
-
-const choiceLabels: Record<string, string> = {
-  no_reason: 'No reason',
-  task: 'A task',
-  message: 'A message',
-};
+import { CHECK_IN_COPY } from '../../constants/checkIn';
+import { CrisisCard } from '../../components/checkIn/CrisisCard';
+import { useCheckInStore } from '../../store/useCheckInStore';
+import { useExecutionStore } from '../../store/useExecutionStore';
+import { ExecutionProfileCard } from '../../components/execution/ExecutionProfileCard';
 
 export default function SettingsScreen() {
-  const [status, setStatus] = useState<UnlockPromptStatus | null>(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const usePreviousEntries = useCheckInStore((state) => state.usePreviousEntries);
+  const profile = useExecutionStore((state) => state.profile);
+  const fetchProfile = useExecutionStore((state) => state.fetchProfile);
+  const saveProfile = useExecutionStore((state) => state.saveProfile);
+  const review = useExecutionStore((state) => state.review);
+  const runReview = useExecutionStore((state) => state.runReview);
 
-  const refresh = useCallback(() => {
-    setStatus(getUnlockPromptStatus());
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      refresh();
-    }, [refresh])
-  );
-
-  const onToggle = (enabled: boolean) => {
-    if (enabled) {
-      requestUnlockNotificationPermission();
-    }
-    setUnlockPromptEnabled(enabled);
-    const next = getUnlockPromptStatus();
-    setStatus(next);
-    if (enabled && !next.overlayGranted && !next.unavailable) {
-      openOverlaySettings();
-    }
-  };
-
-  const enabled = status?.enabled ?? false;
-  const lastChoice = status?.lastChoice ? choiceLabels[status.lastChoice] ?? status.lastChoice : null;
+  useEffect(() => {
+    void fetchProfile();
+  }, [fetchProfile]);
 
   return (
     <LinearGradient
@@ -56,55 +32,87 @@ export default function SettingsScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           <View style={styles.content}>
+            {profile ? (
+              <View style={styles.section}>
+                <ExecutionProfileCard
+                  profile={profile}
+                  onChange={(patch) => void saveProfile(patch)}
+                  review={review}
+                  onReview={() => void runReview()}
+                />
+              </View>
+            ) : null}
+
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Phone unlock</Text>
+              <Text style={styles.sectionTitle}>Notifications</Text>
               <View style={styles.settingItem}>
                 <LinearGradient
-                  colors={['#1E2530', '#252B38']}
+                  colors={[colors.surface, colors.surface]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.settingCard}
                 >
                   <View style={styles.settingContent}>
-                    <Text style={styles.settingLabel}>Ask when I unlock</Text>
+                    <Text style={styles.settingLabel}>Enable Notifications</Text>
                     <Text style={styles.settingDescription}>
-                      When you unlock the phone, a popup offers No reason, A task, and A message. A quiet notification stays on while this is enabled.
+                      Receive daily reminders and updates
                     </Text>
-                    {status?.unavailable ? (
-                      <Text style={styles.settingHint}>
-                        Rebuild the Android app to include this popup. Expo Go cannot show it.
-                      </Text>
-                    ) : null}
-                    {lastChoice ? (
-                      <Text style={styles.settingHint}>Last answer: {lastChoice}</Text>
-                    ) : null}
                   </View>
                   <Switch
-                    value={enabled}
-                    onValueChange={onToggle}
-                    disabled={status?.unavailable ?? false}
-                    trackColor={{ false: colors.border, true: colors.category.work }}
+                    value={notificationsEnabled}
+                    onValueChange={setNotificationsEnabled}
+                    trackColor={{ false: colors.border, true: colors.primary }}
                     thumbColor={colors.surface}
                   />
                 </LinearGradient>
               </View>
+            </View>
 
-              {enabled && status && !status.overlayGranted ? (
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={openOverlaySettings}
-                  activeOpacity={0.7}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Check-in</Text>
+              <View style={styles.settingItem}>
+                <LinearGradient
+                  colors={[colors.surface, colors.surface]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.settingCard}
                 >
-                  <Text style={styles.actionButtonText}>Allow display over other apps</Text>
-                </TouchableOpacity>
-              ) : null}
+                  <View style={styles.settingContent}>
+                    <Text style={styles.settingLabel}>Self-help tools</Text>
+                    <Text style={styles.settingDescription}>{CHECK_IN_COPY.landingSupport}</Text>
+                  </View>
+                </LinearGradient>
+              </View>
+              <View style={styles.settingItem}>
+                <LinearGradient
+                  colors={[colors.surface, colors.surface]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.settingCard}
+                >
+                  <View style={styles.settingContent}>
+                    <Text style={styles.settingLabel}>Use earlier check-ins for suggestions</Text>
+                    <Text style={styles.settingDescription}>
+                      Off by default. When on, only your own saved entries can help rank reviewed steps. Entries are not sent to a model in this version.
+                    </Text>
+                  </View>
+                  <Switch
+                    value={usePreviousEntries}
+                    onValueChange={(value) => useCheckInStore.setState({ usePreviousEntries: value })}
+                    trackColor={{ false: colors.border, true: colors.primary }}
+                    thumbColor={colors.surface}
+                    accessibilityLabel="Use earlier check-ins for suggestions"
+                  />
+                </LinearGradient>
+              </View>
+              <CrisisCard />
             </View>
 
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>About</Text>
               <View style={styles.settingItem}>
                 <LinearGradient
-                  colors={['#1E2530', '#252B38']}
+                  colors={[colors.surface, colors.surface]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.settingCard}
@@ -169,28 +177,8 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.caption,
     color: colors.textSecondary,
   },
-  settingHint: {
-    fontSize: typography.fontSize.caption,
-    color: colors.textSecondary,
-    marginTop: spacing.s,
-  },
   settingValue: {
     fontSize: typography.fontSize.body,
     color: colors.textSecondary,
-  },
-  actionButton: {
-    minHeight: 48,
-    borderRadius: borderRadius.medium,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.m,
-  },
-  actionButtonText: {
-    fontSize: typography.fontSize.body,
-    color: colors.textPrimary,
-    fontWeight: typography.fontWeight.semibold,
   },
 });

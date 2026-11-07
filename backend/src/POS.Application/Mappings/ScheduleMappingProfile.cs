@@ -30,9 +30,10 @@ public class ScheduleMappingProfile : Profile
             .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
             .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore());
 
+        CreateMap<ScheduleChecklistItem, ScheduleChecklistItemDto>().ReverseMap();
+
         // ScheduleBlockInstance mappings
         CreateMap<ScheduleBlockInstance, ScheduleBlockInstanceDto>();
-        
         CreateMap<ScheduleBlockInstanceDto, ScheduleBlockInstance>();
 
         // UpdateScheduleBlockRequest is handled manually in service

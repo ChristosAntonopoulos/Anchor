@@ -1,0 +1,419 @@
+using AutoMapper;
+using Microsoft.Extensions.Logging;
+using MongoDB.Driver;
+using POS.Application.DTOs.CBT;
+using POS.Core.Entities.CBT;
+using POS.Infrastructure.Data;
+
+namespace POS.Application.Services.CBT;
+
+/// <summary>
+/// Service for managing CBT entries, mood tracking, and behavioral activities
+/// </summary>
+public class CBTService
+{
+    private readonly MongoDbContext _context;
+    private readonly IMapper _mapper;
+    private readonly ILogger<CBTService> _logger;
+
+    public CBTService(MongoDbContext context, IMapper mapper, ILogger<CBTService> logger)
+    {
+        _context = context;
+        _mapper = mapper;
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// Submit CBT text input for AI processing
+    /// </summary>
+    public async Task<CBTEntryDto> SubmitCBTEntryAsync(CreateCBTEntryRequest request, string userId)
+    {
+        _logger.LogInformation("Submitting CBT entry for user {UserId}", userId);
+
+        if (string.IsNullOrWhiteSpace(request.Text))
+        {
+            throw new ArgumentException("Text cannot be empty", nameof(request));
+        }
+
+        var entry = new CBTEntry
+        {
+            Text = request.Text.Trim(),
+            Status = "pending",
+            UserId = userId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        await _context.CBTEntries.InsertOneAsync(entry);
+
+        _logger.LogInformation("CBT entry {EntryId} submitted successfully", entry.Id);
+
+        return _mapper.Map<CBTEntryDto>(entry);
+    }
+
+    /// <summary>
+    /// Get CBT entries for user (optionally filtered by date)
+    /// </summary>
+    public async Task<List<CBTEntryDto>> GetCBTEntriesAsync(string userId, DateTime? date = null)
+    {
+        _logger.LogInformation("Getting CBT entries for user {UserId}", userId);
+
+        var filterBuilder = Builders<CBTEntry>.Filter;
+        var filter = filterBuilder.Eq(e => e.UserId, userId);
+
+        if (date.HasValue)
+        {
+            var dateStart = date.Value.Date;
+            var dateEnd = dateStart.AddDays(1);
+            filter = filterBuilder.And(
+                filter,
+                filterBuilder.Gte(e => e.CreatedAt, dateStart),
+                filterBuilder.Lt(e => e.CreatedAt, dateEnd)
+            );
+        }
+
+        var sort = Builders<CBTEntry>.Sort.Descending(e => e.CreatedAt);
+
+        var entries = await _context.CBTEntries
+            .Find(filter)
+            .Sort(sort)
+            .ToListAsync();
+
+        return _mapper.Map<List<CBTEntryDto>>(entries);
+    }
+
+    /// <summary>
+    /// Get single CBT entry by ID
+    /// </summary>
+    public async Task<CBTEntryDto?> GetCBTEntryByIdAsync(string id, string userId)
+    {
+        _logger.LogInformation("Getting CBT entry {EntryId} for user {UserId}", id, userId);
+
+        var entry = await _context.CBTEntries
+            .Find(e => e.Id == id && e.UserId == userId)
+            .FirstOrDefaultAsync();
+
+        return entry != null ? _mapper.Map<CBTEntryDto>(entry) : null;
+    }
+
+    /// <summary>
+    /// Update CBT entry (for manual edits)
+    /// </summary>
+    public async Task<CBTEntryDto?> UpdateCBTEntryAsync(string id, UpdateCBTEntryRequest request, string userId)
+    {
+        _logger.LogInformation("Updating CBT entry {EntryId} for user {UserId}", id, userId);
+
+        var filter = Builders<CBTEntry>.Filter.Eq(e => e.Id, id) & Builders<CBTEntry>.Filter.Eq(e => e.UserId, userId);
+        var existingEntry = await _context.CBTEntries.Find(filter).FirstOrDefaultAsync();
+
+        if (existingEntry == null)
+        {
+            return null;
+        }
+
+        var updateBuilder = Builders<CBTEntry>.Update
+            .Set(e => e.UpdatedAt, DateTime.UtcNow);
+
+        if (request.Text != null) updateBuilder = updateBuilder.Set(e => e.Text, request.Text);
+        if (request.Title != null) updateBuilder = updateBuilder.Set(e => e.Title, request.Title);
+        if (request.RecordState != null) updateBuilder = updateBuilder.Set(e => e.RecordState, request.RecordState);
+        if (request.SupportType != null) updateBuilder = updateBuilder.Set(e => e.SupportType, request.SupportType);
+        if (request.Energy != null) updateBuilder = updateBuilder.Set(e => e.Energy, request.Energy);
+        if (request.Feelings != null) updateBuilder = updateBuilder.Set(e => e.Feelings, _mapper.Map<List<FeelingRating>>(request.Feelings));
+        if (request.Situation != null) updateBuilder = updateBuilder.Set(e => e.Situation, request.Situation);
+        if (request.AutomaticThoughts != null) updateBuilder = updateBuilder.Set(e => e.AutomaticThoughts, _mapper.Map<List<AutomaticThought>>(request.AutomaticThoughts));
+        if (request.EvidenceFor != null) updateBuilder = updateBuilder.Set(e => e.EvidenceFor, request.EvidenceFor);
+        if (request.EvidenceAgainst != null) updateBuilder = updateBuilder.Set(e => e.EvidenceAgainst, request.EvidenceAgainst);
+        if (request.AlternativeThoughts != null) updateBuilder = updateBuilder.Set(e => e.AlternativeThoughts, request.AlternativeThoughts);
+        if (request.Outcome != null) updateBuilder = updateBuilder.Set(e => e.Outcome, request.Outcome);
+        if (request.ThoughtState != null) updateBuilder = updateBuilder.Set(e => e.ThoughtState, request.ThoughtState);
+        if (request.BeliefBefore.HasValue) updateBuilder = updateBuilder.Set(e => e.BeliefBefore, request.BeliefBefore);
+        if (request.BeliefAfter.HasValue) updateBuilder = updateBuilder.Set(e => e.BeliefAfter, request.BeliefAfter);
+        if (request.ProblemSolving != null) updateBuilder = updateBuilder.Set(e => e.ProblemSolving, _mapper.Map<ProblemSolvingRecord>(request.ProblemSolving));
+        if (request.LinkedUnlockEventId != null) updateBuilder = updateBuilder.Set(e => e.LinkedUnlockEventId, request.LinkedUnlockEventId);
+
+        await _context.CBTEntries.UpdateOneAsync(filter, updateBuilder);
+
+        var updatedEntry = await _context.CBTEntries.Find(filter).FirstOrDefaultAsync();
+        return updatedEntry != null ? _mapper.Map<CBTEntryDto>(updatedEntry) : null;
+    }
+
+    /// <summary>
+    /// Delete CBT entry
+    /// </summary>
+    public async Task<bool> DeleteCBTEntryAsync(string id, string userId)
+    {
+        _logger.LogInformation("Deleting CBT entry {EntryId} for user {UserId}", id, userId);
+
+        var filter = Builders<CBTEntry>.Filter.Eq(e => e.Id, id) & Builders<CBTEntry>.Filter.Eq(e => e.UserId, userId);
+        var result = await _context.CBTEntries.DeleteOneAsync(filter);
+
+        return result.DeletedCount > 0;
+    }
+
+    /// <summary>
+    /// Get mood entries for date range
+    /// </summary>
+    public async Task<List<MoodEntryDto>> GetMoodEntriesAsync(string userId, DateTime startDate, DateTime endDate)
+    {
+        _logger.LogInformation("Getting mood entries for user {UserId} from {StartDate} to {EndDate}", userId, startDate, endDate);
+
+        var filter = Builders<MoodEntry>.Filter.And(
+            Builders<MoodEntry>.Filter.Eq(e => e.UserId, userId),
+            Builders<MoodEntry>.Filter.Gte(e => e.Date, startDate.Date),
+            Builders<MoodEntry>.Filter.Lte(e => e.Date, endDate.Date)
+        );
+
+        var sort = Builders<MoodEntry>.Sort.Ascending(e => e.Date);
+
+        var entries = await _context.MoodEntries
+            .Find(filter)
+            .Sort(sort)
+            .ToListAsync();
+
+        return _mapper.Map<List<MoodEntryDto>>(entries);
+    }
+
+    /// <summary>
+    /// Create mood entry
+    /// </summary>
+    public async Task<MoodEntryDto> CreateMoodEntryAsync(CreateMoodEntryRequest request, string userId)
+    {
+        _logger.LogInformation("Creating mood entry for user {UserId}", userId);
+
+        var entry = _mapper.Map<MoodEntry>(request);
+        entry.UserId = userId;
+        entry.CreatedAt = DateTime.UtcNow;
+        entry.UpdatedAt = DateTime.UtcNow;
+
+        await _context.MoodEntries.InsertOneAsync(entry);
+
+        return _mapper.Map<MoodEntryDto>(entry);
+    }
+
+    /// <summary>
+    /// Get behavioral activities (optionally filtered by date)
+    /// </summary>
+    public async Task<List<BehavioralActivityDto>> GetBehavioralActivitiesAsync(string userId, DateTime? date = null)
+    {
+        _logger.LogInformation("Getting behavioral activities for user {UserId}", userId);
+
+        var filterBuilder = Builders<BehavioralActivity>.Filter;
+        var filter = filterBuilder.Eq(a => a.UserId, userId);
+
+        if (date.HasValue)
+        {
+            var dateStart = DateTime.SpecifyKind(date.Value.Date, DateTimeKind.Utc);
+            var dateEnd = dateStart.AddDays(1);
+            filter = filterBuilder.And(
+                filter,
+                filterBuilder.Or(
+                    filterBuilder.And(
+                        filterBuilder.Gte(a => a.ScheduledDate, dateStart),
+                        filterBuilder.Lt(a => a.ScheduledDate, dateEnd)
+                    ),
+                    filterBuilder.And(
+                        filterBuilder.Gte(a => a.CreatedAt, dateStart),
+                        filterBuilder.Lt(a => a.CreatedAt, dateEnd)
+                    )
+                )
+            );
+        }
+
+        var sort = Builders<BehavioralActivity>.Sort
+            .Ascending(a => a.IsCompleted)
+            .Descending(a => a.CreatedAt);
+
+        var activities = await _context.BehavioralActivities
+            .Find(filter)
+            .Sort(sort)
+            .Limit(100)
+            .ToListAsync();
+
+        return _mapper.Map<List<BehavioralActivityDto>>(activities);
+    }
+
+    /// <summary>
+    /// Create behavioral activity
+    /// </summary>
+    public async Task<BehavioralActivityDto> CreateBehavioralActivityAsync(CreateBehavioralActivityRequest request, string userId)
+    {
+        _logger.LogInformation("Creating behavioral activity for user {UserId}", userId);
+
+        var activity = _mapper.Map<BehavioralActivity>(request);
+        activity.UserId = userId;
+        activity.IsCompleted = false;
+        activity.CreatedAt = DateTime.UtcNow;
+        activity.UpdatedAt = DateTime.UtcNow;
+        if (!string.IsNullOrWhiteSpace(request.CheckInId) || !string.IsNullOrWhiteSpace(request.TemplateId))
+        {
+            activity.SchemaVersion = 2;
+            activity.Lifecycle ??= "planned";
+        }
+
+        await _context.BehavioralActivities.InsertOneAsync(activity);
+
+        return _mapper.Map<BehavioralActivityDto>(activity);
+    }
+
+    /// <summary>
+    /// Update behavioral activity
+    /// </summary>
+    public async Task<BehavioralActivityDto?> UpdateBehavioralActivityAsync(string id, UpdateBehavioralActivityRequest request, string userId)
+    {
+        _logger.LogInformation("Updating behavioral activity {ActivityId} for user {UserId}", id, userId);
+
+        var filter = Builders<BehavioralActivity>.Filter.Eq(a => a.Id, id) & Builders<BehavioralActivity>.Filter.Eq(a => a.UserId, userId);
+        var existingActivity = await _context.BehavioralActivities.Find(filter).FirstOrDefaultAsync();
+
+        if (existingActivity == null)
+        {
+            return null;
+        }
+
+        var updateBuilder = Builders<BehavioralActivity>.Update
+            .Set(a => a.UpdatedAt, DateTime.UtcNow);
+
+        if (request.Title != null) updateBuilder = updateBuilder.Set(a => a.Title, request.Title);
+        if (request.Description != null) updateBuilder = updateBuilder.Set(a => a.Description, request.Description);
+        if (request.ScheduledDate.HasValue) updateBuilder = updateBuilder.Set(a => a.ScheduledDate, request.ScheduledDate.Value);
+        if (request.Notes != null) updateBuilder = updateBuilder.Set(a => a.Notes, request.Notes);
+        if (request.Lifecycle != null) updateBuilder = updateBuilder.Set(a => a.Lifecycle, request.Lifecycle);
+        if (request.FirstStep != null) updateBuilder = updateBuilder.Set(a => a.FirstStep, request.FirstStep);
+        if (request.LinkedTaskId != null) updateBuilder = updateBuilder.Set(a => a.LinkedTaskId, request.LinkedTaskId);
+
+        await _context.BehavioralActivities.UpdateOneAsync(filter, updateBuilder);
+
+        var updatedActivity = await _context.BehavioralActivities.Find(filter).FirstOrDefaultAsync();
+        return updatedActivity != null ? _mapper.Map<BehavioralActivityDto>(updatedActivity) : null;
+    }
+
+    /// <summary>
+    /// Complete behavioral activity with ratings
+    /// </summary>
+    public async Task<BehavioralActivityDto?> CompleteBehavioralActivityAsync(string id, CompleteBehavioralActivityRequest request, string userId)
+    {
+        _logger.LogInformation("Completing behavioral activity {ActivityId} for user {UserId}", id, userId);
+
+        var filter = Builders<BehavioralActivity>.Filter.Eq(a => a.Id, id) & Builders<BehavioralActivity>.Filter.Eq(a => a.UserId, userId);
+        var update = Builders<BehavioralActivity>.Update
+            .Set(a => a.IsCompleted, true)
+            .Set(a => a.CompletedDate, DateTime.UtcNow)
+            .Set(a => a.UpdatedAt, DateTime.UtcNow);
+
+        if (request.MoodBefore.HasValue) update = update.Set(a => a.MoodBefore, request.MoodBefore.Value);
+        if (request.MoodAfter.HasValue) update = update.Set(a => a.MoodAfter, request.MoodAfter.Value);
+        if (request.PleasureRating.HasValue) update = update.Set(a => a.PleasureRating, request.PleasureRating.Value);
+        if (request.MasteryRating.HasValue) update = update.Set(a => a.MasteryRating, request.MasteryRating.Value);
+        if (request.Notes != null) update = update.Set(a => a.Notes, request.Notes);
+        if (request.CompletionExtent != null) update = update.Set(a => a.CompletionExtent, request.CompletionExtent);
+        if (request.Usefulness != null) update = update.Set(a => a.Usefulness, request.Usefulness);
+        if (request.Enjoyment != null) update = update.Set(a => a.Enjoyment, request.Enjoyment);
+        if (request.Accomplishment != null) update = update.Set(a => a.Accomplishment, request.Accomplishment);
+        if (request.ChangeNextTime != null) update = update.Set(a => a.ChangeNextTime, request.ChangeNextTime);
+        if (request.Lifecycle != null) update = update.Set(a => a.Lifecycle, request.Lifecycle);
+
+        await _context.BehavioralActivities.UpdateOneAsync(filter, update);
+
+        var completedActivity = await _context.BehavioralActivities.Find(filter).FirstOrDefaultAsync();
+        return completedActivity != null ? _mapper.Map<BehavioralActivityDto>(completedActivity) : null;
+    }
+
+    /// <summary>
+    /// Get behavioral activity by ID
+    /// </summary>
+    public async Task<BehavioralActivityDto?> GetBehavioralActivityByIdAsync(string id, string userId)
+    {
+        _logger.LogInformation("Getting behavioral activity {ActivityId} for user {UserId}", id, userId);
+        
+        var filter = Builders<BehavioralActivity>.Filter.And(
+            Builders<BehavioralActivity>.Filter.Eq(a => a.Id, id),
+            Builders<BehavioralActivity>.Filter.Eq(a => a.UserId, userId)
+        );
+        
+        var activity = await _context.BehavioralActivities.Find(filter).FirstOrDefaultAsync();
+        return activity != null ? _mapper.Map<BehavioralActivityDto>(activity) : null;
+    }
+
+    /// <summary>
+    /// Delete behavioral activity
+    /// </summary>
+    public async Task<bool> DeleteBehavioralActivityAsync(string id, string userId)
+    {
+        _logger.LogInformation("Deleting behavioral activity {ActivityId} for user {UserId}", id, userId);
+        
+        var filter = Builders<BehavioralActivity>.Filter.And(
+            Builders<BehavioralActivity>.Filter.Eq(a => a.Id, id),
+            Builders<BehavioralActivity>.Filter.Eq(a => a.UserId, userId)
+        );
+        
+        var result = await _context.BehavioralActivities.DeleteOneAsync(filter);
+        return result.DeletedCount > 0;
+    }
+
+    /// <summary>
+    /// Get mood entry by ID
+    /// </summary>
+    public async Task<MoodEntryDto?> GetMoodEntryByIdAsync(string id, string userId)
+    {
+        _logger.LogInformation("Getting mood entry {MoodId} for user {UserId}", id, userId);
+        
+        var filter = Builders<MoodEntry>.Filter.And(
+            Builders<MoodEntry>.Filter.Eq(m => m.Id, id),
+            Builders<MoodEntry>.Filter.Eq(m => m.UserId, userId)
+        );
+        
+        var mood = await _context.MoodEntries.Find(filter).FirstOrDefaultAsync();
+        return mood != null ? _mapper.Map<MoodEntryDto>(mood) : null;
+    }
+
+    /// <summary>
+    /// Update mood entry
+    /// </summary>
+    public async Task<MoodEntryDto?> UpdateMoodEntryAsync(string id, UpdateMoodEntryRequest request, string userId)
+    {
+        _logger.LogInformation("Updating mood entry {MoodId} for user {UserId}", id, userId);
+        
+        var filter = Builders<MoodEntry>.Filter.And(
+            Builders<MoodEntry>.Filter.Eq(m => m.Id, id),
+            Builders<MoodEntry>.Filter.Eq(m => m.UserId, userId)
+        );
+        
+        var existing = await _context.MoodEntries.Find(filter).FirstOrDefaultAsync();
+        if (existing == null)
+        {
+            return null;
+        }
+        
+        var updateBuilder = Builders<MoodEntry>.Update
+            .Set(m => m.UpdatedAt, DateTime.UtcNow);
+        
+        if (request.Date.HasValue) updateBuilder = updateBuilder.Set(m => m.Date, request.Date.Value);
+        if (request.Mood != null) updateBuilder = updateBuilder.Set(m => m.Mood, request.Mood);
+        if (request.Intensity.HasValue) updateBuilder = updateBuilder.Set(m => m.Intensity, request.Intensity.Value);
+        if (request.Notes != null) updateBuilder = updateBuilder.Set(m => m.Notes, request.Notes);
+        if (request.Triggers != null) updateBuilder = updateBuilder.Set(m => m.Triggers, request.Triggers);
+        if (request.Activities != null) updateBuilder = updateBuilder.Set(m => m.Activities, request.Activities);
+        
+        await _context.MoodEntries.UpdateOneAsync(filter, updateBuilder);
+        
+        var updated = await _context.MoodEntries.Find(filter).FirstOrDefaultAsync();
+        return updated != null ? _mapper.Map<MoodEntryDto>(updated) : null;
+    }
+
+    /// <summary>
+    /// Delete mood entry
+    /// </summary>
+    public async Task<bool> DeleteMoodEntryAsync(string id, string userId)
+    {
+        _logger.LogInformation("Deleting mood entry {MoodId} for user {UserId}", id, userId);
+        
+        var filter = Builders<MoodEntry>.Filter.And(
+            Builders<MoodEntry>.Filter.Eq(m => m.Id, id),
+            Builders<MoodEntry>.Filter.Eq(m => m.UserId, userId)
+        );
+        
+        var result = await _context.MoodEntries.DeleteOneAsync(filter);
+        return result.DeletedCount > 0;
+    }
+}

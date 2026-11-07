@@ -1,0 +1,188 @@
+export const FEELING_CODES = [
+  'anxious',
+  'sad_low',
+  'frustrated_angry',
+  'overwhelmed',
+  'lonely',
+  'ashamed_guilty',
+  'calm',
+  'happy_content',
+  'hopeful',
+  'other',
+  'not_sure',
+] as const;
+
+export const EXTRA_STATE_CODES = ['numb_disconnected', 'tired', 'confused'] as const;
+
+export const QUICK_FEELING_CODES = [
+  'anxious',
+  'sad_low',
+  'overwhelmed',
+  'numb_disconnected',
+  'happy_content',
+] as const;
+
+export const ENERGY_CODES = ['very_little', 'some', 'plenty', 'not_sure'] as const;
+
+export const SUPPORT_TYPES = [
+  'save',
+  'understand_thought',
+  'work_problem',
+  'small_step',
+  'settle',
+] as const;
+
+export type FeelingCode = (typeof FEELING_CODES)[number] | (typeof EXTRA_STATE_CODES)[number];
+export type EnergyCode = (typeof ENERGY_CODES)[number];
+export type SupportType = (typeof SUPPORT_TYPES)[number];
+
+export const CHECK_IN_COPY = {
+  tabTitle: 'Check-in',
+  landingTitle: 'How are you doing right now?',
+  landingSubtitle: 'A few words are enough.',
+  landingSupport:
+    'These are CBT-informed self-help tools. They are not a psychologist, a diagnosis, or a clinically validated treatment.',
+  write: 'Write what’s on my mind',
+  smallStep: 'Help me choose a small step',
+  continueDraft: 'Continue your check-in',
+  history: 'History',
+  mySteps: 'My steps',
+  capturePrompt: 'What’s on your mind?',
+  captureExamples: [
+    'Something happened…',
+    'I keep thinking…',
+    'I’m finding it difficult to…',
+    'Something went well…',
+  ],
+  saveAndClose: 'Save and close',
+  continue: 'Continue',
+  skip: 'Skip',
+  saved: 'Saved',
+  saving: 'Saving…',
+  saveError: 'Couldn’t save. You can try again.',
+  feelingQuestion: 'How are you feeling?',
+  extraStates: 'Other states',
+  intensityQuestion: 'How strong is it?',
+  intensityLow: '0 = Not present',
+  intensityHigh: '10 = Extremely strong',
+  energyQuestion: 'How much energy do you have for something right now?',
+  supportQuestion: 'What would be useful right now?',
+  supports: {
+    save: {
+      title: 'Just save this',
+      body: 'Keep what you wrote and finish here.',
+    },
+    understand_thought: {
+      title: 'Understand a thought',
+      body: 'Look at what happened and what went through your mind.',
+    },
+    work_problem: {
+      title: 'Work through a problem',
+      body: 'Find a smaller part you can influence.',
+    },
+    small_step: {
+      title: 'Choose a small step',
+      body: 'Pick one manageable next action.',
+    },
+    settle: {
+      title: 'Settle for a moment',
+      body: 'Try a brief grounding or calming option.',
+    },
+  },
+  energy: {
+    very_little: 'Very little',
+    some: 'Some',
+    plenty: 'Plenty',
+    not_sure: 'Not sure',
+  },
+  feelings: {
+    anxious: 'Anxious',
+    sad_low: 'Sad / low',
+    frustrated_angry: 'Frustrated / angry',
+    overwhelmed: 'Overwhelmed',
+    lonely: 'Lonely',
+    ashamed_guilty: 'Ashamed / guilty',
+    calm: 'Calm',
+    happy_content: 'Happy / content',
+    hopeful: 'Hopeful',
+    other: 'Other',
+    not_sure: 'Not sure',
+    numb_disconnected: 'Numb / disconnected',
+    tired: 'Tired',
+    confused: 'Confused',
+  },
+  thought: {
+    situation: 'What happened?',
+    thought: 'What went through your mind?',
+    feeling: 'How did you feel?',
+    evidenceFor: 'What makes this thought feel true?',
+    evidenceAgainst: 'What facts or experiences might it leave out?',
+    balanced: 'What would be a fairer, more complete way to describe this?',
+    feelingNow: 'How do you feel now?',
+    belief: 'How strongly do you believe this thought right now?',
+    explore: 'Explore this thought',
+    chooseStep: 'Choose a step',
+    saveHere: 'Save here',
+    suggestion: 'Suggestion — you can change or ignore this.',
+  },
+  problem: {
+    specific: 'What is the specific problem?',
+    influence: 'Which part is within your influence?',
+    options: 'What are a few possible options?',
+    workable: 'Which feels workable?',
+    smallest: 'What is the smallest first step?',
+    needsSupport: 'This needs support from someone else.',
+    cannotAct: 'I can’t act on this right now.',
+  },
+  activity: {
+    tryNow: 'Try now',
+    makeSmaller: 'Make it smaller',
+    another: 'Another option',
+    chooseOwn: 'Choose my own',
+    saveLater: 'Save for later',
+    addTask: 'Add to my tasks',
+    whatHappened: 'What happened?',
+    didIt: 'Did it',
+    didPart: 'Did part of it',
+    didntTry: 'Didn’t try it',
+    usefulness: 'How useful was it?',
+    helpful: 'Helpful',
+    aLittle: 'A little helpful',
+    notHelpful: 'Not helpful',
+    harder: 'Made things harder',
+    notSure: 'Not sure',
+    enjoyment: 'Any enjoyment?',
+    accomplishment: 'Any sense of accomplishment?',
+    changeNext: 'Anything you would change next time?',
+    ready: 'Ready to try',
+    planned: 'Planned',
+    previously: 'Previously tried',
+    youCanChange: 'You can change this step.',
+  },
+  crisis: {
+    title: 'Need urgent help?',
+    body: 'If you are in immediate danger, contact local emergency services. Detection in this app is not reliable or comprehensive.',
+    emergency: 'EU emergency number: 112',
+    resources: 'IASP local resources',
+    resourcesUrl: 'https://www.iasp.info/suicidalthoughts/',
+  },
+  unlockOffer: 'Want help finding a smaller first step?',
+  emptyHistory: 'Previous check-ins will appear here.',
+  draft: 'Draft',
+  finished: 'Saved',
+  legacy: 'Earlier entry',
+} as const;
+
+export const CRISIS_MARKERS = [
+  'suicide',
+  'kill myself',
+  'killing myself',
+  'end my life',
+  'want to die',
+  'take my life',
+  'self-harm',
+  'self harm',
+  'hurt myself',
+  "don't want to be alive",
+  'dont want to be alive',
+] as const;

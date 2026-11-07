@@ -102,7 +102,7 @@ kubectl get services -n pos
 kubectl logs -f deployment/pos-api -n pos
 
 # Test health endpoint
-kubectl port-forward service/pos-api-service 8080:35555 -n pos
+kubectl port-forward service/pos-api-service 8080:31247 -n pos
 curl http://localhost:8080/health
 ```
 
@@ -113,9 +113,9 @@ curl http://localhost:8080/health
 The `api-service.yaml` uses `LoadBalancer` type, which will:
 - Get an external IP from your cloud provider
 - Make the API accessible from outside the cluster
-- Use port 35555 (maps to container port 5000)
+- Use NodePort 31247 (maps to container port 5000)
 
-**Production Server**: `http://185.193.66.50:35555/api`
+**Production Server**: `http://185.193.66.50:31247/api`
 
 **Get External IP**:
 ```bash
@@ -123,8 +123,8 @@ kubectl get service pos-api-service -n pos
 ```
 
 **Access API**:
-- Production: `http://185.193.66.50:35555/api`
-- Or use external IP from service: `http://<EXTERNAL_IP>:35555/api`
+- Production: `http://185.193.66.50:31247/api`
+- Or use external IP from service: `http://<EXTERNAL_IP>:31247/api`
 
 ### Alternative: Ingress
 
@@ -186,7 +186,7 @@ kubectl get secret pos-api-secrets -n pos -o jsonpath='{.data.ConnectionStrings_
 kubectl get endpoints pos-api-service -n pos
 
 # Port forward for testing
-kubectl port-forward service/pos-api-service 8080:35555 -n pos
+kubectl port-forward service/pos-api-service 8080:31247 -n pos
 ```
 
 ## Cleanup

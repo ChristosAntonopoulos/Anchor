@@ -41,7 +41,7 @@ export function HabitToggle({ label, completed, onToggle }: HabitToggleProps) {
       >
       {completed ? (
         <LinearGradient
-          colors={[colors.category.leverage, colors.category.leverage + 'CC']}
+          colors={[colors.primary, colors.primary]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.buttonCompleted}
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
   },
   textCompleted: {
     fontSize: typography.fontSize.body,
-    color: colors.background,
+    color: colors.onPrimary,
     fontWeight: typography.fontWeight.semibold,
   },
 });

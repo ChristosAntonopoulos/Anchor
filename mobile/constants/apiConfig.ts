@@ -1,30 +1,60 @@
-// API configuration — all URLs are driven by environment variables.
-//
-// Set EXPO_PUBLIC_DEV_API_URL in a local `.env` file (not committed) for
-// physical device or emulator testing.  The production URL is set via
-// EXPO_PUBLIC_API_URL in your CI / EAS build environment.
-//
-// Quick-start:
-//   echo 'EXPO_PUBLIC_DEV_API_URL=http://192.168.x.x:5000/api' > mobile/.env
-//
-// Fallbacks below are safe defaults only; they should NOT be relied on in
-// shared or CI environments.
+// API configuration for backend connection
+// Environment-aware base URL configuration
 
-const isDev = typeof __DEV__ !== 'undefined' ? __DEV__ : true;
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
-const DEV_API_BASE_URL =
-  process.env.EXPO_PUBLIC_DEV_API_URL ?? 'http://localhost:5000/api';
+/**
+ * Local POS.Api (dotnet run on POS.Api)
+ * - iOS Simulator / web: localhost
+ * - Android emulator: 10.0.2.2 (host machine)
+ * - Physical device: set EXPO_PUBLIC_API_URL=http://<your-pc-ip>:5000/api
+ */
+function getDevApiBaseUrl(): string {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+  if (Platform.OS === 'android') {
+    return 'http://10.0.2.2:5000/api';
+  }
+  return 'http://localhost:5000/api';
+}
 
-const PROD_API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL ?? 'http://185.193.66.50:35555/api';
+/**
+ * Remote production NodePort (deployed cluster)
+ */
+const PROD_API_BASE_URL = 'http://185.193.66.50:31247/api';
+
+const getApiBaseUrl = (): string => {
+  // Dev builds (Expo Go, expo start, debug run) → local POS.Api
+  if (typeof __DEV__ !== 'undefined' && __DEV__) {
+    return getDevApiBaseUrl();
+  }
+
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  return PROD_API_BASE_URL;
+};
+
+const apiBaseUrl = getApiBaseUrl();
 
 export const API_CONFIG = {
-  baseURL: isDev ? DEV_API_BASE_URL : PROD_API_BASE_URL,
-  timeout: 10000,
+  baseURL: apiBaseUrl,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
 };
+
+if (__DEV__) {
+  console.log('🔗 API Base URL:', API_CONFIG.baseURL);
+  console.log('🔗 EXPO_PUBLIC_API_URL:', process.env.EXPO_PUBLIC_API_URL || '(not set)');
+  console.log('🔗 Execution:', Constants.executionEnvironment);
+} else {
+  console.log('[API] Base URL:', API_CONFIG.baseURL);
+}
 
 export function getApiUrl(endpoint: string): string {
   const base = API_CONFIG.baseURL.endsWith('/')
@@ -32,4 +62,8 @@ export function getApiUrl(endpoint: string): string {
     : API_CONFIG.baseURL;
   const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   return `${base}${path}`;
+}
+
+export function getApiBaseUrlForDebug(): string {
+  return API_CONFIG.baseURL;
 }

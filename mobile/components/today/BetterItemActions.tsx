@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 
 interface BetterItemActionsProps {
@@ -45,7 +45,7 @@ export function BetterItemActions({
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable style={styles.modalContainer} onPress={(e) => e.stopPropagation()}>
           <LinearGradient
-            colors={['#1E2530', '#252B38']}
+            colors={[colors.surface, colors.surface]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.modalContent}
@@ -59,12 +59,12 @@ export function BetterItemActions({
                 activeOpacity={0.7}
               >
                 <LinearGradient
-                  colors={[colors.category.leverage, colors.category.leverage + 'CC']}
+                  colors={[colors.primary, colors.primary]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.actionButtonGradient}
                 >
-                  <Ionicons name="checkmark-circle" size={24} color={colors.background} />
+                  <AppIcon name="checkmark-circle" size={24} color={colors.onPrimary} />
                   <Text style={styles.actionButtonText}>Accept</Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -75,12 +75,12 @@ export function BetterItemActions({
                 activeOpacity={0.7}
               >
                 <LinearGradient
-                  colors={[colors.category.work, colors.category.work + 'CC']}
+                  colors={[colors.primary, colors.primary]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.actionButtonGradient}
                 >
-                  <Ionicons name="create-outline" size={24} color={colors.background} />
+                  <AppIcon name="create-outline" size={24} color={colors.onPrimary} />
                   <Text style={styles.actionButtonText}>Edit</Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -91,7 +91,7 @@ export function BetterItemActions({
                 activeOpacity={0.7}
               >
                 <View style={styles.rejectButton}>
-                  <Ionicons name="close-circle-outline" size={24} color={colors.error} />
+                  <AppIcon name="close-circle-outline" size={24} color={colors.error} />
                   <Text style={styles.rejectButtonText}>Reject</Text>
                 </View>
               </TouchableOpacity>
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.background,
+    color: colors.onPrimary,
   },
   rejectButton: {
     flexDirection: 'row',

@@ -8,6 +8,7 @@ namespace POS.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Tags("Utilities")]
 public class SeedController : ControllerBase
 {
     private readonly DataSeeder _dataSeeder;
@@ -82,7 +83,7 @@ public class SeedController : ControllerBase
 
     /// <summary>
     /// Reset and reseed database (Development only)
-    /// WARNING: This will delete all data for the default user
+    /// WARNING: This will delete ALL data from ALL collections
     /// </summary>
     [HttpDelete]
     public async Task<IActionResult> ResetAndSeed()
@@ -93,10 +94,11 @@ public class SeedController : ControllerBase
             return NotFound("This endpoint is only available in Development environment");
         }
 
-        // Note: For now, we just reseed (seeders are idempotent)
-        // In the future, we could add a reset method that deletes all data
         try
         {
+            // Delete all collections first to remove old structure data
+            await _dataSeeder.DeleteAllCollectionsAsync();
+            // Then seed with new structure
             await _dataSeeder.SeedAsync();
 
             return Ok(new
