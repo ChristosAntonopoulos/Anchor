@@ -8,6 +8,7 @@ using POS.Application.Services.BetterToday;
 using POS.Application.Services.Deadlines;
 using POS.Application.Services.Diet;
 using POS.Application.Services.Discipline;
+using POS.Application.Services.Meals;
 using POS.Application.Services.Money;
 using POS.Application.Services.Schedule;
 using POS.Application.Services.Tasks;
@@ -61,6 +62,14 @@ builder.Services.AddScoped<DietService>();
 builder.Services.AddScoped<MoneyService>();
 builder.Services.AddScoped<DeadlineService>();
 builder.Services.AddScoped<WeeklyReviewService>();
+
+// Register Meals services
+builder.Services.AddScoped<MealProfileService>();
+builder.Services.AddScoped<InventoryService>();
+builder.Services.AddScoped<MealPlanService>();
+builder.Services.AddScoped<RecipeService>();
+builder.Services.AddScoped<ShoppingService>();
+builder.Services.AddScoped<CookEventService>();
 
 // Register database seeder
 builder.Services.AddScoped<DataSeeder>();

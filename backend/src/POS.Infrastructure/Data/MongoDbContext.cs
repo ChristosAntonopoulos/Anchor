@@ -8,6 +8,7 @@ using POS.Core.Entities.Diet;
 using POS.Core.Entities.Money;
 using POS.Core.Entities.Deadlines;
 using POS.Core.Entities.WeeklyReview;
+using POS.Core.Entities.Meals;
 
 namespace POS.Infrastructure.Data;
 
@@ -75,4 +76,24 @@ public class MongoDbContext
     // Weekly Review collection
     public IMongoCollection<WeeklyReview> WeeklyReviews => 
         _database.GetCollection<WeeklyReview>("weeklyReviews");
+
+    // Meals collections
+    public IMongoCollection<FoodProfile> FoodProfiles =>
+        _database.GetCollection<FoodProfile>("mealFoodProfiles");
+    public IMongoCollection<Ingredient> Ingredients =>
+        _database.GetCollection<Ingredient>("mealIngredients");
+    public IMongoCollection<InventoryBatch> InventoryBatches =>
+        _database.GetCollection<InventoryBatch>("mealInventoryBatches");
+    public IMongoCollection<InventoryMovement> InventoryMovements =>
+        _database.GetCollection<InventoryMovement>("mealInventoryMovements");
+    public IMongoCollection<RecipeVersion> RecipeVersions =>
+        _database.GetCollection<RecipeVersion>("mealRecipeVersions");
+    public IMongoCollection<MealPlan> MealPlans =>
+        _database.GetCollection<MealPlan>("mealPlans");
+    public IMongoCollection<ShoppingTrip> ShoppingTrips =>
+        _database.GetCollection<ShoppingTrip>("mealShoppingTrips");
+    public IMongoCollection<CookEvent> CookEvents =>
+        _database.GetCollection<CookEvent>("mealCookEvents");
+    public IMongoCollection<PreferenceMemory> PreferenceMemories =>
+        _database.GetCollection<PreferenceMemory>("mealPreferenceMemories");
 }

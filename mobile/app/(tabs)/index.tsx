@@ -9,6 +9,7 @@ import { BetterTodayList } from '../../components/today/BetterTodayList';
 import { CurrentBlockIndicator } from '../../components/today/CurrentBlockIndicator';
 import { DisciplineQuickToggle } from '../../components/today/DisciplineQuickToggle';
 import { DeadlineWarningBanner } from '../../components/today/DeadlineWarningBanner';
+import { TodayMealCard } from '../../components/meals/TodayMealCard';
 
 export default function HomeScreen() {
   const { data, loading, error, fetchToday, completeBetterItem, acceptBetterItem, editBetterItem, rejectBetterItem, updateDiscipline } = useTodayStore();
@@ -91,7 +92,9 @@ export default function HomeScreen() {
           }
         >
           <TodayHeader date={data.day.date} />
-          
+
+          <TodayMealCard />
+
           <BetterTodayList
             items={data.betterItems}
             onToggleItem={completeBetterItem}

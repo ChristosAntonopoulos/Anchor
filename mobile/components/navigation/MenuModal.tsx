@@ -17,6 +17,7 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
+  { title: 'Γεύματα / Meals', icon: 'restaurant-outline', route: '/more/meals', color: colors.category.health },
   { title: 'Money', icon: 'cash-outline', route: '/more/money', color: colors.category.leverage },
   { title: 'Deadlines', icon: 'calendar-outline', route: '/more/deadlines', color: colors.category.work },
   { title: 'Weekly Review', icon: 'document-text-outline', route: '/more/weekly-review', color: colors.category.stability },
