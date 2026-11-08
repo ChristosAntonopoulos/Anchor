@@ -1,9 +1,11 @@
 # Azure DevOps Build and Deploy Pipeline for POS
 # Builds Docker images, pushes to Docker Hub, and deploys to Kubernetes
 
+# main and master are kept in sync. Trigger only main so one push is not two builds.
 trigger:
-    - master
-    - main
+  branches:
+    include:
+      - main
 
 variables:
   # Variable group for secrets (optional - will use pipeline variables if group doesn't exist)
