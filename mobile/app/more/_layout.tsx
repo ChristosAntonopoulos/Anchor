@@ -97,7 +97,7 @@ export default function MoreLayout() {
       <Stack.Screen
         name="notifications"
         options={{
-          title: 'Notifications',
+          title: 'Inbox',
         }}
       />
       <Stack.Screen

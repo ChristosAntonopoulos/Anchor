@@ -60,7 +60,7 @@ export default function TabLayout() {
             title: 'Today',
             headerShown: false,
             tabBarLabel: 'Today',
-            tabBarIcon: ({ size, color }) => <AppIcon name="dashboard" size={size} color={color} />,
+            tabBarIcon: ({ size, color }) => <AppIcon name="home" size={size} color={color} />,
           }}
         />
         <Tabs.Screen
@@ -90,11 +90,9 @@ export default function TabLayout() {
         <Tabs.Screen
           name="menu"
           options={{
-            title: 'More',
-            tabBarLabel: 'More',
-            tabBarIcon: ({ size, color }) => (
-              <AppIcon name="ellipsis-horizontal" size={size} color={color} />
-            ),
+            title: 'Systems',
+            tabBarLabel: 'Systems',
+            tabBarIcon: ({ size, color }) => <AppIcon name="dashboard" size={size} color={color} />,
           }}
         />
         <Tabs.Screen

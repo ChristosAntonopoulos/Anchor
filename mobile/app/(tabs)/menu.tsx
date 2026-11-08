@@ -1,22 +1,137 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppIcon } from '../../components/icons/AppIcon';
-import { colors, spacing, typography, gradients, borderRadius } from '../../constants/designTokens';
+import { SystemTile } from '../../components/navigation/SystemTile';
+import { colors, spacing, typography, gradients } from '../../constants/designTokens';
+import { useMealsStore } from '../../store/useMealsStore';
+import { useTodayStore } from '../../store/useTodayStore';
+import { useMoneyStore } from '../../store/useMoneyStore';
+import { useDeadlinesStore } from '../../store/useDeadlinesStore';
+import { useNotificationStore } from '../../store/useNotificationStore';
+import { useWeeklyReviewStore } from '../../store/useWeeklyReviewStore';
+import { useCookingStore } from '../../store/useCookingStore';
+import { apiClient } from '../../services/api';
 
-const menuItems = [
-  { title: 'Meals', icon: 'nutrition', route: '/more/meals' },
-  { title: 'Discipline', icon: 'habits', route: '/(tabs)/discipline' },
-  { title: 'Unlocks', icon: 'focus', route: '/(tabs)/unlocks' },
-  { title: 'Notifications', icon: 'notification', route: '/more/notifications' },
-  { title: 'Money', icon: 'goals', route: '/more/money' },
-  { title: 'Deadlines', icon: 'calendar', route: '/more/deadlines' },
-  { title: 'Weekly Review', icon: 'journal', route: '/more/weekly-review' },
-  { title: 'Settings', icon: 'settings', route: '/more/settings' },
-] as const;
+function daysUntil(dueDate: string): number {
+  const due = new Date(`${dueDate}T12:00:00`);
+  if (Number.isNaN(due.getTime())) {
+    return Number.POSITIVE_INFINITY;
+  }
+  return Math.ceil((due.getTime() - Date.now()) / 86_400_000);
+}
 
-export default function MoreScreen() {
+export default function SystemsScreen() {
   const router = useRouter();
+  const todayCard = useMealsStore((s) => s.todayCard);
+  const fetchTodayCard = useMealsStore((s) => s.fetchTodayCard);
+  const discipline = useTodayStore((s) => s.data?.discipline);
+  const fetchToday = useTodayStore((s) => s.fetchToday);
+  const money = useMoneyStore((s) => s.data);
+  const fetchMoneySummary = useMoneyStore((s) => s.fetchMoneySummary);
+  const deadlines = useDeadlinesStore((s) => s.deadlines);
+  const fetchDeadlines = useDeadlinesStore((s) => s.fetchDeadlines);
+  const notifications = useNotificationStore((s) => s.backendNotifications);
+  const listenerOn = useNotificationStore((s) => s.isEnabled);
+  const fetchNotifications = useNotificationStore((s) => s.fetchNotifications);
+  const checkStatus = useNotificationStore((s) => s.checkStatus);
+  const weekly = useWeeklyReviewStore((s) => s.data);
+  const fetchWeeklyReview = useWeeklyReviewStore((s) => s.fetchWeeklyReview);
+  const timers = useCookingStore((s) => s.timers);
+  const [unlocksToday, setUnlocksToday] = useState<number | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const refresh = useCallback(async () => {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    await Promise.all([
+      fetchTodayCard(),
+      fetchToday(),
+      fetchMoneySummary(),
+      fetchDeadlines(),
+      fetchNotifications({ limit: 20 }),
+      checkStatus(),
+      fetchWeeklyReview(),
+      apiClient
+        .getPhoneUnlockEntries(start.toISOString())
+        .then((entries) => setUnlocksToday(entries.length))
+        .catch(() => setUnlocksToday(null)),
+    ]);
+  }, [
+    checkStatus,
+    fetchDeadlines,
+    fetchMoneySummary,
+    fetchNotifications,
+    fetchToday,
+    fetchTodayCard,
+    fetchWeeklyReview,
+  ]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+    }, [refresh])
+  );
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refresh();
+    setRefreshing(false);
+  };
+
+  const runningTimers = timers.filter((t) => t.status === 'running').length;
+  const nextMeal = todayCard?.nextMeal;
+  const mealsStatus = runningTimers
+    ? `${runningTimers} timer${runningTimers === 1 ? '' : 's'} going`
+    : nextMeal?.recipeName
+      ? `${nextMeal.slot} · ${nextMeal.recipeName}`
+      : todayCard?.actionableReminder ?? 'Week plan, pantry, shopping';
+
+  let disciplineDone = 0;
+  let disciplineTotal = 0;
+  discipline?.blocks.forEach((block) => {
+    block.items.forEach((item) => {
+      if (item.type === 'toggle') {
+        disciplineTotal += 1;
+        if (item.toggleValue) disciplineDone += 1;
+      }
+    });
+  });
+  const disciplineStatus =
+    disciplineTotal > 0 ? `${disciplineDone}/${disciplineTotal} checked today` : 'Daily checklist';
+
+  const unread = notifications.filter((n) => !n.isRead && !n.isDismissed).length;
+  const inboxStatus = !listenerOn
+    ? 'Turn on capture'
+    : unread > 0
+      ? `${unread} waiting`
+      : 'Inbox is clear';
+
+  const unlocksStatus =
+    unlocksToday == null
+      ? 'Why you picked up the phone'
+      : unlocksToday === 0
+        ? 'No unlocks logged today'
+        : `${unlocksToday} today`;
+
+  const moneyStatus = money
+    ? money.daysSinceLastIncome >= 14
+      ? `${money.daysSinceLastIncome} days since income`
+      : `$${money.monthlyTotal} this month`
+    : 'Log income';
+
+  const urgent = deadlines.filter(
+    (d) => d.status === 'behind' || (d.daysLeft ?? daysUntil(d.dueDate)) <= 7
+  );
+  const deadlinesStatus =
+    deadlines.length === 0
+      ? 'Nothing tracked'
+      : urgent.length > 0
+        ? `${urgent.length} need a look`
+        : `${deadlines.length} on track`;
+
+  const weeklyStatus = weekly?.completed ? 'This week is reviewed' : 'Look back on the week';
 
   return (
     <LinearGradient
@@ -25,21 +140,86 @@ export default function MoreScreen() {
       end={gradients.background.end}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
-        {menuItems.map((item) => (
-          <TouchableOpacity
-            key={item.route}
-            style={styles.item}
-            onPress={() => router.push(item.route as any)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.icon}>
-              <AppIcon name={item.icon} size={20} color={colors.textSecondary} />
-            </View>
-            <Text style={styles.title}>{item.title}</Text>
-            <AppIcon name="chevron-forward" size={18} color={colors.textMuted} />
-          </TouchableOpacity>
-        ))}
+      <ScrollView
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        }
+      >
+        <Text style={styles.lede}>The loops around Today — body, attention, money.</Text>
+
+        <Text style={styles.section}>Body</Text>
+        <View style={styles.row}>
+          <SystemTile
+            icon="nutrition"
+            title="Meals"
+            status={mealsStatus}
+            attention={runningTimers > 0}
+            onPress={() => router.push('/more/meals' as any)}
+          />
+          <SystemTile
+            icon="habits"
+            title="Discipline"
+            status={disciplineStatus}
+            onPress={() => router.push('/(tabs)/discipline')}
+          />
+        </View>
+
+        <Text style={styles.section}>Attention</Text>
+        <View style={styles.row}>
+          <SystemTile
+            icon="focus"
+            title="Unlocks"
+            status={unlocksStatus}
+            onPress={() => router.push('/(tabs)/unlocks')}
+          />
+          <SystemTile
+            icon="notification"
+            title="Inbox"
+            status={inboxStatus}
+            attention={unread > 0}
+            onPress={() => router.push('/more/notifications' as any)}
+          />
+        </View>
+
+        <Text style={styles.section}>Stewardship</Text>
+        <View style={styles.row}>
+          <SystemTile
+            icon="goals"
+            title="Money"
+            status={moneyStatus}
+            attention={Boolean(money && money.daysSinceLastIncome >= 14)}
+            onPress={() => router.push('/more/money' as any)}
+          />
+          <SystemTile
+            icon="calendar"
+            title="Deadlines"
+            status={deadlinesStatus}
+            attention={urgent.length > 0}
+            onPress={() => router.push('/more/deadlines' as any)}
+          />
+        </View>
+
+        <Text style={styles.section}>Reflect</Text>
+        <SystemTile
+          icon="journal"
+          title="Weekly review"
+          status={weeklyStatus}
+          wide
+          onPress={() => router.push('/more/weekly-review' as any)}
+        />
+
+        <TouchableOpacity
+          style={styles.settings}
+          onPress={() => router.push('/more/settings' as any)}
+          accessibilityRole="button"
+          accessibilityLabel="Settings"
+        >
+          <AppIcon name="settings" size={18} color={colors.textSecondary} />
+          <Text style={styles.settingsText}>Settings</Text>
+          <AppIcon name="chevron-forward" size={16} color={colors.textMuted} />
+        </TouchableOpacity>
       </ScrollView>
     </LinearGradient>
   );
@@ -50,33 +230,40 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   list: {
-    padding: spacing.l,
+    paddingHorizontal: spacing.l,
+    paddingTop: spacing.s,
     paddingBottom: spacing.xxl,
     gap: spacing.s,
   },
-  item: {
+  lede: {
+    fontSize: typography.fontSize.caption,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+    lineHeight: 18,
+  },
+  section: {
+    marginTop: spacing.s,
+    fontSize: 11,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textMuted,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  row: {
+    flexDirection: 'row',
+    gap: spacing.s,
+  },
+  settings: {
+    marginTop: spacing.s,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.medium,
-    borderWidth: 1,
-    borderColor: colors.border,
+    gap: spacing.s,
     paddingVertical: spacing.m,
-    paddingHorizontal: spacing.m,
+    paddingHorizontal: spacing.s,
   },
-  icon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surfaceRaised,
-    marginRight: spacing.m,
-  },
-  title: {
+  settingsText: {
     flex: 1,
     fontSize: typography.fontSize.body,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
+    color: colors.textSecondary,
   },
 });
