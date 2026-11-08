@@ -18,7 +18,7 @@ const CAPACITY: { id: CapacityChoice; label: string }[] = [
   { id: '5', label: '5 min' },
   { id: '15', label: '15 min' },
   { id: '30', label: '30+' },
-  { id: 'unsure', label: 'Not sure' },
+  { id: 'unsure', label: '?' },
 ];
 
 export function NowCard({
@@ -31,22 +31,22 @@ export function NowCard({
   onEasier,
   onPlanToday,
 }: NowCardProps) {
+  const inSession = Boolean(recommendation?.activeSession);
+  const title = recommendation?.taskTitle?.trim() || (loading ? 'Looking at the day…' : 'Choose one thing');
+  const action = recommendation?.nextAction?.trim();
+  const showAction = Boolean(action && action !== title);
   const canStart = Boolean(recommendation?.activeSession || recommendation?.taskId || recommendation?.nextAction);
+  const reason = inSession
+    ? 'A session is already open.'
+    : recommendation?.reason;
 
   return (
     <View style={styles.wrap}>
       <View style={styles.card}>
-        <View style={styles.marker} />
-        <Text style={styles.kicker}>Next action</Text>
-        {recommendation?.taskTitle ? (
-          <Text style={styles.title}>{recommendation.taskTitle}</Text>
-        ) : (
-          <Text style={styles.title}>{loading ? 'Looking at the day…' : 'Choose one thing to move forward.'}</Text>
-        )}
-        {recommendation?.nextAction ? (
-          <Text style={styles.action}>{recommendation.nextAction}</Text>
-        ) : null}
-        {recommendation?.reason ? <Text style={styles.reason}>{recommendation.reason}</Text> : null}
+        <Text style={styles.kicker}>Now</Text>
+        <Text style={styles.title}>{title}</Text>
+        {showAction ? <Text style={styles.action}>{action}</Text> : null}
+        {reason ? <Text style={styles.reason}>{reason}</Text> : null}
 
         <TouchableOpacity
           style={[styles.start, !canStart && styles.startDisabled]}
@@ -54,41 +54,47 @@ export function NowCard({
           disabled={!canStart}
           accessibilityRole="button"
           accessibilityLabel={
-            recommendation?.activeSession
+            inSession
               ? 'Continue session'
               : `Start for ${recommendation?.suggestedStartMinutes ?? 5} minutes`
           }
         >
           <Text style={styles.startText}>
-            {recommendation?.activeSession
+            {inSession
               ? 'Continue session'
-              : `Start for ${recommendation?.suggestedStartMinutes ?? 5} minutes`}
+              : `Start · ${recommendation?.suggestedStartMinutes ?? 5} min`}
           </Text>
         </TouchableOpacity>
 
         <View style={styles.row}>
           <TouchableOpacity style={styles.ghost} onPress={onMakeSmaller}>
-            <Text style={styles.ghostText}>Make smaller</Text>
+            <Text style={styles.ghostText}>Smaller</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.ghost} onPress={onChooseSomethingElse}>
-            <Text style={styles.ghostText}>Choose something else</Text>
+            <Text style={styles.ghostText}>Something else</Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.subtle}>How much room do you have?</Text>
-        <View style={styles.chips}>
-          {CAPACITY.map((item) => (
-            <TouchableOpacity key={item.id} style={styles.chip} onPress={() => onCapacity(item.id)}>
-              <Text style={styles.chipText}>{item.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <TouchableOpacity onPress={onEasier} accessibilityRole="button">
-          <Text style={styles.link}>Need an easier start?</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={onPlanToday} accessibilityRole="button">
-          <Text style={styles.link}>Help me plan today</Text>
-        </TouchableOpacity>
+        {inSession ? null : (
+          <>
+            <View style={styles.chips}>
+              {CAPACITY.map((item) => (
+                <TouchableOpacity key={item.id} style={styles.chip} onPress={() => onCapacity(item.id)}>
+                  <Text style={styles.chipText}>{item.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={styles.links}>
+              <TouchableOpacity onPress={onEasier} accessibilityRole="button">
+                <Text style={styles.link}>Easier start</Text>
+              </TouchableOpacity>
+              <Text style={styles.dot}>·</Text>
+              <TouchableOpacity onPress={onPlanToday} accessibilityRole="button">
+                <Text style={styles.link}>Plan today</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
       </View>
     </View>
   );
@@ -100,48 +106,40 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: borderRadius.large,
     padding: spacing.m,
-    paddingLeft: spacing.m + 6,
     borderWidth: 1,
     borderColor: colors.primary,
     ...shadows.small,
-    overflow: 'hidden',
-  },
-  marker: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 4,
-    backgroundColor: colors.primary,
   },
   kicker: {
-    color: colors.textSecondary,
-    fontSize: typography.fontSize.caption,
+    color: colors.textMuted,
+    fontSize: 11,
     fontWeight: typography.fontWeight.semibold,
-    marginBottom: spacing.s,
-    letterSpacing: 0.4,
+    marginBottom: spacing.xs,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
   title: {
     color: colors.textPrimary,
-    fontSize: typography.fontSize.title,
+    fontSize: 20,
     fontWeight: typography.fontWeight.bold,
+    lineHeight: 26,
   },
   action: {
     color: colors.textSecondary,
     fontSize: typography.fontSize.body,
-    marginTop: spacing.s,
+    marginTop: spacing.xs,
     lineHeight: typography.lineHeight.body,
   },
   reason: {
     color: colors.textMuted,
     fontSize: typography.fontSize.caption,
-    marginTop: spacing.s,
+    marginTop: spacing.xs,
   },
   start: {
     marginTop: spacing.m,
     borderRadius: borderRadius.medium,
     backgroundColor: colors.primary,
-    padding: spacing.m,
+    paddingVertical: 12,
     alignItems: 'center',
   },
   startDisabled: {
@@ -155,27 +153,33 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: spacing.s, marginTop: spacing.s },
   ghost: {
     flex: 1,
-    padding: spacing.s,
+    paddingVertical: 8,
     alignItems: 'center',
     borderRadius: borderRadius.medium,
     backgroundColor: colors.surfaceRaised,
     borderWidth: 1,
-    borderColor: colors.borderControl,
+    borderColor: colors.border,
   },
   ghostText: { color: colors.textPrimary, fontSize: typography.fontSize.caption },
-  subtle: { color: colors.textSecondary, fontSize: typography.fontSize.caption, marginTop: spacing.m },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.s, marginTop: spacing.s },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.s, marginTop: spacing.m },
   chip: {
-    paddingHorizontal: spacing.m,
-    paddingVertical: spacing.xs,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 16,
     backgroundColor: colors.surfaceRaised,
   },
   chipText: { color: colors.textPrimary, fontSize: typography.fontSize.caption },
+  links: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.s,
+    marginTop: spacing.s,
+  },
   link: {
     color: colors.textSecondary,
     fontSize: typography.fontSize.caption,
-    marginTop: spacing.s,
-    textDecorationLine: 'underline',
+  },
+  dot: {
+    color: colors.textMuted,
   },
 });

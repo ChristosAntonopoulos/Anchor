@@ -128,22 +128,15 @@ export function NaturalLanguageInput({ onSubmit, disabled }: NaturalLanguageInpu
       style={[styles.button, disabled && styles.buttonDisabled]}
       onPress={() => setShowInput(true)}
       disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel="Capture a thought or task"
     >
-      <LinearGradient
-        colors={disabled 
-          ? [colors.border, colors.border] 
-          : [colors.primary, colors.primary]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.buttonGradient}
-      >
-        <View style={styles.buttonContent}>
-          <AppIcon name="sparkles" size={20} color={colors.onPrimary} style={styles.buttonIcon} />
-          <Text style={[styles.buttonText, disabled && styles.buttonTextDisabled]}>
-            Write anything...
-          </Text>
-        </View>
-      </LinearGradient>
+      <View style={styles.buttonContent}>
+        <AppIcon name="add" size={18} color={colors.textSecondary} style={styles.buttonIcon} />
+        <Text style={[styles.buttonText, disabled && styles.buttonTextDisabled]}>
+          Capture a thought or task
+        </Text>
+      </View>
     </TouchableOpacity>
   );
 }
@@ -151,30 +144,27 @@ export function NaturalLanguageInput({ onSubmit, disabled }: NaturalLanguageInpu
 const styles = StyleSheet.create({
   button: {
     marginHorizontal: spacing.l,
-    marginTop: spacing.m,
+    marginBottom: spacing.s,
     borderRadius: borderRadius.medium,
-    ...shadows.small,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    paddingVertical: 12,
+    paddingHorizontal: spacing.m,
   },
   buttonDisabled: {
     opacity: 0.5,
   },
-  buttonGradient: {
-    borderRadius: borderRadius.medium,
-    padding: spacing.m,
-    alignItems: 'center',
-  },
   buttonContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
   },
   buttonIcon: {
-    marginRight: spacing.xs,
+    marginRight: spacing.s,
   },
   buttonText: {
     fontSize: typography.fontSize.body,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.onPrimary,
+    color: colors.textSecondary,
   },
   buttonTextDisabled: {
     color: colors.textSecondary,

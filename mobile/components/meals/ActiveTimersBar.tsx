@@ -65,7 +65,7 @@ export function ActiveTimersBar() {
 
 const styles = StyleSheet.create({
   bar: {
-    marginHorizontal: spacing.m,
+    marginHorizontal: spacing.l,
     marginBottom: spacing.s,
     paddingHorizontal: spacing.m,
     paddingVertical: spacing.s,

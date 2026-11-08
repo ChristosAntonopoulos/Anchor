@@ -1,10 +1,16 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
+import { HomeRow } from '../today/HomeRow';
+import { colors, spacing, typography, borderRadius } from '../../constants/designTokens';
 import { useMealsStore } from '../../store/useMealsStore';
+
+const SLOT_LABELS: Record<string, string> = {
+  Breakfast: 'Breakfast',
+  Lunch: 'Lunch',
+  Dinner: 'Dinner',
+  Snack: 'Snack',
+};
 
 export function TodayMealCard() {
   const router = useRouter();
@@ -20,223 +26,115 @@ export function TodayMealCard() {
   const canStart = nextMeal?.state === 'Planned';
   const cookPath = canStart ? (`/more/meals/cook/${nextMeal.id}` as const) : null;
   const changePath = canStart ? (`/more/meals/change/${nextMeal.id}` as const) : null;
-  const slotLabels: Record<string, string> = {
-    Breakfast: 'ΠΡΩΙΝΟ ΣΗΜΕΡΑ',
-    Lunch: 'ΜΕΣΗΜΕΡΙΑΝΟ ΣΗΜΕΡΑ',
-    Dinner: 'ΒΡΑΔΙΝΟ ΣΗΜΕΡΑ',
-    Snack: 'ΣΝΑΚ ΣΗΜΕΡΑ',
-  };
 
   if (!nextMeal || !canStart) {
     return (
-      <View style={styles.container}>
-        <LinearGradient
-          colors={[colors.category.health + '20', colors.surface]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradient}
-        >
-          <View style={styles.headerRow}>
-            <Ionicons name="restaurant-outline" size={18} color={colors.category.health} />
-            <Text style={styles.sectionLabel}>ΓΕΥΜΑΤΑ ΣΗΜΕΡΑ</Text>
-          </View>
-          <Text style={styles.noMealText}>
-            {actionableReminder ?? 'Δεν υπάρχει προγραμματισμένο γεύμα'}
-          </Text>
-          <View style={styles.actions}>
-            <TouchableOpacity
-              style={styles.actionBtn}
-              onPress={() => router.push('/more/meals' as any)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.actionBtnText}>Χρησιμοποίησε αυτά που έχεις</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.actionBtnSecondary}
-              onPress={() => router.push('/more/meals' as any)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.actionBtnSecondaryText}>Κάτι εύκολο</Text>
-            </TouchableOpacity>
-          </View>
-        </LinearGradient>
-      </View>
+      <HomeRow
+        icon="nutrition"
+        label="Meals"
+        title={actionableReminder ?? 'All meals for today are done'}
+        onPress={() => router.push('/more/meals' as any)}
+      />
     );
   }
 
+  const slot = SLOT_LABELS[nextMeal.slot] ?? 'Meal';
+  const minutes = nextMeal.handsonMinutes ?? nextMeal.totalMinutes;
+  const meta = [
+    minutes ? `${minutes} min` : null,
+    hasUnconfirmedIngredients ? 'Check ingredients' : actionableReminder,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
   return (
-    <TouchableOpacity
-      style={styles.container}
-      onPress={() => cookPath && router.push(cookPath as any)}
-      activeOpacity={0.85}
-    >
-      <LinearGradient
-        colors={[colors.category.health + '20', colors.surface]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradient}
+    <View style={styles.card}>
+      <TouchableOpacity
+        onPress={() => cookPath && router.push(cookPath as any)}
+        activeOpacity={0.85}
       >
-          <View style={styles.headerRow}>
-            <Ionicons name="restaurant-outline" size={18} color={colors.category.health} />
-            <Text style={styles.sectionLabel}>
-              {slotLabels[nextMeal.slot] ?? 'ΓΕΥΜΑ ΣΗΜΕΡΑ'}
-            </Text>
-          </View>
-
-        <Text style={styles.mealName}>{nextMeal.recipeName ?? 'Γεύμα'}</Text>
-
-        <View style={styles.metaRow}>
-          {nextMeal.handsonMinutes && (
-            <View style={styles.metaItem}>
-              <Ionicons name="hand-left-outline" size={13} color={colors.textSecondary} />
-              <Text style={styles.metaText}>{nextMeal.handsonMinutes} λεπτά χειρισμός</Text>
-            </View>
-          )}
-          {nextMeal.totalMinutes && (
-            <View style={styles.metaItem}>
-              <Ionicons name="time-outline" size={13} color={colors.textSecondary} />
-              <Text style={styles.metaText}>{nextMeal.totalMinutes} λεπτά σύνολο</Text>
-            </View>
-          )}
-        </View>
-
-        {actionableReminder && (
-          <View style={styles.reminderRow}>
-            <Ionicons name="notifications-outline" size={13} color={colors.category.work} />
-            <Text style={styles.reminderText}>{actionableReminder}</Text>
-          </View>
-        )}
-
-        {hasUnconfirmedIngredients && (
-          <View style={styles.warningRow}>
-            <Ionicons name="alert-circle-outline" size={13} color={colors.warning} />
-            <Text style={styles.warningText}>Έλεγξε τα υλικά πριν ξεκινήσεις</Text>
-          </View>
-        )}
-
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => cookPath && router.push(cookPath as any)}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="play" size={14} color={colors.background} />
-            <Text style={styles.actionBtnText}>Ξεκίνα μαγείρεμα</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionBtnSecondary}
-            onPress={() => changePath && router.push(changePath as any)}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.actionBtnSecondaryText}>Αλλαγή</Text>
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
-    </TouchableOpacity>
+        <Text style={styles.label}>{slot}</Text>
+        <Text style={styles.title} numberOfLines={2}>
+          {nextMeal.recipeName ?? 'Meal'}
+        </Text>
+        {meta ? (
+          <Text style={styles.meta} numberOfLines={1}>
+            {meta}
+          </Text>
+        ) : null}
+      </TouchableOpacity>
+      <View style={styles.actions}>
+        <TouchableOpacity
+          style={styles.primary}
+          onPress={() => cookPath && router.push(cookPath as any)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.primaryText}>Cook</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.secondary}
+          onPress={() => changePath && router.push(changePath as any)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.secondaryText}>Change</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginHorizontal: spacing.m,
-    marginBottom: spacing.m,
-    borderRadius: borderRadius.large,
-    borderWidth: 1,
-    borderColor: colors.category.health + '30',
-    overflow: 'hidden',
-    ...shadows.small,
-  },
-  gradient: {
+  card: {
+    marginHorizontal: spacing.l,
+    marginBottom: spacing.s,
     padding: spacing.m,
+    borderRadius: borderRadius.medium,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.s,
-  },
-  sectionLabel: {
+  label: {
     fontSize: 11,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.category.health,
-    letterSpacing: 0.5,
-  },
-  mealName: {
-    fontSize: typography.fontSize.title,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
-    marginBottom: spacing.s,
-  },
-  noMealText: {
-    fontSize: typography.fontSize.body,
-    color: colors.textSecondary,
-    marginBottom: spacing.m,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    gap: spacing.m,
-    marginBottom: spacing.s,
-    flexWrap: 'wrap',
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  metaText: {
-    fontSize: typography.fontSize.caption,
-    color: colors.textSecondary,
-  },
-  reminderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.s,
-  },
-  reminderText: {
-    fontSize: typography.fontSize.caption,
-    color: colors.category.work,
     fontWeight: typography.fontWeight.semibold,
+    color: colors.textMuted,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
   },
-  warningRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.s,
+  title: {
+    marginTop: 4,
+    fontSize: typography.fontSize.body,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textPrimary,
   },
-  warningText: {
+  meta: {
+    marginTop: 4,
     fontSize: typography.fontSize.caption,
-    color: colors.warning,
+    color: colors.textSecondary,
   },
   actions: {
     flexDirection: 'row',
     gap: spacing.s,
     marginTop: spacing.s,
-    flexWrap: 'wrap',
   },
-  actionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    backgroundColor: colors.category.health,
+  primary: {
+    backgroundColor: colors.primary,
     borderRadius: borderRadius.round,
     paddingHorizontal: spacing.m,
-    paddingVertical: spacing.s,
+    paddingVertical: 6,
   },
-  actionBtnText: {
+  primaryText: {
     fontSize: typography.fontSize.caption,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.background,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.onPrimary,
   },
-  actionBtnSecondary: {
-    backgroundColor: 'transparent',
+  secondary: {
     borderRadius: borderRadius.round,
     paddingHorizontal: spacing.m,
-    paddingVertical: spacing.s,
+    paddingVertical: 6,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  actionBtnSecondaryText: {
+  secondaryText: {
     fontSize: typography.fontSize.caption,
     color: colors.textSecondary,
   },

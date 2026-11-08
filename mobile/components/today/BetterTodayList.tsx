@@ -1,5 +1,4 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { AppIcon } from '../icons/AppIcon';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 import { BetterTodayItem } from './BetterTodayItem';
@@ -15,12 +14,7 @@ interface BetterTodayListProps {
 
 export function BetterTodayList({ items, onToggleItem, onAcceptItem, onEditItem, onRejectItem }: BetterTodayListProps) {
   if (items.length === 0) {
-    return (
-      <View style={styles.emptyContainer}>
-        <AppIcon name="sparkles-outline" size={48} color={colors.textSecondary} style={styles.emptyIcon} />
-        <Text style={styles.emptyText}>Choose one thing to move forward today.</Text>
-      </View>
-    );
+    return null;
   }
 
   return (
@@ -69,19 +63,5 @@ const styles = StyleSheet.create({
   },
   itemsContainer: {
     gap: spacing.s,
-  },
-  emptyContainer: {
-    paddingHorizontal: spacing.l,
-    paddingVertical: spacing.xl,
-    alignItems: 'center',
-  },
-  emptyIcon: {
-    marginBottom: spacing.m,
-    opacity: 0.6,
-  },
-  emptyText: {
-    fontSize: typography.fontSize.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
   },
 });

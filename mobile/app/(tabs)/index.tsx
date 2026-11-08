@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, gradients } from '../../constants/designTokens';
+import { colors, gradients, spacing } from '../../constants/designTokens';
 import { workPath } from '../../utils/workBlock';
 import { useTodayStore } from '../../store/useTodayStore';
 import { useNotificationStore } from '../../store/useNotificationStore';
@@ -68,7 +68,7 @@ export default function HomeScreen() {
         end={gradients.background.end}
         style={styles.container}
       >
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
@@ -85,7 +85,7 @@ export default function HomeScreen() {
         end={gradients.background.end}
         style={styles.container}
       >
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>Something didn't load. Try again.</Text>
           </View>
@@ -102,7 +102,7 @@ export default function HomeScreen() {
         end={gradients.background.end}
         style={styles.container}
       >
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>Choose one thing to move forward today.</Text>
           </View>
@@ -121,6 +121,7 @@ export default function HomeScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <ScrollView
           style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
@@ -128,15 +129,7 @@ export default function HomeScreen() {
         >
           <TodayHeader date={data.day.date} />
 
-          {data.aiBrief && (
-            <AiBriefCard
-              brief={data.aiBrief}
-              onMarkApplied={markAiBriefApplied}
-            />
-          )}
-
-          <ActiveTimersBar />
-          <TodayMealCard />
+          {data.deadlineWarning ? <DeadlineWarningBanner warning={data.deadlineWarning} /> : null}
 
           {now?.recovery && !now.activeSession ? (
             <RecoveryCard
@@ -202,19 +195,21 @@ export default function HomeScreen() {
             onEasier={() => void fetchNow({ easier: true, refresh: true })}
             onPlanToday={() => void planToday('today')}
           />
-          
-          <NotificationAccessPrompt
-            onEnabled={() => {
-              startListening();
-            }}
+
+          <ActiveTimersBar />
+          <TodayMealCard />
+
+          <CurrentBlockIndicator
+            block={data.currentBlock}
+            onOpen={data.currentBlock?.title ? () => router.push(workPath(data.currentBlock?.id)) : undefined}
           />
-          
+
           <NaturalLanguageInput
             onSubmit={async (text) => {
               await submitAIInput(text);
             }}
           />
-          
+
           <BetterTodayList
             items={data.betterItems}
             onToggleItem={completeBetterItem}
@@ -223,18 +218,17 @@ export default function HomeScreen() {
             onRejectItem={rejectBetterItem}
           />
 
-          <CurrentBlockIndicator
-            block={data.currentBlock}
-            onOpen={data.currentBlock?.title ? () => router.push(workPath(data.currentBlock?.id)) : undefined}
-          />
+          <DisciplineQuickToggle discipline={data.discipline} />
 
-          <DisciplineQuickToggle
-            discipline={data.discipline}
-          />
+          {data.aiBrief ? (
+            <AiBriefCard brief={data.aiBrief} onMarkApplied={markAiBriefApplied} />
+          ) : null}
 
-          {data.deadlineWarning && (
-            <DeadlineWarningBanner warning={data.deadlineWarning} />
-          )}
+          <NotificationAccessPrompt
+            onEnabled={() => {
+              startListening();
+            }}
+          />
         </ScrollView>
         <WorkSessionModal
           visible={sessionOpen}
@@ -255,6 +249,9 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: spacing.xl,
   },
   loadingContainer: {
     flex: 1,

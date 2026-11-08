@@ -7,17 +7,30 @@ interface TodayHeaderProps {
 
 function getGreeting(): string {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Good Morning';
-  if (hour < 17) return 'Good Afternoon';
-  return 'Good Evening';
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function formatDay(date: string): string {
+  const parsed = new Date(`${date}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    return '';
+  }
+  return parsed.toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
 export function TodayHeader({ date }: TodayHeaderProps) {
-  const greeting = getGreeting();
+  const day = formatDay(date);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.greeting}>{greeting}</Text>
+      <Text style={styles.greeting}>{getGreeting()}</Text>
+      {day ? <Text style={styles.date}>{day}</Text> : null}
     </View>
   );
 }
@@ -25,13 +38,17 @@ export function TodayHeader({ date }: TodayHeaderProps) {
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: spacing.l,
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.s,
+    paddingTop: spacing.s,
+    paddingBottom: spacing.m,
   },
   greeting: {
     fontSize: typography.fontSize.title,
     fontWeight: typography.fontWeight.semibold,
     color: colors.textPrimary,
-    letterSpacing: 0.5,
+  },
+  date: {
+    marginTop: 2,
+    fontSize: typography.fontSize.caption,
+    color: colors.textSecondary,
   },
 });

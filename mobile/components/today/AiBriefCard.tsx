@@ -55,12 +55,9 @@ export function AiBriefCard({ brief, onMarkApplied }: AiBriefCardProps) {
           </Text>
         </TouchableOpacity>
 
-        {/* Summary (always visible) */}
-        {assessment?.summary && (
-          <Text style={styles.summary} numberOfLines={expanded ? undefined : 2}>
-            {assessment.summary}
-          </Text>
-        )}
+        {expanded && assessment?.summary ? (
+          <Text style={styles.summary}>{assessment.summary}</Text>
+        ) : null}
 
         {/* Expanded content */}
         {expanded && (
@@ -161,7 +158,7 @@ function Section({
 const styles = StyleSheet.create({
   container: {
     marginHorizontal: spacing.l,
-    marginBottom: spacing.l,
+    marginBottom: spacing.s,
     borderRadius: borderRadius.medium,
     ...shadows.small,
   },
