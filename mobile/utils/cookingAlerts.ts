@@ -1,4 +1,5 @@
 import { Platform, Vibration } from 'react-native';
+import { ensureOsNotifications } from './osNotifications';
 
 type NotifMod = {
   setNotificationHandler: (handler: unknown) => void;
@@ -27,33 +28,8 @@ function loadNotif(): NotifMod | null {
 }
 
 async function ensureHandler(): Promise<NotifMod | null> {
-  const mod = loadNotif();
-  if (!mod || handlerReady) return mod;
-  try {
-    mod.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: false,
-        shouldShowBanner: true,
-        shouldShowList: true,
-      }),
-    });
-    if (Platform.OS === 'android' && mod.setNotificationChannelAsync) {
-      await mod.setNotificationChannelAsync('cooking', {
-        name: 'Cooking timers',
-        importance: mod.AndroidImportance?.HIGH ?? 4,
-        sound: 'default',
-        vibrationPattern: [0, 400, 200, 400],
-        enableVibrate: true,
-      });
-    }
-    await mod.requestPermissionsAsync();
-    handlerReady = true;
-  } catch {
-    return mod;
-  }
-  return mod;
+  handlerReady = true;
+  return (await ensureOsNotifications()) as NotifMod | null;
 }
 
 export async function scheduleTimerNotification(

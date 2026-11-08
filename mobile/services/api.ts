@@ -5,6 +5,8 @@ import type {
   TodayResponse,
   ScheduleBlock,
   Deadline,
+  CreateDeadlineRequest,
+  UpdateDeadlineRequest,
   MoneySummary,
   WeeklyReview,
   Category,
@@ -78,6 +80,9 @@ export interface APIClient {
   markDayAssessmentSeen(): Promise<void>;
   getSchedule(): Promise<ScheduleBlock[]>;
   getDeadlines(): Promise<Deadline[]>;
+  createDeadline(request: CreateDeadlineRequest): Promise<Deadline>;
+  updateDeadline(id: string, request: UpdateDeadlineRequest): Promise<Deadline>;
+  deleteDeadline(id: string): Promise<void>;
   getMoneySummary(): Promise<MoneySummary>;
   getWeeklyReview(): Promise<WeeklyReview>;
   getCategories(): Promise<Category[]>;
@@ -330,6 +335,36 @@ class HTTPAPIClient implements APIClient {
       return data || [];
     } catch (error) {
       throw this.handleError(error, 'Failed to fetch deadlines');
+    }
+  }
+
+  async createDeadline(request: CreateDeadlineRequest): Promise<Deadline> {
+    try {
+      const response = await this.axiosInstance.post<ApiResponse<Deadline>>('/deadlines', request);
+      return unwrapResponse(response.data);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to create deadline');
+    }
+  }
+
+  async updateDeadline(id: string, request: UpdateDeadlineRequest): Promise<Deadline> {
+    try {
+      const response = await this.axiosInstance.put<ApiResponse<Deadline>>(`/deadlines/${id}`, {
+        ...request,
+        id,
+      });
+      return unwrapResponse(response.data);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to update deadline');
+    }
+  }
+
+  async deleteDeadline(id: string): Promise<void> {
+    try {
+      const response = await this.axiosInstance.delete<ApiResponse<unknown>>(`/deadlines/${id}`);
+      unwrapResponse(response.data);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to delete deadline');
     }
   }
 

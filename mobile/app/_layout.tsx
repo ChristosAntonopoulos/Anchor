@@ -12,9 +12,15 @@ import { UnlockSetupPrompt } from '../components/phoneUnlock/UnlockSetupPrompt';
 import { hasPhoneUnlockModule, isExpoGo } from '../utils/nativeModuleSupport';
 import { overlayPermission } from '../services/overlayPermission';
 import { API_CONFIG } from '../constants/apiConfig';
+import { useLifeReminders } from '../hooks/useLifeReminders';
+import { useOsWidgetSync } from '../hooks/useOsWidgetSync';
+import { useOsDeepLinks } from '../hooks/useOsDeepLinks';
 
 export default function RootLayout() {
   const { fetchCategories } = useCategoryStore();
+  useLifeReminders();
+  useOsWidgetSync();
+  useOsDeepLinks();
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [showOverlayPrompt, setShowOverlayPrompt] = useState(false);
   const [overlayPromptPaused, setOverlayPromptPaused] = useState(false);

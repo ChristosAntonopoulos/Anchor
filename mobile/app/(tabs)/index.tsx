@@ -23,6 +23,7 @@ import type { SessionLaunch } from '../../types/execution';
 import { AiBriefCard } from '../../components/today/AiBriefCard';
 import { TodayMealCard } from '../../components/meals/TodayMealCard';
 import { ActiveTimersBar } from '../../components/meals/ActiveTimersBar';
+import { ErrorBanner } from '../../components/shared/ErrorBanner';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -87,7 +88,7 @@ export default function HomeScreen() {
       >
         <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>Something didn't load. Try again.</Text>
+            <Text style={styles.errorText}>{error || "Something didn't load. Try again."}</Text>
           </View>
         </SafeAreaView>
       </LinearGradient>
@@ -128,6 +129,7 @@ export default function HomeScreen() {
           }
         >
           <TodayHeader date={data.day.date} />
+          {error ? <ErrorBanner message={error} onRetry={() => void fetchToday()} /> : null}
 
           {data.deadlineWarning ? <DeadlineWarningBanner warning={data.deadlineWarning} /> : null}
 

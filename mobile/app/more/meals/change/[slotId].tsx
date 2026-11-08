@@ -51,7 +51,7 @@ export default function ChangeMealScreen() {
       const list = await getAlternatives(current?.recipeVersionId);
       setRecipes(list);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Αποτυχία φόρτωσης');
+      setError(e instanceof Error ? e.message : 'Failed to load');
     } finally {
       setLoading(false);
     }
@@ -69,7 +69,7 @@ export default function ChangeMealScreen() {
     try {
       await updateSlot(plan.id, slotId, {
         recipeVersionId: recipe.id,
-        recipeName: recipe.nameEl,
+        recipeName: recipe.nameEn || recipe.nameEl,
         kind: 'FreshCook',
         state: 'Planned',
         handsonMinutes: recipe.handsonMinutes,
@@ -77,7 +77,7 @@ export default function ChangeMealScreen() {
       });
       router.replace(`/more/meals/cook/${slotId}` as any);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Αποτυχία αλλαγής');
+      setError(e instanceof Error ? e.message : 'Failed to change');
     } finally {
       setBusy(false);
     }
@@ -91,7 +91,7 @@ export default function ChangeMealScreen() {
       const recipe = await generateRecipe(query.trim(), slot?.servings ?? 2);
       await apply(recipe);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Αποτυχία δημιουργίας');
+      setError(e instanceof Error ? e.message : 'Failed to create');
       setBusy(false);
     }
   };
@@ -104,9 +104,9 @@ export default function ChangeMealScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Αλλαγή γεύματος</Text>
+            <Text style={styles.headerTitle}>Change meal</Text>
             <Text style={styles.headerSub} numberOfLines={1}>
-              Τώρα: {slot?.recipeName || '—'}
+              Now: {slot?.recipeName || '—'}
             </Text>
           </View>
         </View>
@@ -114,7 +114,7 @@ export default function ChangeMealScreen() {
         <View style={styles.searchRow}>
           <TextInput
             style={styles.input}
-            placeholder="Π.χ. κοτόπουλο λεμονάτο"
+            placeholder="e.g. lemon chicken"
             placeholderTextColor={colors.textMuted}
             value={query}
             onChangeText={setQuery}
@@ -128,7 +128,7 @@ export default function ChangeMealScreen() {
             )}
           </TouchableOpacity>
         </View>
-        <Text style={styles.hint}>Γράψε τι θέλεις και η συνταγή γεμίζει με βήματα και χρόνους.</Text>
+        <Text style={styles.hint}>Write what you want. The recipe fills in with steps and times.</Text>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -146,11 +146,11 @@ export default function ChangeMealScreen() {
                 disabled={busy}
                 activeOpacity={0.8}
               >
-                <Text style={styles.name}>{recipe.nameEl}</Text>
+                <Text style={styles.name}>{recipe.nameEn || recipe.nameEl}</Text>
                 <Text style={styles.meta}>
-                  {recipe.steps.length} βήματα
-                  {recipe.handsonMinutes ? ` · ${recipe.handsonMinutes} λεπτά χέρια` : ''}
-                  {recipe.totalMinutes ? ` · ${recipe.totalMinutes} σύνολο` : ''}
+                  {recipe.steps.length} steps
+                  {recipe.handsonMinutes ? ` · ${recipe.handsonMinutes} min hands-on` : ''}
+                  {recipe.totalMinutes ? ` · ${recipe.totalMinutes} min total` : ''}
                 </Text>
                 <Text style={styles.preview} numberOfLines={2}>
                   {recipe.steps.map((s) => s.action).join(' → ')}

@@ -18,6 +18,7 @@ class BootCompletedReceiver : BroadcastReceiver() {
             } else {
                 context.startService(serviceIntent)
             }
+            OsWidgetUpdater.refreshAll(context)
             android.util.Log.d(TAG, "Foreground service started after $action")
         } catch (error: Exception) {
             android.util.Log.e(TAG, "Could not start foreground service after boot", error)

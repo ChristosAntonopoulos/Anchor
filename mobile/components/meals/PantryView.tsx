@@ -22,10 +22,10 @@ const LOCATION_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 };
 
 const DATE_TYPE_LABELS: Record<string, string> = {
-  UseBy: 'Ανάλωση έως',
-  BestBefore: 'Βέλτιστη ποιότητα έως',
-  NoPrintedDate: 'Χωρίς ημερομηνία',
-  Unknown: 'Ημερομηνία άγνωστη',
+  UseBy: 'Use by',
+  BestBefore: 'Best before',
+  NoPrintedDate: 'No printed date',
+  Unknown: 'Date unknown',
 };
 
 function BatchCard({ batch, onDiscard }: { batch: InventoryBatch; onDiscard: (id: string) => void }) {
@@ -34,7 +34,7 @@ function BatchCard({ batch, onDiscard }: { batch: InventoryBatch; onDiscard: (id
     : false;
 
   const dateLabel = batch.printedDate
-    ? `${DATE_TYPE_LABELS[batch.dateType] ?? batch.dateType}: ${new Date(batch.printedDate).toLocaleDateString('el-GR')}`
+    ? `${DATE_TYPE_LABELS[batch.dateType] ?? batch.dateType}: ${new Date(batch.printedDate).toLocaleDateString('en-GB')}`
     : DATE_TYPE_LABELS[batch.dateType] ?? '';
 
   return (
@@ -55,14 +55,14 @@ function BatchCard({ batch, onDiscard }: { batch: InventoryBatch; onDiscard: (id
           ) : null}
           {batch.openedAt && (
             <Text style={styles.batchOpened}>
-              Ανοιχτό: {new Date(batch.openedAt).toLocaleDateString('el-GR')}
+              Opened: {new Date(batch.openedAt).toLocaleDateString('en-GB')}
             </Text>
           )}
         </View>
         <TouchableOpacity
           style={styles.discardBtn}
           onPress={() => onDiscard(batch.id)}
-          accessibilityLabel={`Απόρριψη ${batch.rawName}`}
+          accessibilityLabel={`Discard ${batch.rawName}`}
         >
           <Ionicons name="trash-outline" size={18} color={colors.error} />
         </TouchableOpacity>
@@ -114,12 +114,12 @@ export function PantryView() {
 
   const handleDiscard = (id: string) => {
     Alert.alert(
-      'Απόρριψη τροφίμου',
-      'Θέλεις να αφαιρέσεις αυτό το τρόφιμο από την αποθήκη σου;',
+      'Discard food',
+      'Remove this from the pantry?',
       [
-        { text: 'Άκυρο', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Απόρριψη',
+          text: 'Discard',
           style: 'destructive',
           onPress: () => discardBatch(id),
         },
@@ -154,7 +154,7 @@ export function PantryView() {
           <View style={[styles.section, styles.useSoonSection]}>
             <View style={styles.sectionHeader}>
               <Ionicons name="time-outline" size={18} color={colors.warning} />
-              <Text style={[styles.sectionTitle, { color: colors.warning }]}>Χρησιμοποίησε σύντομα</Text>
+              <Text style={[styles.sectionTitle, { color: colors.warning }]}>Use soon</Text>
               <Text style={styles.sectionCount}>{useSoon.length}</Text>
             </View>
             {useSoon.map((b) => (
@@ -164,19 +164,19 @@ export function PantryView() {
         )}
 
         <LocationSection
-          title="Ψυγείο"
+          title="Fridge"
           icon="snow-outline"
           batches={inventory?.fridge ?? []}
           onDiscard={handleDiscard}
         />
         <LocationSection
-          title="Καταψύκτης"
+          title="Freezer"
           icon="cube-outline"
           batches={inventory?.freezer ?? []}
           onDiscard={handleDiscard}
         />
         <LocationSection
-          title="Ντουλάπι"
+          title="Cupboard"
           icon="archive-outline"
           batches={inventory?.cupboard ?? []}
           onDiscard={handleDiscard}
@@ -185,9 +185,9 @@ export function PantryView() {
         {!hasAnyItems && (
           <View style={styles.emptyContent}>
             <Ionicons name="nutrition-outline" size={48} color={colors.border} />
-            <Text style={styles.emptyTitle}>Δεν υπάρχουν αποθηκευμένα τρόφιμα</Text>
+            <Text style={styles.emptyTitle}>Nothing in the pantry</Text>
             <Text style={styles.emptyText}>
-              Δεν χρειάζεται να έχεις τέλειο αποθηκευτικό χώρο για να ξεκινήσεις τον σχεδιασμό
+              You do not need a perfect pantry to start planning
             </Text>
           </View>
         )}
@@ -200,7 +200,7 @@ export function PantryView() {
         style={styles.addFab}
         onPress={() => router.push('/more/meals/add-item' as any)}
         activeOpacity={0.85}
-        accessibilityLabel="Προσθήκη τροφίμου"
+        accessibilityLabel="Add food"
       >
         <Ionicons name="add" size={28} color={colors.background} />
       </TouchableOpacity>

@@ -8,6 +8,7 @@ import { MoneySummaryCard } from '../../components/money/MoneySummaryCard';
 import { IncomeTrendChart } from '../../components/money/IncomeTrendChart';
 import { IncomeList } from '../../components/money/IncomeList';
 import { AddIncomeButton } from '../../components/money/AddIncomeButton';
+import { ErrorBanner } from '../../components/shared/ErrorBanner';
 
 export default function MoneyScreen() {
   const { data, loading, error, fetchMoneySummary, createIncome } = useMoneyStore();
@@ -49,9 +50,13 @@ export default function MoneyScreen() {
         style={styles.container}
       >
         <SafeAreaView style={styles.container}>
+          {error ? <ErrorBanner message={error} onRetry={() => void fetchMoneySummary()} /> : null}
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No income logged yet. That's okay. Keep building.</Text>
           </View>
+          <AddIncomeButton
+            onAddIncome={(date, source, amount) => createIncome({ date, source, amount })}
+          />
         </SafeAreaView>
       </LinearGradient>
     );
@@ -72,6 +77,7 @@ export default function MoneyScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
           }
         >
+          {error ? <ErrorBanner message={error} onRetry={() => void fetchMoneySummary()} /> : null}
           <MoneySummaryCard summary={data} />
           <IncomeTrendChart income={data.income} />
           <IncomeList income={data.income} />

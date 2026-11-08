@@ -20,7 +20,7 @@ public class FoodProfileDto
     public decimal? WeeklyBudgetEur { get; set; }
     public bool? BudgetFirm { get; set; }
     public string Timezone { get; set; } = "Europe/Athens";
-    public string Locale { get; set; } = "el-GR";
+    public string Locale { get; set; } = "en-GB";
     public int Version { get; set; } = 1;
     public bool SetupComplete { get; set; } = false;
 }

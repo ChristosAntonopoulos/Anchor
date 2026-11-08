@@ -13,6 +13,7 @@ import { MAX_TODAY_FOCUS } from '../../types';
 import type { Task, UpdateTaskRequest } from '../../types';
 import { WorkSessionModal } from '../../components/execution/WorkSessionModal';
 import { FirstActionBanner } from '../../components/execution/FirstActionBanner';
+import { ErrorBanner } from '../../components/shared/ErrorBanner';
 import { useExecutionStore } from '../../store/useExecutionStore';
 import type { SessionLaunch } from '../../types/execution';
 
@@ -117,7 +118,7 @@ export default function TasksScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
           }
         >
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          {error ? <ErrorBanner message={error} onRetry={() => void fetchTasks()} /> : null}
 
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Today's focus</Text>

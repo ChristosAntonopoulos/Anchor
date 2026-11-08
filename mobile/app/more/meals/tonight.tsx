@@ -16,19 +16,19 @@ export default function TonightScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Τι τρώω απόψε;</Text>
+          <Text style={styles.headerTitle}>What am I eating tonight?</Text>
         </View>
         <View style={styles.content}>
           <Ionicons name="restaurant-outline" size={64} color={colors.border} />
           <Text style={styles.text}>
-            Αυτή η λειτουργία θα σε βοηθήσει να αποφασίσεις τι θα φας χρησιμοποιώντας αυτά που έχεις ήδη στο σπίτι.
+            This will help you decide what to eat from what you already have.
           </Text>
           <TouchableOpacity
             style={styles.btn}
             onPress={() => router.push('/more/meals/plan' as any)}
             activeOpacity={0.8}
           >
-            <Text style={styles.btnText}>Δες τι έχεις στο σπίτι</Text>
+            <Text style={styles.btnText}>See what you have</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

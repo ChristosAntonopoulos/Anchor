@@ -12,13 +12,13 @@ interface AiStateIndicatorProps {
 
 const STATE_CONFIG: Record<AiState, { icon?: keyof typeof Ionicons.glyphMap; color: string; label: string }> = {
   idle: { color: colors.textSecondary, label: '' },
-  drafting: { color: colors.category.work, label: 'Δημιουργία πρότασης…' },
-  waiting: { color: colors.category.work, label: 'Αναμονή εισαγωγής…' },
-  validating: { color: colors.category.stability, label: 'Επαλήθευση…' },
-  ready: { icon: 'checkmark-circle', color: colors.category.leverage, label: 'Έτοιμο' },
-  failed: { icon: 'alert-circle', color: colors.error, label: 'Αποτυχία' },
-  cancelled: { icon: 'close-circle', color: colors.textSecondary, label: 'Ακυρώθηκε' },
-  stale: { icon: 'time', color: colors.warning, label: 'Παλιά δεδομένα' },
+  drafting: { color: colors.category.work, label: 'Drafting…' },
+  waiting: { color: colors.category.work, label: 'Waiting for input…' },
+  validating: { color: colors.category.stability, label: 'Checking…' },
+  ready: { icon: 'checkmark-circle', color: colors.category.leverage, label: 'Ready' },
+  failed: { icon: 'alert-circle', color: colors.error, label: 'Failed' },
+  cancelled: { icon: 'close-circle', color: colors.textSecondary, label: 'Cancelled' },
+  stale: { icon: 'time', color: colors.warning, label: 'Stale' },
 };
 
 export function AiStateIndicator({ state, message }: AiStateIndicatorProps) {

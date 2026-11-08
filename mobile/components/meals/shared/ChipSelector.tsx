@@ -59,7 +59,7 @@ export function ChipSelector({
     <View style={styles.container}>
       <View style={styles.labelRow}>
         <Text style={styles.label}>{label}</Text>
-        {optional && <Text style={styles.optional}> (Προαιρετικό)</Text>}
+        {optional && <Text style={styles.optional}> (optional)</Text>}
       </View>
       {hint && <Text style={styles.hint}>{hint}</Text>}
       {horizontal ? (

@@ -8,10 +8,11 @@ import { useTodayStore } from '../../store/useTodayStore';
 import { ScheduleTimeline } from '../../components/schedule/ScheduleTimeline';
 import { WorkSessionModal } from '../../components/execution/WorkSessionModal';
 import { useExecutionStore } from '../../store/useExecutionStore';
+import { ErrorBanner } from '../../components/shared/ErrorBanner';
 import type { SessionLaunch } from '../../types/execution';
 
 export default function ScheduleScreen() {
-  const { blocks, loading, fetchSchedule, updateBlock, completeChecklistItem } = useScheduleStore();
+  const { blocks, loading, error, fetchSchedule, updateBlock, completeChecklistItem } = useScheduleStore();
   const { data: todayData, fetchToday } = useTodayStore();
   const [refreshing, setRefreshing] = useState(false);
   const [sessionOpen, setSessionOpen] = useState(false);
@@ -58,6 +59,7 @@ export default function ScheduleScreen() {
       style={styles.container}
     >
       <SafeAreaView style={styles.container} edges={['top']}>
+        {error ? <ErrorBanner message={error} onRetry={() => void fetchSchedule()} /> : null}
         <ScheduleTimeline
           blocks={blocks}
           currentBlockId={currentBlockId}

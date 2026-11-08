@@ -36,17 +36,17 @@ export function SuggestedField({
     <View style={styles.container}>
       <View style={styles.labelRow}>
         <Text style={styles.label}>{label}</Text>
-        {optional && <Text style={styles.optional}> (Προαιρετικό)</Text>}
+        {optional && <Text style={styles.optional}> (optional)</Text>}
         {suggested && !isProtected && (
           <View style={styles.suggestedBadge}>
             <Ionicons name="sparkles" size={10} color={colors.category.work} />
-            <Text style={styles.suggestedText}>Πρόταση AI</Text>
+            <Text style={styles.suggestedText}>AI suggestion</Text>
           </View>
         )}
         {isProtected && (
           <View style={styles.protectedBadge}>
             <Ionicons name="lock-closed" size={10} color={colors.textSecondary} />
-            <Text style={styles.protectedText}>Επεξεργάστηκες</Text>
+            <Text style={styles.protectedText}>You edited this</Text>
           </View>
         )}
       </View>
@@ -64,12 +64,12 @@ export function SuggestedField({
           numberOfLines={multiline ? 3 : 1}
         />
         {suggested && !isProtected && onAccept && (
-          <TouchableOpacity onPress={onAccept} style={styles.acceptBtn} accessibilityLabel="Αποδοχή πρότασης">
+          <TouchableOpacity onPress={onAccept} style={styles.acceptBtn} accessibilityLabel="Accept suggestion">
             <Ionicons name="checkmark" size={18} color={colors.category.health} />
           </TouchableOpacity>
         )}
         {isProtected && onRevert && (
-          <TouchableOpacity onPress={onRevert} style={styles.revertBtn} accessibilityLabel="Επαναφορά πρότασης">
+          <TouchableOpacity onPress={onRevert} style={styles.revertBtn} accessibilityLabel="Revert suggestion">
             <Ionicons name="refresh" size={16} color={colors.textSecondary} />
           </TouchableOpacity>
         )}

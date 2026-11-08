@@ -169,18 +169,18 @@ export function AppUpdatePrompt() {
 
   const message = (() => {
     if (phase === 'downloading') {
-      return `Κατεβάζω την έκδοση ${release.version} και ανοίγω την εγκατάσταση.`;
+      return `Downloading version ${release.version} and opening the installer.`;
     }
     if (phase === 'installing') {
-      return 'Το Android ζητά επιβεβαίωση. Πάτα Εγκατάσταση στο επόμενο παράθυρο.';
+      return 'Android needs a tap. Press Install on the next screen.';
     }
     if (phase === 'permission') {
-      return 'Επίτρεψε την εγκατάσταση από αυτή την εφαρμογή. Μόλις επιστρέψεις, συνεχίζω μόνος μου.';
+      return 'Allow installs from this app. When you come back, I continue.';
     }
     if (phase === 'failed') {
-      return 'Η ενημέρωση δεν κατέβηκε. Πατάω Εγκατάσταση για νέα προσπάθεια.';
+      return 'The update did not download. Tap Install to try again.';
     }
-    return `Η έκδοση ${release.version} είναι έτοιμη. Ξεκινάει η εγκατάσταση.`;
+    return `Version ${release.version} is ready. Installation starts.`;
   })();
 
   return (
@@ -197,7 +197,7 @@ export function AppUpdatePrompt() {
     >
       <View style={styles.backdrop}>
         <View style={styles.card}>
-          <Text style={styles.title}>Ενημέρωση εφαρμογής</Text>
+          <Text style={styles.title}>App update</Text>
           <Text style={styles.message}>{message}</Text>
           {phase === 'downloading' || phase === 'installing' ? (
             <ActivityIndicator color={colors.primary} style={styles.spinner} />
@@ -211,11 +211,11 @@ export function AppUpdatePrompt() {
                   setPhase('ready');
                 }}
               >
-                <Text style={styles.secondaryText}>Αργότερα</Text>
+                <Text style={styles.secondaryText}>Later</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.primaryButton} onPress={() => void install()}>
                 <Text style={styles.primaryText}>
-                  {phase === 'permission' ? 'Συνέχεια' : 'Εγκατάσταση'}
+                  {phase === 'permission' ? 'Continue' : 'Install'}
                 </Text>
               </TouchableOpacity>
             </View>

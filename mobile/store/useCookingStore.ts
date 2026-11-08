@@ -53,8 +53,8 @@ export const useCookingStore = create<CookingStore>((set, get) => ({
     const durationSeconds = Math.max(1, Math.round(durationMinutes * 60));
     const endsAt = Date.now() + durationSeconds * 1000;
     const notificationId = await scheduleTimerNotification(
-      recipeName || 'Μαγείρεμα',
-      `${action} — έτοιμο`,
+      recipeName || 'Cooking',
+      `${action} — ready`,
       durationSeconds
     );
 

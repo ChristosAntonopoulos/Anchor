@@ -45,7 +45,7 @@ function ShoppingLineItem({
           </Text>
           {line.isCheckAtHome && (
             <View style={styles.checkAtHomeBadge}>
-              <Text style={styles.checkAtHomeBadgeText}>Έλεγξε στο σπίτι</Text>
+              <Text style={styles.checkAtHomeBadgeText}>Check at home</Text>
             </View>
           )}
         </View>
@@ -59,7 +59,7 @@ function ShoppingLineItem({
         {line.estimatedPriceEur ? (
           <Text style={styles.linePrice}>~€{line.estimatedPriceEur.toFixed(2)}</Text>
         ) : (
-          <Text style={styles.linePriceUnknown}>Τιμή άγνωστη</Text>
+          <Text style={styles.linePriceUnknown}>Price unknown</Text>
         )}
       </View>
     </TouchableOpacity>
@@ -92,12 +92,12 @@ export function ShoppingView({ plan }: ShoppingViewProps) {
   const handleFinish = async () => {
     if (!shoppingTrip) return;
     Alert.alert(
-      'Ολοκλήρωση ψωνιών',
-      'Τα αγορασμένα προϊόντα θα προστεθούν στην αποθήκη σου.',
+      'Finish shopping',
+      'Bought items will be added to the pantry.',
       [
-        { text: 'Άκυρο', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Ολοκλήρωση',
+          text: 'Finish',
           onPress: async () => {
             setFinishing(true);
             try {
@@ -115,8 +115,8 @@ export function ShoppingView({ plan }: ShoppingViewProps) {
     return (
       <View style={styles.emptyContainer}>
         <Ionicons name="cart-outline" size={48} color={colors.border} />
-        <Text style={styles.emptyTitle}>Δεν υπάρχει πλάνο</Text>
-        <Text style={styles.emptyText}>Δημιούργησε πρώτα ένα εβδομαδιαίο πλάνο</Text>
+        <Text style={styles.emptyTitle}>No plan yet</Text>
+        <Text style={styles.emptyText}>Create a week plan first</Text>
       </View>
     );
   }
@@ -133,10 +133,10 @@ export function ShoppingView({ plan }: ShoppingViewProps) {
     return (
       <View style={styles.emptyContainer}>
         <Ionicons name="cart-outline" size={48} color={colors.border} />
-        <Text style={styles.emptyTitle}>Δεν υπάρχει λίστα αγορών</Text>
+        <Text style={styles.emptyTitle}>No shopping list</Text>
         <TouchableOpacity style={styles.generateBtn} onPress={handleGenerate} activeOpacity={0.8}>
           <Ionicons name="refresh-outline" size={16} color={colors.background} />
-          <Text style={styles.generateBtnText}>Δημιούργησε λίστα</Text>
+          <Text style={styles.generateBtnText}>Create list</Text>
         </TouchableOpacity>
       </View>
     );
@@ -159,16 +159,16 @@ export function ShoppingView({ plan }: ShoppingViewProps) {
         {/* Summary */}
         <View style={styles.summaryCard}>
           <Text style={styles.summaryProgress}>
-            {checkedCount}/{totalCount} αντικείμενα
+            {checkedCount}/{totalCount} items
           </Text>
           {shoppingTrip.confirmedPriceTotal ? (
             <Text style={styles.summaryPrice}>
               ~€{shoppingTrip.confirmedPriceTotal.toFixed(2)}
-              {shoppingTrip.unpricedItems > 0 ? ` + ${shoppingTrip.unpricedItems} χωρίς τιμή` : ''}
+              {shoppingTrip.unpricedItems > 0 ? ` + ${shoppingTrip.unpricedItems} unpriced` : ''}
             </Text>
           ) : (
             <Text style={styles.summaryPriceUnknown}>
-              {shoppingTrip.unpricedItems} αντικείμενα χωρίς τιμή
+              {shoppingTrip.unpricedItems} items unpriced
             </Text>
           )}
         </View>
@@ -176,7 +176,7 @@ export function ShoppingView({ plan }: ShoppingViewProps) {
         {/* Buy lines */}
         {buyLines.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Αγορά</Text>
+            <Text style={styles.sectionTitle}>Buy</Text>
             {buyLines.map((line) => (
               <ShoppingLineItem
                 key={line.id}
@@ -191,7 +191,7 @@ export function ShoppingView({ plan }: ShoppingViewProps) {
         {/* Check at home */}
         {checkHomeLines.length > 0 && (
           <View style={[styles.section, styles.sectionCheckHome]}>
-            <Text style={styles.sectionTitle}>Έλεγξε στο σπίτι</Text>
+            <Text style={styles.sectionTitle}>Check at home</Text>
             {checkHomeLines.map((line) => (
               <ShoppingLineItem
                 key={line.id}
@@ -219,7 +219,7 @@ export function ShoppingView({ plan }: ShoppingViewProps) {
             ) : (
               <>
                 <Ionicons name="checkmark-circle" size={20} color={colors.background} />
-                <Text style={styles.finishBtnText}>Ολοκλήρωση ψωνιών</Text>
+                <Text style={styles.finishBtnText}>Finish shopping</Text>
               </>
             )}
           </TouchableOpacity>

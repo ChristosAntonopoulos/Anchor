@@ -3,21 +3,28 @@ import { colors, spacing, typography, borderRadius } from '../../constants/desig
 
 interface ErrorBannerProps {
   message: string;
+  title?: string;
   onDismiss?: () => void;
+  onRetry?: () => void;
 }
 
-export function ErrorBanner({ message, onDismiss }: ErrorBannerProps) {
+export function ErrorBanner({ message, title = 'Could not load', onDismiss, onRetry }: ErrorBannerProps) {
   return (
     <View style={styles.container} accessibilityRole="alert">
       <View style={styles.copy}>
-        <Text style={styles.label}>Could not save</Text>
+        <Text style={styles.label}>{title}</Text>
         <Text style={styles.message}>{message}</Text>
       </View>
-      {onDismiss && (
+      {onRetry ? (
+        <TouchableOpacity onPress={onRetry} style={styles.dismissButton} accessibilityLabel="Retry">
+          <Text style={styles.dismissText}>Retry</Text>
+        </TouchableOpacity>
+      ) : null}
+      {onDismiss ? (
         <TouchableOpacity onPress={onDismiss} style={styles.dismissButton} accessibilityLabel="Dismiss">
           <Text style={styles.dismissText}>Dismiss</Text>
         </TouchableOpacity>
-      )}
+      ) : null}
     </View>
   );
 }

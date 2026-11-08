@@ -21,18 +21,18 @@ interface WeekViewProps {
 }
 
 const SLOT_LABELS: Record<string, string> = {
-  Breakfast: 'Πρωινό',
-  Lunch: 'Μεσημεριανό',
-  Dinner: 'Βραδινό',
-  Snack: 'Σνακ',
+  Breakfast: 'Breakfast',
+  Lunch: 'Lunch',
+  Dinner: 'Dinner',
+  Snack: 'Snack',
 };
 
 const KIND_LABELS: Record<string, string> = {
-  FreshCook: 'Μαγείρεμα',
-  Leftovers: 'Υπολείμματα',
-  FrozenPortion: 'Κατεψυγμένο',
-  NoCook: 'Χωρίς μαγείρεμα',
-  EatingOut: 'Εξω',
+  FreshCook: 'Cook',
+  Leftovers: 'Leftovers',
+  FrozenPortion: 'Frozen',
+  NoCook: 'No cook',
+  EatingOut: 'Eating out',
 };
 
 const STATE_COLORS: Record<string, string> = {
@@ -62,9 +62,9 @@ function MealSlotCard({ slot, onPress }: { slot: MealSlot; onPress: () => void }
           </Text>
           {(slot.handsonMinutes || slot.totalMinutes) && (
             <Text style={styles.slotTimes}>
-              {slot.handsonMinutes ? `${slot.handsonMinutes} λεπτά χειρισμός` : ''}
+              {slot.handsonMinutes ? `${slot.handsonMinutes} min hands-on` : ''}
               {slot.handsonMinutes && slot.totalMinutes ? ' · ' : ''}
-              {slot.totalMinutes ? `${slot.totalMinutes} λεπτά σύνολο` : ''}
+              {slot.totalMinutes ? `${slot.totalMinutes} min total` : ''}
             </Text>
           )}
           {slot.reasonSummary && (
@@ -82,8 +82,8 @@ function MealSlotCard({ slot, onPress }: { slot: MealSlot; onPress: () => void }
 function DaySection({ date, slots, isToday }: { date: string; slots: MealSlot[]; isToday: boolean }) {
   const router = useRouter();
   const d = new Date(date + 'T00:00:00');
-  const dayNames = ['Κυρ', 'Δευ', 'Τρι', 'Τετ', 'Πεμ', 'Παρ', 'Σαβ'];
-  const monthNames = ['Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μαΐ', 'Ιουν', 'Ιουλ', 'Αυγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'];
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const label = `${dayNames[d.getDay()]}, ${d.getDate()} ${monthNames[d.getMonth()]}`;
 
   return (
@@ -92,12 +92,12 @@ function DaySection({ date, slots, isToday }: { date: string; slots: MealSlot[];
         <Text style={[styles.dayLabel, isToday && styles.dayLabelToday]}>{label}</Text>
         {isToday && (
           <View style={styles.todayBadge}>
-            <Text style={styles.todayBadgeText}>Σήμερα</Text>
+            <Text style={styles.todayBadgeText}>Today</Text>
           </View>
         )}
       </View>
       {slots.length === 0 ? (
-        <Text style={styles.emptyDay}>Δεν υπάρχει προγραμματισμένο γεύμα</Text>
+        <Text style={styles.emptyDay}>No meal planned</Text>
       ) : (
         slots.map((slot) => (
           <MealSlotCard
@@ -131,9 +131,9 @@ export function WeekView({ plan, loading, refreshing, onRefresh }: WeekViewProps
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.category.health} />}
       >
         <Ionicons name="restaurant-outline" size={48} color={colors.border} />
-        <Text style={styles.emptyTitle}>Δεν υπάρχει πλάνο εβδομάδας</Text>
+        <Text style={styles.emptyTitle}>No week plan</Text>
         <Text style={styles.emptyText}>
-          Σχεδίασε τη βδομάδα σου ή ζήτα βοήθεια για σήμερα
+          Plan the week, or ask for help with today
         </Text>
         <TouchableOpacity
           style={styles.planBtn}
@@ -141,14 +141,14 @@ export function WeekView({ plan, loading, refreshing, onRefresh }: WeekViewProps
           activeOpacity={0.8}
         >
           <Ionicons name="sparkles" size={16} color={colors.background} />
-          <Text style={styles.planBtnText}>Σχεδίασε την εβδομάδα</Text>
+          <Text style={styles.planBtnText}>Plan the week</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.tonightBtn}
           onPress={() => router.push('/more/meals/tonight' as any)}
           activeOpacity={0.8}
         >
-          <Text style={styles.tonightBtnText}>Τι τρώω απόψε;</Text>
+          <Text style={styles.tonightBtnText}>What am I eating tonight?</Text>
         </TouchableOpacity>
       </ScrollView>
     );
@@ -184,14 +184,14 @@ export function WeekView({ plan, loading, refreshing, onRefresh }: WeekViewProps
           onPress={() => router.push('/more/meals/plan' as any)}
         >
           <Ionicons name="pencil-outline" size={14} color={colors.category.work} />
-          <Text style={styles.actionChipText}>Επεξεργασία πλάνου</Text>
+          <Text style={styles.actionChipText}>Edit plan</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionChip}
           onPress={() => router.push('/more/meals/plan' as any)}
         >
           <Ionicons name="refresh-outline" size={14} color={colors.category.work} />
-          <Text style={styles.actionChipText}>Νέο πλάνο</Text>
+          <Text style={styles.actionChipText}>New plan</Text>
         </TouchableOpacity>
       </View>
 

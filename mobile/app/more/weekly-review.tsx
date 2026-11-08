@@ -7,23 +7,30 @@ import { useWeeklyReviewStore } from '../../store/useWeeklyReviewStore';
 import { WeeklySummary } from '../../components/weekly-review/WeeklySummary';
 import { ReviewQuestionInput } from '../../components/weekly-review/ReviewQuestionInput';
 import { SubmitReviewButton } from '../../components/weekly-review/SubmitReviewButton';
+import { ErrorBanner } from '../../components/shared/ErrorBanner';
 
 export default function WeeklyReviewScreen() {
   const { data, loading, error, fetchWeeklyReview, submitWeeklyReview } = useWeeklyReviewStore();
   const [answers, setAnswers] = useState({
-    question1: '',
-    question2: '',
-    question3: '',
-    question4: '',
+    shipped: '',
+    improved: '',
+    avoided: '',
+    nextFocus: '',
   });
 
   useEffect(() => {
-    fetchWeeklyReview();
+    void fetchWeeklyReview();
   }, [fetchWeeklyReview]);
 
   const handleSubmit = () => {
-    submitWeeklyReview(answers);
+    void submitWeeklyReview(answers);
   };
+
+  const ready =
+    answers.shipped.trim() &&
+    answers.improved.trim() &&
+    answers.avoided.trim() &&
+    answers.nextFocus.trim();
 
   if (loading && !data) {
     return (
@@ -34,6 +41,7 @@ export default function WeeklyReviewScreen() {
         style={styles.container}
       >
         <SafeAreaView style={styles.container}>
+          {error ? <ErrorBanner message={error} onRetry={() => void fetchWeeklyReview()} /> : null}
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
@@ -51,6 +59,7 @@ export default function WeeklyReviewScreen() {
         style={styles.container}
       >
         <SafeAreaView style={styles.container}>
+          {error ? <ErrorBanner message={error} onRetry={() => void fetchWeeklyReview()} /> : null}
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No weekly review available.</Text>
           </View>
@@ -68,8 +77,9 @@ export default function WeeklyReviewScreen() {
         style={styles.container}
       >
         <SafeAreaView style={styles.container} edges={['top']}>
+          {error ? <ErrorBanner message={error} onRetry={() => void fetchWeeklyReview()} /> : null}
           <View style={styles.completedContainer}>
-            <Text style={styles.completedText}>Weekly review completed.</Text>
+            <Text style={styles.completedText}>This week is reviewed.</Text>
           </View>
         </SafeAreaView>
       </LinearGradient>
@@ -85,40 +95,43 @@ export default function WeeklyReviewScreen() {
     >
       <SafeAreaView style={styles.container} edges={['top']}>
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          {error ? (
+            <ErrorBanner
+              title="Could not save"
+              message={error}
+              onRetry={handleSubmit}
+            />
+          ) : null}
           <WeeklySummary summary={data.aiSummary} />
-          
+
           <View style={styles.questionsContainer}>
             <ReviewQuestionInput
-              question="What worked well this week?"
-              value={answers.question1}
-              onChangeText={(text) => setAnswers({ ...answers, question1: text })}
-              placeholder="Share what went well..."
+              question="What shipped this week?"
+              value={answers.shipped}
+              onChangeText={(text) => setAnswers({ ...answers, shipped: text })}
+              placeholder="What actually left your desk…"
             />
             <ReviewQuestionInput
-              question="What didn't work?"
-              value={answers.question2}
-              onChangeText={(text) => setAnswers({ ...answers, question2: text })}
-              placeholder="What challenges did you face?"
+              question="What improved?"
+              value={answers.improved}
+              onChangeText={(text) => setAnswers({ ...answers, improved: text })}
+              placeholder="A habit, a system, a skill…"
             />
             <ReviewQuestionInput
-              question="What should change next week?"
-              value={answers.question3}
-              onChangeText={(text) => setAnswers({ ...answers, question3: text })}
-              placeholder="What adjustments will you make?"
+              question="What did you stay away from?"
+              value={answers.avoided}
+              onChangeText={(text) => setAnswers({ ...answers, avoided: text })}
+              placeholder="The thing you chose not to feed…"
             />
             <ReviewQuestionInput
-              question="One commitment for next week?"
-              value={answers.question4}
-              onChangeText={(text) => setAnswers({ ...answers, question4: text })}
-              placeholder="Make one clear commitment..."
+              question="Next week's focus?"
+              value={answers.nextFocus}
+              onChangeText={(text) => setAnswers({ ...answers, nextFocus: text })}
+              placeholder="One clear focus…"
             />
           </View>
 
-          <SubmitReviewButton
-            onPress={handleSubmit}
-            loading={loading}
-            disabled={!answers.question1 || !answers.question2 || !answers.question3 || !answers.question4}
-          />
+          <SubmitReviewButton onPress={handleSubmit} loading={loading} disabled={!ready} />
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>

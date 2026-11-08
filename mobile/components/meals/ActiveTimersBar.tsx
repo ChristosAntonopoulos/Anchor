@@ -46,8 +46,8 @@ export function ActiveTimersBar() {
       <View style={styles.copy}>
         <Text style={styles.title} numberOfLines={1}>
           {running.length
-            ? `${running.length} χρονομετρητ${running.length === 1 ? 'ής' : 'ές'} μαγειρέματος`
-            : 'Βήμα έτοιμο'}
+            ? `${running.length} cooking timer${running.length === 1 ? '' : 's'}`
+            : 'Step ready'}
         </Text>
         <Text style={styles.sub} numberOfLines={1}>
           {running

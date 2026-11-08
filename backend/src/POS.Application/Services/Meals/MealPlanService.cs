@@ -184,7 +184,7 @@ public class MealPlanService
         var planDto = await EnsureCurrentWeekAsync(userId);
         var plan = await FindWeekPlanAsync(userId, UserDayClock.StartOfWeekMonday(today), UserDayClock.StartOfWeekMonday(today).AddDays(6));
         if (plan == null)
-            return new TodayMealCardDto { ActionableReminder = "Δεν υπάρχει προγραμματισμένο γεύμα για σήμερα." };
+            return new TodayMealCardDto { ActionableReminder = "No meal planned for today." };
 
         var todaySlots = plan.Slots
             .Where(s => IsSameLocalDate(s.LocalDate, today))
@@ -199,8 +199,8 @@ public class MealPlanService
                 PlanId = plan.Id,
                 NextMeal = null,
                 ActionableReminder = todaySlots.Count == 0
-                    ? "Δεν υπάρχει προγραμματισμένο γεύμα για σήμερα."
-                    : "Όλα τα σημερινά γεύματα ολοκληρώθηκαν.",
+                    ? "No meal planned for today."
+                    : "All of today’s meals are done.",
                 HasUnconfirmedIngredients = false,
             };
         }
@@ -279,7 +279,7 @@ public class MealPlanService
                 {
                     dishName = string.IsNullOrWhiteSpace(previousDinner.RecipeName)
                         ? dish.Name
-                        : $"Υπολείμματα: {previousDinner.RecipeName}";
+                        : $"Leftovers: {previousDinner.RecipeName}";
                     slot.SourceMealSlotId = previousDinner.Id;
                     slot.Kind = MealKind.Leftovers;
                 }
@@ -316,45 +316,45 @@ public class MealPlanService
     {
         DayOfWeek.Monday =>
         [
-            new(MealSlotKind.Breakfast, MealKind.NoCook, "Γιαούρτι με μέλι", "Γρήγορο πρωινό"),
-            new(MealSlotKind.Lunch, MealKind.FreshCook, "Χωριάτικη σαλάτα", "Ελαφρύ μεσημεριανό"),
-            new(MealSlotKind.Dinner, MealKind.FreshCook, "Φακές σούπα", "Κυρίως πιάτο"),
+            new(MealSlotKind.Breakfast, MealKind.NoCook, "Yogurt with honey", "Quick breakfast"),
+            new(MealSlotKind.Lunch, MealKind.FreshCook, "Village salad", "Light lunch"),
+            new(MealSlotKind.Dinner, MealKind.FreshCook, "Lentil soup", "Main"),
         ],
         DayOfWeek.Tuesday =>
         [
-            new(MealSlotKind.Breakfast, MealKind.FreshCook, "Αυγά μάτια", "Πρωινό με πρωτεΐνη"),
-            new(MealSlotKind.Lunch, MealKind.Leftovers, "Υπολείμματα φακές", "Χρήση χθεσινού"),
-            new(MealSlotKind.Dinner, MealKind.FreshCook, "Μακαρόνια με σάλτσα", "Κυρίως πιάτο"),
+            new(MealSlotKind.Breakfast, MealKind.FreshCook, "Fried eggs", "Protein breakfast"),
+            new(MealSlotKind.Lunch, MealKind.Leftovers, "Lentil leftovers", "Use yesterday"),
+            new(MealSlotKind.Dinner, MealKind.FreshCook, "Pasta with sauce", "Main"),
         ],
         DayOfWeek.Wednesday =>
         [
-            new(MealSlotKind.Breakfast, MealKind.NoCook, "Γιαούρτι με μέλι", "Γρήγορο πρωινό"),
-            new(MealSlotKind.Lunch, MealKind.FreshCook, "Ρύζι με λαχανικά", "Μεσημεριανό"),
-            new(MealSlotKind.Dinner, MealKind.FreshCook, "Κοτόπουλο λεμονάτο", "Κυρίως πιάτο"),
+            new(MealSlotKind.Breakfast, MealKind.NoCook, "Yogurt with honey", "Quick breakfast"),
+            new(MealSlotKind.Lunch, MealKind.FreshCook, "Rice with vegetables", "Lunch"),
+            new(MealSlotKind.Dinner, MealKind.FreshCook, "Lemon chicken", "Main"),
         ],
         DayOfWeek.Thursday =>
         [
-            new(MealSlotKind.Breakfast, MealKind.FreshCook, "Ομελέτα", "Πρωινό με πρωτεΐνη"),
-            new(MealSlotKind.Lunch, MealKind.FreshCook, "Χωριάτικη σαλάτα", "Ελαφρύ μεσημεριανό"),
-            new(MealSlotKind.Dinner, MealKind.FreshCook, "Φακές σούπα", "Κυρίως πιάτο"),
+            new(MealSlotKind.Breakfast, MealKind.FreshCook, "Omelette", "Protein breakfast"),
+            new(MealSlotKind.Lunch, MealKind.FreshCook, "Village salad", "Light lunch"),
+            new(MealSlotKind.Dinner, MealKind.FreshCook, "Lentil soup", "Main"),
         ],
         DayOfWeek.Friday =>
         [
-            new(MealSlotKind.Breakfast, MealKind.NoCook, "Γιαούρτι με μέλι", "Γρήγορο πρωινό"),
-            new(MealSlotKind.Lunch, MealKind.Leftovers, "Υπολείμματα φακές", "Χρήση χθεσινού"),
-            new(MealSlotKind.Dinner, MealKind.FreshCook, "Μακαρόνια με σάλτσα", "Κυρίως πιάτο"),
+            new(MealSlotKind.Breakfast, MealKind.NoCook, "Yogurt with honey", "Quick breakfast"),
+            new(MealSlotKind.Lunch, MealKind.Leftovers, "Lentil leftovers", "Use yesterday"),
+            new(MealSlotKind.Dinner, MealKind.FreshCook, "Pasta with sauce", "Main"),
         ],
         DayOfWeek.Saturday =>
         [
-            new(MealSlotKind.Breakfast, MealKind.FreshCook, "Αυγά μάτια", "Σαββατιάτικο πρωινό"),
-            new(MealSlotKind.Lunch, MealKind.FreshCook, "Χωριάτικη σαλάτα", "Ελαφρύ μεσημεριανό"),
-            new(MealSlotKind.Dinner, MealKind.FreshCook, "Κοτόπουλο λεμονάτο", "Κυρίως πιάτο"),
+            new(MealSlotKind.Breakfast, MealKind.FreshCook, "Fried eggs", "Saturday breakfast"),
+            new(MealSlotKind.Lunch, MealKind.FreshCook, "Village salad", "Light lunch"),
+            new(MealSlotKind.Dinner, MealKind.FreshCook, "Lemon chicken", "Main"),
         ],
         _ =>
         [
-            new(MealSlotKind.Breakfast, MealKind.NoCook, "Γιαούρτι με μέλι", "Κυριακάτικο πρωινό"),
-            new(MealSlotKind.Lunch, MealKind.FreshCook, "Ρύζι με λαχανικά", "Μεσημεριανό"),
-            new(MealSlotKind.Dinner, MealKind.FreshCook, "Μακαρόνια με σάλτσα", "Κυρίως πιάτο"),
+            new(MealSlotKind.Breakfast, MealKind.NoCook, "Yogurt with honey", "Sunday breakfast"),
+            new(MealSlotKind.Lunch, MealKind.FreshCook, "Rice with vegetables", "Lunch"),
+            new(MealSlotKind.Dinner, MealKind.FreshCook, "Pasta with sauce", "Main"),
         ]
     };
 
@@ -369,8 +369,8 @@ public class MealPlanService
         };
         var start = mealLocal.AddMinutes(-(slot.TotalMinutes ?? slot.HandsonMinutes ?? 0));
         return start <= nowLocal
-            ? "Ξεκινήστε τώρα"
-            : $"Ξεκινήστε στις {start:HH:mm}";
+            ? "Start now"
+            : $"Start at {start:HH:mm}";
     }
 
     private async Task<MealPlanDto> MapToDtoAsync(MealPlan plan, string userId)

@@ -26,25 +26,25 @@ import { useMealsStore } from '../../../store/useMealsStore';
 import { ChipSelector } from '../../../components/meals/shared/ChipSelector';
 
 const LOCATION_OPTIONS = [
-  { id: 'Fridge', label: 'Ψυγείο' },
-  { id: 'Freezer', label: 'Καταψύκτης' },
-  { id: 'Cupboard', label: 'Ντουλάπι' },
+  { id: 'Fridge', label: 'Fridge' },
+  { id: 'Freezer', label: 'Freezer' },
+  { id: 'Cupboard', label: 'Cupboard' },
 ];
 
 const DATE_TYPE_OPTIONS = [
-  { id: 'UseBy', label: 'Ανάλωση έως' },
-  { id: 'BestBefore', label: 'Βέλτιστη ποιότητα έως' },
-  { id: 'NoPrintedDate', label: 'Χωρίς ημερομηνία' },
-  { id: 'Unknown', label: 'Δεν ξέρω' },
+  { id: 'UseBy', label: 'Use by' },
+  { id: 'BestBefore', label: 'Best before' },
+  { id: 'NoPrintedDate', label: 'No printed date' },
+  { id: 'Unknown', label: 'I do not know' },
 ];
 
 const UNIT_OPTIONS = [
-  { id: 'g', label: 'γρ' },
-  { id: 'kg', label: 'κιλά' },
+  { id: 'g', label: 'g' },
+  { id: 'kg', label: 'kg' },
   { id: 'ml', label: 'ml' },
   { id: 'L', label: 'L' },
-  { id: 'pieces', label: 'τεμ.' },
-  { id: 'portions', label: 'μερίδες' },
+  { id: 'pieces', label: 'pcs' },
+  { id: 'portions', label: 'portions' },
 ];
 
 export default function AddItemScreen() {
@@ -90,7 +90,7 @@ export default function AddItemScreen() {
         router.back();
       }
     } catch {
-      Alert.alert('Σφάλμα', 'Δεν ήταν δυνατή η αποθήκευση. Δοκίμασε ξανά.');
+      Alert.alert('Error', 'Could not save. Try again.');
     } finally {
       setSaving(false);
     }
@@ -103,17 +103,17 @@ export default function AddItemScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Προσθήκη τροφίμου</Text>
+          <Text style={styles.headerTitle}>Add food</Text>
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.section}>
-            <Text style={styles.fieldLabel}>ΠΡΟΪΟΝ *</Text>
+            <Text style={styles.fieldLabel}>ITEM *</Text>
             <TextInput
               style={styles.textInput}
               value={name}
               onChangeText={setName}
-              placeholder="π.χ. Κοτόπουλο στήθος, Γιαούρτι, Σπανάκι"
+              placeholder="e.g. Chicken breast, yogurt, spinach"
               placeholderTextColor={colors.textSecondary}
               autoFocus
               returnKeyType="next"
@@ -121,7 +121,7 @@ export default function AddItemScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.fieldLabel}>ΠΟΣΟΤΗΤΑ</Text>
+            <Text style={styles.fieldLabel}>AMOUNT</Text>
             <View style={styles.amountRow}>
               <TextInput
                 style={[styles.textInput, styles.amountInput]}
@@ -141,7 +141,7 @@ export default function AddItemScreen() {
               />
             </View>
             <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>Κατά προσέγγιση ποσότητα</Text>
+              <Text style={styles.switchLabel}>Approximate amount</Text>
               <Switch
                 value={isApproximate}
                 onValueChange={setIsApproximate}
@@ -153,7 +153,7 @@ export default function AddItemScreen() {
 
           <View style={styles.section}>
             <ChipSelector
-              label="ΑΠΟΘΗΚΕΥΣΗ ΣΕ"
+              label="STORE IN"
               options={LOCATION_OPTIONS}
               selected={location}
               onToggle={(id) => setLocation([id])}
@@ -163,25 +163,25 @@ export default function AddItemScreen() {
 
           <View style={styles.section}>
             <ChipSelector
-              label="ΤΥΠΟΣ ΗΜΕΡΟΜΗΝΙΑΣ"
+              label="DATE TYPE"
               options={DATE_TYPE_OPTIONS}
               selected={dateType}
               onToggle={(id) => setDateType([id])}
               multiSelect={false}
-              hint="Χρησιμοποίησε τον ακριβή τύπο από τη συσκευασία"
+              hint="Use the exact type from the pack"
             />
             {dateType[0] !== 'NoPrintedDate' && dateType[0] !== 'Unknown' && (
               <View style={styles.dateInputWrapper}>
-                <Text style={styles.fieldLabel}>ΗΜΕΡΟΜΗΝΙΑ ΑΠΟ ΣΥΣΚΕΥΑΣΙΑ</Text>
+                <Text style={styles.fieldLabel}>DATE ON PACK</Text>
                 <TextInput
                   style={styles.textInput}
                   value={printedDateText}
                   onChangeText={setPrintedDateText}
-                  placeholder="π.χ. 15/11/2026"
+                  placeholder="e.g. 15/11/2026"
                   placeholderTextColor={colors.textSecondary}
                 />
                 <Text style={styles.hint}>
-                  Γράψε ακριβώς αυτό που βλέπεις στη συσκευασία
+                  Type exactly what you see on the pack
                 </Text>
               </View>
             )}
@@ -190,8 +190,8 @@ export default function AddItemScreen() {
           <View style={styles.section}>
             <View style={styles.switchRow}>
               <View>
-                <Text style={styles.switchLabel}>Ανοιγμένο;</Text>
-                <Text style={styles.switchSub}>Επηρεάζει τη διάρκεια ζωής</Text>
+                <Text style={styles.switchLabel}>Opened?</Text>
+                <Text style={styles.switchSub}>This changes how long it keeps</Text>
               </View>
               <Switch
                 value={isOpened}
@@ -203,12 +203,12 @@ export default function AddItemScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.fieldLabel}>ΣΗΜΕΙΩΣΕΙΣ (ΠΡΟΑΙΡΕΤΙΚΟ)</Text>
+            <Text style={styles.fieldLabel}>NOTES (OPTIONAL)</Text>
             <TextInput
               style={[styles.textInput, styles.notesInput]}
               value={notes}
               onChangeText={setNotes}
-              placeholder="π.χ. Ξεπαγωμένο χθες, Αγορά από λαϊκή"
+              placeholder="e.g. Thawed yesterday, bought at the market"
               placeholderTextColor={colors.textSecondary}
               multiline
               numberOfLines={3}
@@ -218,7 +218,7 @@ export default function AddItemScreen() {
           <View style={styles.note}>
             <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
             <Text style={styles.noteText}>
-              Άγνωστη ημερομηνία παραμένει άγνωστη — δεν γίνεται εικασία για την ασφάλεια τροφίμων.
+              Unknown stays unknown — this app will not guess food safety.
             </Text>
           </View>
 
@@ -232,7 +232,7 @@ export default function AddItemScreen() {
               {saving ? (
                 <ActivityIndicator size="small" color={colors.background} />
               ) : (
-                <Text style={styles.saveBtnText}>Προσθήκη τροφίμου</Text>
+                <Text style={styles.saveBtnText}>Add food</Text>
               )}
             </TouchableOpacity>
             <TouchableOpacity
@@ -241,7 +241,7 @@ export default function AddItemScreen() {
               disabled={!canSave || saving}
               activeOpacity={0.8}
             >
-              <Text style={styles.addMoreBtnText}>Προσθήκη κι άλλου</Text>
+              <Text style={styles.addMoreBtnText}>Add another</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

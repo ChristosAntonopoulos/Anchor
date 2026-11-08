@@ -62,11 +62,11 @@ export default function CookSessionScreen() {
         await fetchActivePlan();
         plan = useMealsStore.getState().activePlan;
       }
-      if (!plan) throw new Error('Δεν υπάρχει ενεργό πλάνο');
+      if (!plan) throw new Error('No active plan');
       const data = await cookReady(plan.id, slotId);
       setReady(data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Αποτυχία φόρτωσης συνταγής');
+      setError(e instanceof Error ? e.message : 'Failed to load recipe');
     } finally {
       setLoading(false);
     }
@@ -109,7 +109,7 @@ export default function CookSessionScreen() {
     await startTimer({
       slotId: ready.slot.id,
       planId: ready.planId,
-      recipeName: ready.recipe.nameEl,
+      recipeName: ready.recipe.nameEn || recipe.nameEl,
       stepNumber: step.stepNumber,
       action: step.action,
       durationMinutes: step.durationMinutes || 1,
@@ -124,7 +124,7 @@ export default function CookSessionScreen() {
       clearSlot(ready.slot.id);
       router.back();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Αποτυχία ολοκλήρωσης');
+      setError(e instanceof Error ? e.message : 'Failed to finish');
     } finally {
       setFinishing(false);
     }
@@ -138,9 +138,9 @@ export default function CookSessionScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Μαγείρεμα</Text>
+            <Text style={styles.headerTitle}>Cooking</Text>
             <Text style={styles.headerSub} numberOfLines={1}>
-              {recipe?.nameEl ?? 'Φόρτωση συνταγής'}
+              {(recipe?.nameEn || recipe?.nameEl) ?? 'Loading recipe'}
             </Text>
           </View>
         </View>
@@ -149,7 +149,7 @@ export default function CookSessionScreen() {
           <View style={styles.otherBar}>
             <Ionicons name="layers-outline" size={16} color={colors.category.work} />
             <Text style={styles.otherText} numberOfLines={1}>
-              Τρέχει επίσης: {otherTimers.map((t) => `${t.recipeName} ${formatRemain(t.endsAt - Date.now())}`).join(' · ')}
+              Also running: {otherTimers.map((t) => `${t.recipeName} ${formatRemain(t.endsAt - Date.now())}`).join(' · ')}
             </Text>
           </View>
         )}
@@ -157,13 +157,13 @@ export default function CookSessionScreen() {
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator size="large" color={colors.category.health} />
-            <Text style={styles.loadingText}>Ετοιμάζω βήματα και χρόνους…</Text>
+            <Text style={styles.loadingText}>Preparing steps and times…</Text>
           </View>
         ) : error ? (
           <View style={styles.center}>
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity style={styles.retry} onPress={() => void load()}>
-              <Text style={styles.retryText}>Δοκίμασε ξανά</Text>
+              <Text style={styles.retryText}>Try again</Text>
             </TouchableOpacity>
           </View>
         ) : recipe ? (
@@ -184,17 +184,17 @@ export default function CookSessionScreen() {
             )}
 
             <View style={styles.card}>
-              <Text style={styles.section}>Υλικά · {recipe.yieldServings} μερίδες</Text>
+              <Text style={styles.section}>Ingredients · {recipe.yieldServings} servings</Text>
               {recipe.ingredients.map((ing, i) => (
                 <Text key={`${ing.rawName}-${i}`} style={styles.ingredient}>
                   {ing.amount ? `${ing.amount} ${ing.unit ?? ''} `.trim() + ' ' : ''}
                   {ing.rawName}
-                  {ing.isOptional ? ' (προαιρετικό)' : ''}
+                  {ing.isOptional ? ' (optional)' : ''}
                 </Text>
               ))}
             </View>
 
-            <Text style={styles.section}>Βήματα</Text>
+            <Text style={styles.section}>Steps</Text>
             {recipe.steps
               .slice()
               .sort((a, b) => a.stepNumber - b.stepNumber)
@@ -224,17 +224,17 @@ export default function CookSessionScreen() {
                         <View style={styles.stepMeta}>
                           {isTimer && (
                             <Text style={styles.meta}>
-                              {step.isActive ? 'Χρονομετρητής' : 'Χειρισμός'} · {step.durationMinutes} λεπτά
+                              {step.isActive ? 'Timer' : 'Hands-on'} · {step.durationMinutes} min
                             </Text>
                           )}
                           {(step.dependsOnSteps?.length ?? 0) > 0 && (
-                            <Text style={styles.meta}>μετά από {step.dependsOnSteps.join(', ')}</Text>
+                            <Text style={styles.meta}>after {step.dependsOnSteps.join(', ')}</Text>
                           )}
                         </View>
                         {timer?.status === 'running' && (
                           <Text style={styles.countdown}>{formatRemain(timer.endsAt - Date.now())}</Text>
                         )}
-                        {ringing && <Text style={styles.readyLabel}>Έτοιμο — σήμανε</Text>}
+                        {ringing && <Text style={styles.readyLabel}>Ready — it rang</Text>}
                       </View>
                     </View>
                     {!done && (
@@ -247,7 +247,7 @@ export default function CookSessionScreen() {
                           >
                             <Ionicons name="play" size={14} color={colors.background} />
                             <Text style={styles.smallBtnText}>
-                              {timer?.status === 'done' ? 'Ξανά' : 'Ξεκίνα χρόνο'}
+                              {timer?.status === 'done' ? 'Again' : 'Start timer'}
                             </Text>
                           </TouchableOpacity>
                         )}
@@ -256,7 +256,7 @@ export default function CookSessionScreen() {
                           disabled={blocked}
                           onPress={() => markStepDone(slotId, step.stepNumber)}
                         >
-                          <Text style={styles.smallBtnGhostText}>Έγινε</Text>
+                          <Text style={styles.smallBtnGhostText}>Done</Text>
                         </TouchableOpacity>
                       </View>
                     )}
@@ -275,7 +275,7 @@ export default function CookSessionScreen() {
                 <>
                   <Ionicons name="checkmark-circle" size={20} color={colors.background} />
                   <Text style={styles.finishText}>
-                    {allDone ? 'Ολοκλήρωση μαγειρέματος' : 'Ολοκλήρωσε χωρίς όλα τα βήματα'}
+                    {allDone ? 'Finish cooking' : 'Finish without every step'}
                   </Text>
                 </>
               )}

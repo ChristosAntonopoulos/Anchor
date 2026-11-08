@@ -56,7 +56,7 @@ public class FoodProfile : EntityBase
     public string Timezone { get; set; } = "Europe/Athens";
 
     [BsonElement("locale")]
-    public string Locale { get; set; } = "el-GR";
+    public string Locale { get; set; } = "en-GB";
 
     [BsonElement("version")]
     public int Version { get; set; } = 1;

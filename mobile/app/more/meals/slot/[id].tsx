@@ -15,18 +15,18 @@ import {
 import { useMealsStore } from '../../../../store/useMealsStore';
 
 const SLOT_LABELS: Record<string, string> = {
-  Breakfast: 'Πρωινό',
-  Lunch: 'Μεσημεριανό',
-  Dinner: 'Βραδινό',
-  Snack: 'Σνακ',
+  Breakfast: 'Breakfast',
+  Lunch: 'Lunch',
+  Dinner: 'Dinner',
+  Snack: 'Snack',
 };
 
 const KIND_LABELS: Record<string, string> = {
-  FreshCook: 'Μαγείρεμα',
-  Leftovers: 'Υπολείμματα',
-  FrozenPortion: 'Κατεψυγμένο',
-  NoCook: 'Χωρίς μαγείρεμα',
-  EatingOut: 'Εξω',
+  FreshCook: 'Cook',
+  Leftovers: 'Leftovers',
+  FrozenPortion: 'Frozen',
+  NoCook: 'No cook',
+  EatingOut: 'Eating out',
 };
 
 export default function MealSlotScreen() {
@@ -49,11 +49,11 @@ export default function MealSlotScreen() {
           </TouchableOpacity>
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>
-              {slot ? SLOT_LABELS[slot.slot] ?? slot.slot : 'Γεύμα'}
+              {slot ? SLOT_LABELS[slot.slot] ?? slot.slot : 'Meal'}
             </Text>
             {slot?.localDate && (
               <Text style={styles.headerSub}>
-                {new Date(slot.localDate + 'T00:00:00').toLocaleDateString('el-GR', {
+                {new Date(slot.localDate + 'T00:00:00').toLocaleDateString('en-GB', {
                   weekday: 'long',
                   day: 'numeric',
                   month: 'long',
@@ -66,7 +66,7 @@ export default function MealSlotScreen() {
         <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
           {!slot ? (
             <View style={styles.notFound}>
-              <Text style={styles.notFoundText}>Το γεύμα δεν βρέθηκε</Text>
+              <Text style={styles.notFoundText}>Meal not found</Text>
             </View>
           ) : (
             <>
@@ -79,13 +79,13 @@ export default function MealSlotScreen() {
                     {slot.handsonMinutes && (
                       <View style={styles.metaItem}>
                         <Ionicons name="hand-left-outline" size={14} color={colors.textSecondary} />
-                        <Text style={styles.metaText}>{slot.handsonMinutes} λεπτά χειρισμός</Text>
+                        <Text style={styles.metaText}>{slot.handsonMinutes} min hands-on</Text>
                       </View>
                     )}
                     {slot.totalMinutes && (
                       <View style={styles.metaItem}>
                         <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
-                        <Text style={styles.metaText}>{slot.totalMinutes} λεπτά σύνολο</Text>
+                        <Text style={styles.metaText}>{slot.totalMinutes} min total</Text>
                       </View>
                     )}
                   </View>
@@ -97,13 +97,13 @@ export default function MealSlotScreen() {
                   </View>
                 )}
                 <View style={styles.statusRow}>
-                  <Text style={styles.statusLabel}>Κατάσταση:</Text>
+                  <Text style={styles.statusLabel}>Status:</Text>
                   <Text style={styles.statusValue}>{slot.state}</Text>
                 </View>
                 {slot.locked && (
                   <View style={styles.lockedRow}>
                     <Ionicons name="lock-closed" size={14} color={colors.textSecondary} />
-                    <Text style={styles.lockedText}>Κλειδωμένο γεύμα</Text>
+                    <Text style={styles.lockedText}>Locked meal</Text>
                   </View>
                 )}
               </View>
@@ -116,7 +116,7 @@ export default function MealSlotScreen() {
                     onPress={() => router.push(`/more/meals/cook/${slot.id}` as any)}
                   >
                     <Ionicons name="play" size={18} color={colors.background} />
-                    <Text style={styles.startBtnText}>Ξεκίνα μαγείρεμα</Text>
+                    <Text style={styles.startBtnText}>Start cooking</Text>
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity
@@ -125,7 +125,7 @@ export default function MealSlotScreen() {
                   onPress={() => router.push(`/more/meals/change/${slot.id}` as any)}
                 >
                   <Ionicons name="swap-horizontal" size={18} color={colors.category.work} />
-                  <Text style={styles.changeBtnText}>Αλλαγή γεύματος</Text>
+                  <Text style={styles.changeBtnText}>Change meal</Text>
                 </TouchableOpacity>
                 {!slot.locked && (
                   <TouchableOpacity
@@ -138,7 +138,7 @@ export default function MealSlotScreen() {
                     }}
                   >
                     <Ionicons name="lock-closed-outline" size={18} color={colors.textSecondary} />
-                    <Text style={styles.lockBtnText}>Κλείδωμα</Text>
+                    <Text style={styles.lockBtnText}>Lock</Text>
                   </TouchableOpacity>
                 )}
               </View>

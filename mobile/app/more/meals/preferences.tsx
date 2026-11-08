@@ -25,40 +25,40 @@ import { ChipSelector } from '../../../components/meals/shared/ChipSelector';
 import { StepperField } from '../../../components/meals/shared/StepperField';
 
 const EQUIPMENT_OPTIONS = [
-  { id: 'oven', label: 'Φούρνος' },
-  { id: 'hob', label: 'Εστία' },
-  { id: 'microwave', label: 'Μικροκύματα' },
+  { id: 'oven', label: 'Oven' },
+  { id: 'hob', label: 'Hob' },
+  { id: 'microwave', label: 'Microwave' },
   { id: 'airfryer', label: 'Air Fryer' },
   { id: 'ricecooker', label: 'Rice Cooker' },
 ];
 
 const EFFORT_OPTIONS = [
-  { id: '10', label: '10 λεπτά' },
-  { id: '20', label: '20 λεπτά' },
-  { id: '30', label: '30 λεπτά' },
-  { id: '45', label: '45 λεπτά' },
+  { id: '10', label: '10 min' },
+  { id: '20', label: '20 min' },
+  { id: '30', label: '30 min' },
+  { id: '45', label: '45 min' },
 ];
 
 const LEFTOVER_OPTIONS = [
-  { id: 'HappyToRepeat', label: 'Χαίρομαι να επαναλαμβάνω' },
-  { id: 'OneRepeat', label: 'Μία επανάληψη' },
-  { id: 'PreferFresh', label: 'Προτιμώ φρέσκα' },
+  { id: 'HappyToRepeat', label: 'Happy to repeat' },
+  { id: 'OneRepeat', label: 'One repeat' },
+  { id: 'PreferFresh', label: 'Prefer fresh' },
 ];
 
 const EXPLORATION_OPTIONS = [
-  { id: 'MostlyFamiliar', label: 'Κυρίως γνωστά' },
-  { id: 'Mixed', label: 'Ανάμεικτα' },
-  { id: 'Explore', label: 'Εξερεύνηση' },
+  { id: 'MostlyFamiliar', label: 'Mostly familiar' },
+  { id: 'Mixed', label: 'Mixed' },
+  { id: 'Explore', label: 'Explore' },
 ];
 
 const SHOPPING_DAYS = [
-  { id: 'Mon', label: 'Δευ' },
-  { id: 'Tue', label: 'Τρι' },
-  { id: 'Wed', label: 'Τετ' },
-  { id: 'Thu', label: 'Πεμ' },
-  { id: 'Fri', label: 'Παρ' },
-  { id: 'Sat', label: 'Σαβ' },
-  { id: 'Sun', label: 'Κυρ' },
+  { id: 'Mon', label: 'Mon' },
+  { id: 'Tue', label: 'Tue' },
+  { id: 'Wed', label: 'Wed' },
+  { id: 'Thu', label: 'Thu' },
+  { id: 'Fri', label: 'Fri' },
+  { id: 'Sat', label: 'Sat' },
+  { id: 'Sun', label: 'Sun' },
 ];
 
 export default function PreferencesScreen() {
@@ -109,7 +109,7 @@ export default function PreferencesScreen() {
       });
       router.back();
     } catch (e) {
-      Alert.alert('Σφάλμα', 'Δεν ήταν δυνατή η αποθήκευση. Δοκίμασε ξανά.');
+      Alert.alert('Error', 'Could not save. Try again.');
     } finally {
       setSaving(false);
     }
@@ -132,41 +132,41 @@ export default function PreferencesScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Προτιμήσεις Γεύματος</Text>
+          <Text style={styles.headerTitle}>Meal preferences</Text>
         </View>
-        <Text style={styles.subtitle}>Κάν' το πιο εύκολο για σένα · Μπορείς να αλλάξεις οτιδήποτε αργότερα</Text>
+        <Text style={styles.subtitle}>Make it easier for you. You can change anything later.</Text>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Για ποιους μαγειρεύω;</Text>
+            <Text style={styles.sectionTitle}>Who am I cooking for?</Text>
 
             <StepperField
-              label="Μερίδες"
+              label="Servings"
               value={servings}
               onDecrement={() => setServings(Math.max(1, servings - 1))}
               onIncrement={() => setServings(Math.min(10, servings + 1))}
               min={1}
               max={10}
-              unit="άτομα"
+              unit="people"
             />
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Χρόνος μαγειρέματος</Text>
+            <Text style={styles.sectionTitle}>Cooking time</Text>
             <ChipSelector
-              label="Τυπικός χρόνος χειρισμού (Δευτ–Παρ)"
+              label="Typical hands-on time (Mon–Fri)"
               options={EFFORT_OPTIONS}
               selected={effortMinutes}
               onToggle={(id) => setEffortMinutes([id])}
               multiSelect={false}
-              hint="Χρόνος που είσαι ενεργά στην κουζίνα, όχι συνολικός"
+              hint="Time you are actually in the kitchen, not the whole cook"
             />
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Εξοπλισμός κουζίνας</Text>
+            <Text style={styles.sectionTitle}>Kitchen equipment</Text>
             <ChipSelector
-              label="Διαθέσιμος εξοπλισμός"
+              label="Available equipment"
               options={EQUIPMENT_OPTIONS}
               selected={equipment}
               onToggle={(id) =>
@@ -178,28 +178,28 @@ export default function PreferencesScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Υπολείμματα &amp; ποικιλία</Text>
+            <Text style={styles.sectionTitle}>Leftovers & variety</Text>
             <ChipSelector
-              label="Υπολείμματα"
+              label="Leftovers"
               options={LEFTOVER_OPTIONS}
               selected={leftoverPref}
               onToggle={(id) => setLeftoverPref([id])}
               multiSelect={false}
             />
             <ChipSelector
-              label="Εξερεύνηση συνταγών"
+              label="Recipe exploration"
               options={EXPLORATION_OPTIONS}
               selected={exploration}
               onToggle={(id) => setExploration([id])}
               multiSelect={false}
-              hint="Προεπιλογή: Κυρίως γνωστά"
+              hint="Default: mostly familiar"
             />
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Ψώνια</Text>
+            <Text style={styles.sectionTitle}>Shopping</Text>
             <ChipSelector
-              label="Προτιμώμενες μέρες αγορών"
+              label="Preferred shopping days"
               options={SHOPPING_DAYS}
               selected={shoppingDays}
               onToggle={(id) =>
@@ -215,7 +215,7 @@ export default function PreferencesScreen() {
           <View style={styles.note}>
             <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
             <Text style={styles.noteText}>
-              Αλλεργίες &amp; αποφυγές: Θα σε ρωτήσω όταν χρειαστεί. Δεν θα υποθέσω ποτέ ότι δεν υπάρχουν.
+              Allergies and avoidances: I will ask when needed. I will never assume there are none.
             </Text>
           </View>
 
@@ -229,11 +229,11 @@ export default function PreferencesScreen() {
               {saving ? (
                 <ActivityIndicator size="small" color={colors.background} />
               ) : (
-                <Text style={styles.saveBtnText}>Αποθήκευση προτιμήσεων</Text>
+                <Text style={styles.saveBtnText}>Save preferences</Text>
               )}
             </TouchableOpacity>
             <TouchableOpacity onPress={() => router.back()} style={styles.skipBtn}>
-              <Text style={styles.skipBtnText}>Συνέχεια χωρίς ολοκλήρωση</Text>
+              <Text style={styles.skipBtnText}>Continue without finishing</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

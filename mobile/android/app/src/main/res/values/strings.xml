@@ -1,5 +1,11 @@
 <resources>
   <string name="app_name">Personal Operating System</string>
+  <string name="widget_now_description">Now — the next action</string>
+  <string name="widget_meal_description">Next meal</string>
+  <string name="widget_block_description">Current schedule block</string>
+  <string name="widget_now_label">Now</string>
+  <string name="widget_meal_label">Next meal</string>
+  <string name="widget_block_label">Current block</string>
   <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
   <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
 

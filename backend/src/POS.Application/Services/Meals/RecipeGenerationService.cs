@@ -63,7 +63,7 @@ public class RecipeGenerationService
                       "ingredients": [{"rawName":"...","amount":1,"unit":"g","isOptional":false}],
                       "steps": [{
                         "stepNumber": 1,
-                        "action": "Greek instruction, specific and short",
+                        "action": "English instruction, specific and short",
                         "durationMinutes": 8,
                         "isActive": true,
                         "dependsOnSteps": [],
@@ -75,8 +75,8 @@ public class RecipeGenerationService
                     - isActive=true means an unattended timer the cook watches (boil, simmer, bake, rest, soak).
                     - isActive=false means hands-on work; still set durationMinutes.
                     - Use dependsOnSteps so independent work can run in parallel (e.g. sauce while pasta water boils).
-                    - Actions in Greek. Realistic times. No empty ingredients.
-                    - Never use a placeholder ingredient name like "κύριο υλικό". Use the real food.
+                    - Actions, ingredient names, and dish names in English. Realistic times. No empty ingredients.
+                    - Never use a placeholder ingredient name like "main ingredient". Use the real food.
                     """,
                     JsonSerializer.Serialize(new { dishName = name, servings }),
                     ct);
@@ -117,7 +117,8 @@ public class RecipeGenerationService
         || string.Equals(rawName?.Trim(), "main ingredient", StringComparison.OrdinalIgnoreCase);
 
     public static bool IsGenericMealName(string? name) =>
-        string.Equals(name?.Trim(), "Γεύμα της ημέρας", StringComparison.OrdinalIgnoreCase);
+        string.Equals(name?.Trim(), "Γεύμα της ημέρας", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(name?.Trim(), "Meal of the day", StringComparison.OrdinalIgnoreCase);
 
     private static CreateRecipeRequest? TryParse(string? json)
     {
@@ -192,7 +193,7 @@ public class RecipeGenerationService
             return Skillet(name, servings);
         }
 
-        public static List<RecipeStepDto> GenericSteps() => Skillet("Γεύμα", 2).Steps;
+        public static List<RecipeStepDto> GenericSteps() => Skillet("Meal", 2).Steps;
 
         private static bool ContainsAny(string key, params string[] parts) =>
             parts.Any(p => key.Contains(p, StringComparison.Ordinal));
@@ -208,22 +209,22 @@ public class RecipeGenerationService
             Tags = new() { "soup", "weeknight" },
             Ingredients = new()
             {
-                I("φακές", 250 * servings / 2m, "g"),
-                I("κρεμμύδι", servings, "pcs"),
-                I("καρότο", servings, "pcs"),
-                I("σκόρδο", 2, "pcs"),
-                I("δάφνη", 1, "pcs", true),
-                I("ελαιόλαδο", 2, "tbsp"),
-                I("λεμόνι", 1, "pcs"),
-                I("αλάτι", 1, "tsp"),
+                I("lentils", 250 * servings / 2m, "g"),
+                I("onion", servings, "pcs"),
+                I("carrot", servings, "pcs"),
+                I("garlic", 2, "pcs"),
+                I("bay leaf", 1, "pcs", true),
+                I("olive oil", 2, "tbsp"),
+                I("lemon", 1, "pcs"),
+                I("salt", 1, "tsp"),
             },
             Steps = new()
             {
-                S(1, "Ξέπλυνε τις φακές μέχρι το νερό να βγει καθαρό.", 3, false, Array.Empty<int>(), "bowl"),
-                S(2, "Σοτάρισε κρεμμύδι, καρότο και σκόρδο στο ελαιόλαδο.", 8, true, Array.Empty<int>(), "pot"),
-                S(3, "Πρόσθεσε φακές, νερό και δάφνη. Άσε να πάρει βράση.", 10, true, new[] { 1, 2 }, "pot"),
-                S(4, "Σιγόβρασε μέχρι να μαλακώσουν οι φακές. Παράλληλα ετοίμασε λεμόνι και πιάτα.", 20, true, new[] { 3 }, "pot"),
-                S(5, "Αλάτι, λεμόνι, δοκίμασε και σερβίρισε.", 4, false, new[] { 4 }),
+                S(1, "Rinse the lentils until the water runs clear.", 3, false, Array.Empty<int>(), "bowl"),
+                S(2, "Saute onion, carrot and garlic in olive oil.", 8, true, Array.Empty<int>(), "pot"),
+                S(3, "Add lentils, water and bay leaf. Bring to a boil.", 10, true, new[] { 1, 2 }, "pot"),
+                S(4, "Simmer until the lentils soften. Meanwhile plate up lemon.", 20, true, new[] { 3 }, "pot"),
+                S(5, "Salt, lemon, taste and serve.", 4, false, new[] { 4 }),
             }
         };
 
@@ -238,19 +239,19 @@ public class RecipeGenerationService
             Tags = new() { "pasta", "parallel" },
             Ingredients = new()
             {
-                I("μακαρόνια", 100 * servings, "g"),
-                I("σκόρδο", 2, "pcs"),
-                I("ντομάτα", 400, "g"),
-                I("ελαιόλαδο", 2, "tbsp"),
-                I("βασιλικός", 1, "handful", true),
-                I("αλάτι", 1, "tsp"),
+                I("pasta", 100 * servings, "g"),
+                I("garlic", 2, "pcs"),
+                I("tomato", 400, "g"),
+                I("olive oil", 2, "tbsp"),
+                I("basil", 1, "handful", true),
+                I("salt", 1, "tsp"),
             },
             Steps = new()
             {
-                S(1, "Βάλε μεγάλη κατσαρόλα με αλατισμένο νερό να βράσει.", 8, true, Array.Empty<int>(), "pot"),
-                S(2, "Στην κατσαρόλα της σάλτσας, σοτάρισε σκόρδο και ντομάτα. Μπορεί να τρέχει μαζί με το νερό.", 12, true, Array.Empty<int>(), "pan"),
-                S(3, "Βράσε τα μακαρόνια al dente.", 10, true, new[] { 1 }, "pot"),
-                S(4, "Στραγγίζοντας κράτα λίγο νερό. Ανακάτεψε με τη σάλτσα, βασιλικό, σερβίρισε.", 4, false, new[] { 2, 3 }),
+                S(1, "Bring a large pot of salted water to a boil.", 8, true, Array.Empty<int>(), "pot"),
+                S(2, "In the sauce pan, saute garlic and tomato. This can run while the water heats.", 12, true, Array.Empty<int>(), "pan"),
+                S(3, "Boil the pasta al dente.", 10, true, new[] { 1 }, "pot"),
+                S(4, "Drain, keep a little pasta water. Toss with sauce and basil, then serve.", 4, false, new[] { 2, 3 }),
             }
         };
 
@@ -265,19 +266,19 @@ public class RecipeGenerationService
             Tags = new() { "protein" },
             Ingredients = new()
             {
-                I("κοτόπουλο", 150 * servings, "g"),
-                I("ελαιόλαδο", 2, "tbsp"),
-                I("λεμόνι", 1, "pcs"),
-                I("ρίγανη", 1, "tsp"),
-                I("αλάτι", 1, "tsp"),
+                I("chicken", 150 * servings, "g"),
+                I("olive oil", 2, "tbsp"),
+                I("lemon", 1, "pcs"),
+                I("oregano", 1, "tsp"),
+                I("salt", 1, "tsp"),
             },
             Steps = new()
             {
-                S(1, "Στέγνωσε το κοτόπουλο, αλάτι, ρίγανη, λεμόνι.", 5, false, Array.Empty<int>(), "board"),
-                S(2, "Ζέστανε το τηγάνι με ελαιόλαδο μέχρι να τσιτσιρίζει.", 3, true, Array.Empty<int>(), "pan"),
-                S(3, "Ψήσε την πρώτη πλευρά χωρίς να το κουνάς.", 7, true, new[] { 1, 2 }, "pan"),
-                S(4, "Γύρνα το και ψήσε μέχρι 74°C μέσα.", 8, true, new[] { 3 }, "pan"),
-                S(5, "Ξεκούρασε 3 λεπτά και σερβίρισε με λεμόνι.", 3, true, new[] { 4 }),
+                S(1, "Pat the chicken dry. Salt, oregano, lemon.", 5, false, Array.Empty<int>(), "board"),
+                S(2, "Heat the pan with olive oil until it sizzles.", 3, true, Array.Empty<int>(), "pan"),
+                S(3, "Sear the first side without moving it.", 7, true, new[] { 1, 2 }, "pan"),
+                S(4, "Flip and cook until 74°C inside.", 8, true, new[] { 3 }, "pan"),
+                S(5, "Rest 3 minutes and serve with lemon.", 3, true, new[] { 4 }),
             }
         };
 
@@ -292,17 +293,17 @@ public class RecipeGenerationService
             Tags = new() { "rice", "parallel" },
             Ingredients = new()
             {
-                I("ρύζι", 80 * servings, "g"),
-                I("λαχανικά", 200, "g"),
-                I("ελαιόλαδο", 1, "tbsp"),
-                I("αλάτι", 1, "tsp"),
+                I("rice", 80 * servings, "g"),
+                I("vegetables", 200, "g"),
+                I("olive oil", 1, "tbsp"),
+                I("salt", 1, "tsp"),
             },
             Steps = new()
             {
-                S(1, "Ξέπλυνε το ρύζι και βάλε το να βράσει σκεπασμένο.", 12, true, Array.Empty<int>(), "pot"),
-                S(2, "Σοτάρισε τα λαχανικά σε άλλο τηγάνι όσο βράζει το ρύζι.", 10, true, Array.Empty<int>(), "pan"),
-                S(3, "Άσε το ρύζι σκεπασμένο εκτός φωτιάς να φουσκώσει.", 5, true, new[] { 1 }, "pot"),
-                S(4, "Ανακάτεψε ρύζι με λαχανικά και σερβίρισε.", 3, false, new[] { 2, 3 }),
+                S(1, "Rinse the rice and cook it covered.", 12, true, Array.Empty<int>(), "pot"),
+                S(2, "Saute the vegetables in another pan while the rice cooks.", 10, true, Array.Empty<int>(), "pan"),
+                S(3, "Let the rice steam off the heat, still covered.", 5, true, new[] { 1 }, "pot"),
+                S(4, "Toss rice with vegetables and serve.", 3, false, new[] { 2, 3 }),
             }
         };
 
@@ -317,18 +318,18 @@ public class RecipeGenerationService
             Tags = new() { "nocook" },
             Ingredients = new()
             {
-                I("σαλάτα", 1, "bowl"),
-                I("ντομάτα", 150 * servings, "g"),
-                I("αγγούρι", 1, "pcs"),
-                I("ελαιόλαδο", 2, "tbsp"),
-                I("λεμόνι", 1, "pcs"),
-                I("αλάτι", 1, "tsp"),
+                I("salad greens", 1, "bowl"),
+                I("tomato", 150 * servings, "g"),
+                I("cucumber", 1, "pcs"),
+                I("olive oil", 2, "tbsp"),
+                I("lemon", 1, "pcs"),
+                I("salt", 1, "tsp"),
             },
             Steps = new()
             {
-                S(1, "Πλύνε και κόψε τα λαχανικά.", 6, false, Array.Empty<int>(), "board"),
-                S(2, "Φτιάξε λαδολέμονο.", 2, false, Array.Empty<int>(), "bowl"),
-                S(3, "Ανακάτεψε, δοκίμασε αλάτι, σερβίρισε.", 2, false, new[] { 1, 2 }),
+                S(1, "Wash and cut the vegetables.", 6, false, Array.Empty<int>(), "board"),
+                S(2, "Make a lemon-olive oil dressing.", 2, false, Array.Empty<int>(), "bowl"),
+                S(3, "Toss, taste for salt, serve.", 2, false, new[] { 1, 2 }),
             }
         };
 
@@ -343,15 +344,15 @@ public class RecipeGenerationService
             Tags = new() { "nocook", "breakfast" },
             Ingredients = new()
             {
-                I("γιαούρτι", 200 * servings, "g"),
-                I("μέλι", 1 * servings, "tbsp"),
-                I("καρύδια", 1, "handful", true),
+                I("yogurt", 200 * servings, "g"),
+                I("honey", 1 * servings, "tbsp"),
+                I("walnuts", 1, "handful", true),
             },
             Steps = new()
             {
-                S(1, "Βάλε το γιαούρτι στο μπολ.", 1, false, Array.Empty<int>(), "bowl"),
-                S(2, "Περίχυσε με μέλι.", 1, false, new[] { 1 }),
-                S(3, "Πρόσθεσε καρύδια αν θες και σερβίρισε.", 1, false, new[] { 2 }),
+                S(1, "Spoon the yogurt into a bowl.", 1, false, Array.Empty<int>(), "bowl"),
+                S(2, "Drizzle with honey.", 1, false, new[] { 1 }),
+                S(3, "Add walnuts if you want and serve.", 1, false, new[] { 2 }),
             }
         };
 
@@ -366,16 +367,16 @@ public class RecipeGenerationService
             Tags = new() { "breakfast" },
             Ingredients = new()
             {
-                I("αυγά", 2 * servings, "pcs"),
-                I("ελαιόλαδο", 1, "tbsp"),
-                I("αλάτι", 1, "tsp"),
+                I("eggs", 2 * servings, "pcs"),
+                I("olive oil", 1, "tbsp"),
+                I("salt", 1, "tsp"),
             },
             Steps = new()
             {
-                S(1, "Ζέστανε το τηγάνι με ελαιόλαδο.", 2, true, Array.Empty<int>(), "pan"),
-                S(2, "Σπάσε τα αυγά στο τηγάνι.", 1, false, new[] { 1 }, "pan"),
-                S(3, "Ψήσε μέχρι το ασπράδι να δέσει.", 4, true, new[] { 2 }, "pan"),
-                S(4, "Αλάτι και σερβίρισε.", 1, false, new[] { 3 }),
+                S(1, "Heat the pan with olive oil.", 2, true, Array.Empty<int>(), "pan"),
+                S(2, "Crack the eggs into the pan.", 1, false, new[] { 1 }, "pan"),
+                S(3, "Cook until the whites set.", 4, true, new[] { 2 }, "pan"),
+                S(4, "Salt and serve.", 1, false, new[] { 3 }),
             }
         };
 
@@ -390,17 +391,17 @@ public class RecipeGenerationService
             Tags = new() { "breakfast" },
             Ingredients = new()
             {
-                I("αυγά", 2 * servings, "pcs"),
-                I("κρεμμύδι", 0.5m, "pcs"),
-                I("ελαιόλαδο", 1, "tbsp"),
-                I("αλάτι", 1, "tsp"),
+                I("eggs", 2 * servings, "pcs"),
+                I("onion", 0.5m, "pcs"),
+                I("olive oil", 1, "tbsp"),
+                I("salt", 1, "tsp"),
             },
             Steps = new()
             {
-                S(1, "Χτύπα τα αυγά με αλάτι.", 2, false, Array.Empty<int>(), "bowl"),
-                S(2, "Σοτάρισε το κρεμμύδι στο ελαιόλαδο.", 3, true, Array.Empty<int>(), "pan"),
-                S(3, "Ρίξε τα αυγά και δίπλωσε την ομελέτα.", 4, true, new[] { 1, 2 }, "pan"),
-                S(4, "Σερβίρισε ζεστή.", 1, false, new[] { 3 }),
+                S(1, "Beat the eggs with salt.", 2, false, Array.Empty<int>(), "bowl"),
+                S(2, "Saute the onion in olive oil.", 3, true, Array.Empty<int>(), "pan"),
+                S(3, "Pour in the eggs and fold the omelette.", 4, true, new[] { 1, 2 }, "pan"),
+                S(4, "Serve hot.", 1, false, new[] { 3 }),
             }
         };
 
@@ -419,8 +420,8 @@ public class RecipeGenerationService
             },
             Steps = new()
             {
-                S(1, $"Ετοίμασε {name} στο πιάτο.", 3, false, Array.Empty<int>(), "plate"),
-                S(2, "Δοκίμασε αλάτι/μέλι αν χρειάζεται και σερβίρισε.", 2, false, new[] { 1 }),
+                S(1, $"Put {name} on the plate.", 3, false, Array.Empty<int>(), "plate"),
+                S(2, "Taste for salt or honey if needed, then serve.", 2, false, new[] { 1 }),
             }
         };
 
@@ -439,9 +440,9 @@ public class RecipeGenerationService
             },
             Steps = new()
             {
-                S(1, "Βγάλε τα υπολείμματα από το ψυγείο.", 1, false, Array.Empty<int>()),
-                S(2, "Ζέστανε σε χαμηλή φωτιά μέχρι να ζεσταθούν.", 5, true, new[] { 1 }, "pan"),
-                S(3, "Δοκίμασε και σερβίρισε.", 2, false, new[] { 2 }),
+                S(1, "Take the leftovers out of the fridge.", 1, false, Array.Empty<int>()),
+                S(2, "Warm on low heat until hot.", 5, true, new[] { 1 }, "pan"),
+                S(3, "Taste and serve.", 2, false, new[] { 2 }),
             }
         };
 
@@ -457,8 +458,8 @@ public class RecipeGenerationService
             Ingredients = new(),
             Steps = new()
             {
-                S(1, "Σημείωσε πού θα φας έξω.", 2, false, Array.Empty<int>()),
-                S(2, "Καμία εστία στο σπίτι για αυτό το γεύμα.", 1, false, new[] { 1 }),
+                S(1, "Note where you will eat out.", 2, false, Array.Empty<int>()),
+                S(2, "No stove at home for this meal.", 1, false, new[] { 1 }),
             }
         };
 
@@ -474,17 +475,17 @@ public class RecipeGenerationService
             Ingredients = new()
             {
                 I(name, 250 * servings / 2m, "g"),
-                I("κρεμμύδι", 1, "pcs"),
-                I("ελαιόλαδο", 2, "tbsp"),
-                I("αλάτι", 1, "tsp"),
+                I("onion", 1, "pcs"),
+                I("olive oil", 2, "tbsp"),
+                I("salt", 1, "tsp"),
             },
             Steps = new()
             {
-                S(1, "Κόψε όλα τα υλικά και ετοίμασε τα δίπλα στην εστία.", 6, false, Array.Empty<int>(), "board"),
-                S(2, "Ζέστανε το τηγάνι με ελαιόλαδο.", 2, true, Array.Empty<int>(), "pan"),
-                S(3, "Σοτάρισε το κρεμμύδι μέχρι να γυαλίσει.", 5, true, new[] { 1, 2 }, "pan"),
-                S(4, $"Πρόσθεσε {name} και μαγείρεψε μέχρι να είναι έτοιμο.", 12, true, new[] { 3 }, "pan"),
-                S(5, "Διόρθωσε αλάτι και σερβίρισε.", 3, false, new[] { 4 }),
+                S(1, "Cut everything and set it by the stove.", 6, false, Array.Empty<int>(), "board"),
+                S(2, "Heat the pan with olive oil.", 2, true, Array.Empty<int>(), "pan"),
+                S(3, "Saute the onion until glossy.", 5, true, new[] { 1, 2 }, "pan"),
+                S(4, $"Add {name} and cook until done.", 12, true, new[] { 3 }, "pan"),
+                S(5, "Fix the salt and serve.", 3, false, new[] { 4 }),
             }
         };
 

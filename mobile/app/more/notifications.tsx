@@ -7,6 +7,7 @@ import { colors, gradients, spacing } from '../../constants/designTokens';
 import { useNotificationStore } from '../../store/useNotificationStore';
 import { NotificationList } from '../../components/notifications/NotificationList';
 import { NotificationFilters } from '../../components/notifications/NotificationFilters';
+import { ErrorBanner } from '../../components/shared/ErrorBanner';
 
 export default function NotificationsScreen() {
   const {
@@ -63,6 +64,18 @@ export default function NotificationsScreen() {
       style={styles.container}
     >
       <SafeAreaView style={styles.container} edges={['top']}>
+        {error ? (
+          <ErrorBanner
+            message={error}
+            onRetry={() =>
+              void fetchNotifications({
+                filter: filter !== 'all' ? filter : undefined,
+                search: search || undefined,
+                groupBy: groupBy !== 'none' ? groupBy : undefined,
+              })
+            }
+          />
+        ) : null}
         <NotificationFilters
           filter={filter}
           search={search}

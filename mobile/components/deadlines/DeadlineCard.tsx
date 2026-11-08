@@ -1,54 +1,51 @@
-import { View, Text, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 import type { Deadline } from '../../types';
 
 interface DeadlineCardProps {
   deadline: Deadline;
+  onPress: () => void;
+  onDelete: () => void;
 }
 
-export function DeadlineCard({ deadline }: DeadlineCardProps) {
-  const gradientColors = [colors.warningContainer, colors.warningContainer] as const;
-  const borderColor = colors.warning;
-  const glowShadow = shadows.small;
-
-  const formattedDate = new Date(deadline.dueDate).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-
-  // Calculate days left if not provided
-  const today = new Date();
-  const dueDate = new Date(deadline.dueDate);
-  const daysLeft = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+export function DeadlineCard({ deadline, onPress, onDelete }: DeadlineCardProps) {
+  const dueDate = new Date(`${deadline.dueDate}T12:00:00`);
+  const formattedDate = Number.isNaN(dueDate.getTime())
+    ? deadline.dueDate
+    : dueDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const daysLeft =
+    deadline.daysLeft ??
+    Math.ceil((dueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  const behind = deadline.status === 'behind' || daysLeft <= 7;
+  const done = deadline.status === 'completed';
 
   return (
-    <View style={[styles.container, glowShadow]}>
-      <LinearGradient
-        colors={gradientColors}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.gradient, { borderColor }]}
-      >
-        <View style={styles.content}>
-          <Text style={styles.kicker}>Needs a decision</Text>
-          <Text style={styles.title}>{deadline.title}</Text>
-          <View style={styles.meta}>
-            <Text style={styles.date}>{formattedDate}</Text>
-            <Text style={styles.daysLeft}>
-              {daysLeft} day{daysLeft !== 1 ? 's' : ''} left
-            </Text>
-          </View>
-          <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>
-              {deadline.status}
-            </Text>
-          </View>
+    <TouchableOpacity
+      style={[styles.container, behind && !done && styles.behind, done && styles.done]}
+      onPress={onPress}
+      onLongPress={() =>
+        Alert.alert(deadline.title, 'Remove this deadline?', [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Delete', style: 'destructive', onPress: onDelete },
+        ])
+      }
+      accessibilityRole="button"
+      accessibilityLabel={`${deadline.title}. ${formattedDate}. ${deadline.status}`}
+    >
+      <View style={styles.marker} />
+      <View style={styles.content}>
+        <Text style={styles.kicker}>{done ? 'Done' : behind ? 'Needs a look' : 'On track'}</Text>
+        <Text style={styles.title}>{deadline.title}</Text>
+        <View style={styles.meta}>
+          <Text style={styles.date}>{formattedDate}</Text>
+          <Text style={styles.daysLeft}>
+            {done
+              ? 'Completed'
+              : `${daysLeft} day${daysLeft === 1 ? '' : 's'} ${daysLeft < 0 ? 'overdue' : 'left'}`}
+          </Text>
         </View>
-        <View style={styles.glowBar} />
-      </LinearGradient>
-    </View>
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -57,17 +54,26 @@ const styles = StyleSheet.create({
     marginBottom: spacing.m,
     marginHorizontal: spacing.l,
     borderRadius: borderRadius.medium,
-    ...shadows.medium,
-  },
-  gradient: {
-    borderRadius: borderRadius.medium,
-    padding: spacing.m,
-    borderWidth: 2,
-    position: 'relative',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    flexDirection: 'row',
     overflow: 'hidden',
+    ...shadows.small,
+  },
+  behind: {
+    borderColor: colors.warning,
+  },
+  done: {
+    opacity: 0.65,
+  },
+  marker: {
+    width: 4,
+    backgroundColor: colors.warning,
   },
   content: {
-    zIndex: 2,
+    flex: 1,
+    padding: spacing.m,
   },
   kicker: {
     fontSize: typography.fontSize.caption,
@@ -84,7 +90,6 @@ const styles = StyleSheet.create({
   meta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: spacing.s,
   },
   date: {
     fontSize: typography.fontSize.caption,
@@ -94,26 +99,5 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.caption,
     fontWeight: typography.fontWeight.semibold,
     color: colors.textSecondary,
-  },
-  statusBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing.s,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.small,
-    backgroundColor: colors.surfaceRaised,
-  },
-  statusText: {
-    fontSize: typography.fontSize.caption,
-    fontWeight: typography.fontWeight.semibold,
-    textTransform: 'capitalize',
-    color: colors.textPrimary,
-  },
-  glowBar: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 4,
-    backgroundColor: colors.warning,
   },
 });

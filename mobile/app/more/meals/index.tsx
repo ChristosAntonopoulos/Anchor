@@ -24,13 +24,14 @@ import { useMealsStore } from '../../../store/useMealsStore';
 import { WeekView } from '../../../components/meals/WeekView';
 import { PantryView } from '../../../components/meals/PantryView';
 import { ShoppingView } from '../../../components/meals/ShoppingView';
+import { ErrorBanner } from '../../../components/shared/ErrorBanner';
 
 type Tab = 'week' | 'pantry' | 'shopping';
 
 const TABS: { id: Tab; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { id: 'week', label: 'Εβδομάδα', icon: 'calendar-outline' },
-  { id: 'pantry', label: 'Τρόφιμα', icon: 'nutrition-outline' },
-  { id: 'shopping', label: 'Αγορές', icon: 'cart-outline' },
+  { id: 'week', label: 'Week', icon: 'calendar-outline' },
+  { id: 'pantry', label: 'Pantry', icon: 'nutrition-outline' },
+  { id: 'shopping', label: 'Shopping', icon: 'cart-outline' },
 ];
 
 export default function MealsScreen() {
@@ -38,7 +39,7 @@ export default function MealsScreen() {
   const [activeTab, setActiveTab] = useState<Tab>('week');
   const [refreshing, setRefreshing] = useState(false);
 
-  const { profile, fetchProfile, activePlan, fetchActivePlan, planLoading } = useMealsStore();
+  const { profile, fetchProfile, activePlan, fetchActivePlan, planLoading, planError } = useMealsStore();
 
   useEffect(() => {
     fetchProfile();
@@ -65,13 +66,13 @@ export default function MealsScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Γεύματα</Text>
-            <Text style={styles.headerSub}>Meals</Text>
+            <Text style={styles.headerTitle}>Meals</Text>
+            <Text style={styles.headerSub}>Week, pantry, shopping</Text>
           </View>
           <TouchableOpacity
             onPress={() => router.push('/more/meals/preferences' as any)}
             style={styles.headerAction}
-            accessibilityLabel="Ρυθμίσεις γεύματος"
+            accessibilityLabel="Meal settings"
           >
             <Ionicons name="settings-outline" size={22} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -86,7 +87,7 @@ export default function MealsScreen() {
           >
             <Ionicons name="sparkles" size={16} color={colors.category.work} />
             <Text style={styles.setupBannerText}>
-              Ρύθμισε τις προτιμήσεις σου για καλύτερες προτάσεις
+              Set your preferences for better suggestions
             </Text>
             <Ionicons name="chevron-forward" size={16} color={colors.category.work} />
           </TouchableOpacity>
@@ -113,6 +114,10 @@ export default function MealsScreen() {
             </TouchableOpacity>
           ))}
         </View>
+
+        {planError ? (
+          <ErrorBanner message={planError} onRetry={() => void fetchActivePlan()} />
+        ) : null}
 
         {/* Tab content */}
         <View style={styles.flex}>

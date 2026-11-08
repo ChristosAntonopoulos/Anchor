@@ -297,7 +297,7 @@ export interface AIInput {
   error?: string;
 }
 
-export type DeadlineStatus = 'on track' | 'behind';
+export type DeadlineStatus = 'on track' | 'behind' | 'completed';
 
 // Day
 export interface Day {
@@ -449,7 +449,22 @@ export interface Deadline {
   title: string;
   dueDate: string; // ISO date string (YYYY-MM-DD)
   status: DeadlineStatus;
+  importance?: number;
   daysLeft?: number; // Calculated field, may be present in some responses
+}
+
+export interface CreateDeadlineRequest {
+  title: string;
+  dueDate: string;
+  importance?: number;
+}
+
+export interface UpdateDeadlineRequest {
+  id?: string;
+  title?: string;
+  dueDate?: string;
+  status?: DeadlineStatus;
+  importance?: number;
 }
 
 // DeadlineWarning (subset of Deadline used in Today response)

@@ -28,26 +28,26 @@ import { StepperField } from '../../../components/meals/shared/StepperField';
 type Stage = 'week' | 'wishes' | 'review';
 
 const SLOT_OPTIONS = [
-  { id: 'Breakfast', label: 'Πρωινό' },
-  { id: 'Lunch', label: 'Μεσημεριανό' },
-  { id: 'Dinner', label: 'Βραδινό' },
-  { id: 'Snack', label: 'Σνακ' },
+  { id: 'Breakfast', label: 'Breakfast' },
+  { id: 'Lunch', label: 'Lunch' },
+  { id: 'Dinner', label: 'Dinner' },
+  { id: 'Snack', label: 'Snack' },
 ];
 
 const DAY_OPTIONS = [
-  { id: 'Mon', label: 'Δευ' },
-  { id: 'Tue', label: 'Τρι' },
-  { id: 'Wed', label: 'Τετ' },
-  { id: 'Thu', label: 'Πεμ' },
-  { id: 'Fri', label: 'Παρ' },
-  { id: 'Sat', label: 'Σαβ' },
-  { id: 'Sun', label: 'Κυρ' },
+  { id: 'Mon', label: 'Mon' },
+  { id: 'Tue', label: 'Tue' },
+  { id: 'Wed', label: 'Wed' },
+  { id: 'Thu', label: 'Thu' },
+  { id: 'Fri', label: 'Fri' },
+  { id: 'Sat', label: 'Sat' },
+  { id: 'Sun', label: 'Sun' },
 ];
 
 const DAYS_COUNT_OPTIONS = [
-  { id: '3', label: '3 μέρες' },
-  { id: '5', label: '5 μέρες' },
-  { id: '7', label: '7 μέρες' },
+  { id: '3', label: '3 days' },
+  { id: '5', label: '5 days' },
+  { id: '7', label: '7 days' },
 ];
 
 function getWeekDates(daysCount: number): string[] {
@@ -102,7 +102,7 @@ export default function PlanScreen() {
           kind: isNoCook ? 'NoCook' : 'FreshCook',
           servings,
           locked: false,
-          reasonSummary: isNoCook ? 'Χωρίς μαγείρεμα' : undefined,
+          reasonSummary: isNoCook ? 'No cook' : undefined,
         }));
       });
 
@@ -122,7 +122,7 @@ export default function PlanScreen() {
 
       router.back();
     } catch (e) {
-      Alert.alert('Σφάλμα', 'Δεν ήταν δυνατή η δημιουργία πλάνου. Δοκίμασε ξανά.');
+      Alert.alert('Error', 'Could not create the plan. Try again.');
     } finally {
       setCreating(false);
     }
@@ -147,11 +147,11 @@ export default function PlanScreen() {
             <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Πλάνο εβδομάδας</Text>
+            <Text style={styles.headerTitle}>Week plan</Text>
             <Text style={styles.headerSub}>
-              {stage === 'week' ? 'Βήμα 1: Η εβδομάδα μου' :
-               stage === 'wishes' ? 'Βήμα 2: Επιθυμίες' :
-               'Βήμα 3: Επισκόπηση'}
+              {stage === 'week' ? 'Step 1: My week' :
+               stage === 'wishes' ? 'Step 2: Wishes' :
+               'Step 3: Review'}
             </Text>
           </View>
         </View>
@@ -162,14 +162,14 @@ export default function PlanScreen() {
           {stage === 'week' && (
             <>
               <ChipSelector
-                label="Αριθμός ημερών"
+                label="Number of days"
                 options={DAYS_COUNT_OPTIONS}
                 selected={daysCount}
                 onToggle={(id) => setDaysCount([id])}
                 multiSelect={false}
               />
               <ChipSelector
-                label="Γεύματα για σχεδιασμό"
+                label="Meals to plan"
                 options={SLOT_OPTIONS}
                 selected={slots}
                 onToggle={(id) =>
@@ -179,16 +179,16 @@ export default function PlanScreen() {
                 }
               />
               <StepperField
-                label="Μερίδες"
+                label="Servings"
                 value={servings}
                 onDecrement={() => setServings(Math.max(1, servings - 1))}
                 onIncrement={() => setServings(Math.min(10, servings + 1))}
                 min={1}
                 max={10}
-                unit="άτομα"
+                unit="people"
               />
               <ChipSelector
-                label="Μέρες χωρίς μαγείρεμα"
+                label="No-cook days"
                 options={DAY_OPTIONS}
                 selected={noCookDays}
                 onToggle={(id) =>
@@ -198,19 +198,19 @@ export default function PlanScreen() {
                 }
                 optional
                 horizontal
-                hint="Αυτές οι μέρες θα έχουν υπολείμματα ή επιλογή χωρίς μαγείρεμα"
+                hint="These days will use leftovers or a no-cook option"
               />
             </>
           )}
 
           {stage === 'wishes' && (
             <>
-              <Text style={styles.wishesPrompt}>Τι θέλεις αυτή την εβδομάδα;</Text>
+              <Text style={styles.wishesPrompt}>What do you want this week?</Text>
               <TextInput
                 style={styles.wishesInput}
                 value={wishes}
                 onChangeText={setWishes}
-                placeholder="π.χ. Κοτόπουλο δύο φορές, κάτι με φακές, εύκολα μεσημεριανά, χωρίς μαγείρεμα Πέμπτη"
+                placeholder="e.g. Chicken twice, something with lentils, easy lunches, no cook Thursday"
                 placeholderTextColor={colors.textSecondary}
                 multiline
                 numberOfLines={4}
@@ -218,13 +218,13 @@ export default function PlanScreen() {
               <View style={styles.note}>
                 <Ionicons name="sparkles" size={16} color={colors.category.work} />
                 <Text style={styles.noteText}>
-                  Πες μου με δικά σου λόγια — θα μεταφράσω σε συγκεκριμένα γεύματα
+                  Say it in your words — I will turn it into specific meals
                 </Text>
               </View>
               <View style={styles.note}>
                 <Ionicons name="nutrition-outline" size={16} color={colors.textSecondary} />
                 <Text style={styles.noteText}>
-                  Τρόφιμα που έχεις ήδη στο σπίτι θα ληφθούν υπόψη αυτόματα
+                  Food already in the house is used automatically
                 </Text>
               </View>
             </>
@@ -233,28 +233,28 @@ export default function PlanScreen() {
           {stage === 'review' && (
             <>
               <View style={styles.summaryCard}>
-                <Text style={styles.summaryTitle}>Σύνοψη πλάνου</Text>
+                <Text style={styles.summaryTitle}>Plan summary</Text>
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Διάρκεια</Text>
-                  <Text style={styles.summaryValue}>{daysCount[0]} μέρες</Text>
+                  <Text style={styles.summaryLabel}>Length</Text>
+                  <Text style={styles.summaryValue}>{daysCount[0]} days</Text>
                 </View>
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Γεύματα</Text>
-                  <Text style={styles.summaryValue}>{slots.map(s => s === 'Dinner' ? 'Βραδινό' : s === 'Lunch' ? 'Μεσημεριανό' : s === 'Breakfast' ? 'Πρωινό' : 'Σνακ').join(', ')}</Text>
+                  <Text style={styles.summaryLabel}>Meals</Text>
+                  <Text style={styles.summaryValue}>{slots.map(s => s === 'Dinner' ? 'Dinner' : s === 'Lunch' ? 'Lunch' : s === 'Breakfast' ? 'Breakfast' : 'Snack').join(', ')}</Text>
                 </View>
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Μερίδες</Text>
-                  <Text style={styles.summaryValue}>{servings} άτομα</Text>
+                  <Text style={styles.summaryLabel}>Servings</Text>
+                  <Text style={styles.summaryValue}>{servings} people</Text>
                 </View>
                 {noCookDays.length > 0 && (
                   <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Χωρίς μαγείρεμα</Text>
+                    <Text style={styles.summaryLabel}>No cook</Text>
                     <Text style={styles.summaryValue}>{noCookDays.join(', ')}</Text>
                   </View>
                 )}
                 {wishes.trim() && (
                   <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Επιθυμίες</Text>
+                    <Text style={styles.summaryLabel}>Wishes</Text>
                     <Text style={styles.summaryValue}>{wishes.trim()}</Text>
                   </View>
                 )}
@@ -262,7 +262,7 @@ export default function PlanScreen() {
               <View style={styles.note}>
                 <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
                 <Text style={styles.noteText}>
-                  Αποθήκευση πλάνου και αυτόματη δημιουργία λίστας αγορών
+                  Save the plan and build the shopping list
                 </Text>
               </View>
             </>
@@ -273,7 +273,7 @@ export default function PlanScreen() {
           {stage !== 'review' ? (
             <TouchableOpacity style={styles.nextBtn} onPress={handleNext} activeOpacity={0.8}>
               <Text style={styles.nextBtnText}>
-                {stage === 'week' ? 'Επόμενο: Επιθυμίες →' : 'Επόμενο: Επισκόπηση →'}
+                {stage === 'week' ? 'Next: Wishes →' : 'Next: Review →'}
               </Text>
             </TouchableOpacity>
           ) : (
@@ -288,7 +288,7 @@ export default function PlanScreen() {
               ) : (
                 <>
                   <Ionicons name="checkmark-circle" size={20} color={colors.background} />
-                  <Text style={styles.saveBtnText}>Αποθήκευση πλάνου</Text>
+                  <Text style={styles.saveBtnText}>Save plan</Text>
                 </>
               )}
             </TouchableOpacity>

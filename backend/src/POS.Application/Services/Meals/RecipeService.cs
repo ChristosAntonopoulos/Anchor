@@ -183,7 +183,7 @@ public class RecipeService
         if (list.Count > 0)
             return list;
 
-        foreach (var name in new[] { "Μακαρόνια με σάλτσα", "Κοτόπουλο λεμονάτο", "Ρύζι με λαχανικά" })
+        foreach (var name in new[] { "Pasta with sauce", "Lemon chicken", "Rice with vegetables" })
             list.Add(await GenerateRecipeAsync(userId, new GenerateRecipeRequest { Name = name, Servings = 2 }));
 
         return list;

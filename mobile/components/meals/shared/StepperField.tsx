@@ -28,14 +28,14 @@ export function StepperField({
     <View style={styles.container}>
       <View style={styles.labelRow}>
         <Text style={styles.label}>{label}</Text>
-        {optional && <Text style={styles.optional}> (Προαιρετικό)</Text>}
+        {optional && <Text style={styles.optional}> (optional)</Text>}
       </View>
       <View style={styles.row}>
         <TouchableOpacity
           style={[styles.btn, value <= min && styles.btnDisabled]}
           onPress={onDecrement}
           disabled={value <= min}
-          accessibilityLabel="Μείωση"
+          accessibilityLabel="Decrease"
         >
           <Ionicons name="remove" size={20} color={value <= min ? colors.border : colors.textPrimary} />
         </TouchableOpacity>
@@ -47,7 +47,7 @@ export function StepperField({
           style={[styles.btn, value >= max && styles.btnDisabled]}
           onPress={onIncrement}
           disabled={value >= max}
-          accessibilityLabel="Αύξηση"
+          accessibilityLabel="Increase"
         >
           <Ionicons name="add" size={20} color={value >= max ? colors.border : colors.textPrimary} />
         </TouchableOpacity>

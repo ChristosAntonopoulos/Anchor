@@ -56,6 +56,24 @@
         <action android:name="android.app.action.DEVICE_ADMIN_ENABLED"/>
       </intent-filter>
     </receiver>
+    <receiver android:name=".OsNowWidget" android:exported="true" android:label="@string/widget_now_label">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+      </intent-filter>
+      <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_now_info"/>
+    </receiver>
+    <receiver android:name=".OsMealWidget" android:exported="true" android:label="@string/widget_meal_label">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+      </intent-filter>
+      <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_meal_info"/>
+    </receiver>
+    <receiver android:name=".OsBlockWidget" android:exported="true" android:label="@string/widget_block_label">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+      </intent-filter>
+      <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_block_info"/>
+    </receiver>
     <receiver android:name=".BootCompletedReceiver" android:enabled="true" android:exported="true">
       <intent-filter>
         <action android:name="android.intent.action.BOOT_COMPLETED"/>
