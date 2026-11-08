@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { Platform } from 'react-native';
 import { notificationListener } from '../services/notificationListener';
 import { apiClient } from '../services/api';
+import { parseWalletSpend } from '../utils/walletSpend';
+import { useMoneyStore } from './useMoneyStore';
 import type {
   NotificationData,
   Notification,
@@ -148,6 +150,16 @@ export const useNotificationStore = create<NotificationStore>((set, get) => {
 
       // Sync to backend
       await get().syncNotificationToBackend(notification);
+
+      const walletSpend = parseWalletSpend(notification);
+      if (walletSpend) {
+        try {
+          await apiClient.createWalletSpend(walletSpend);
+          void useMoneyStore.getState().fetchMoneySummary();
+        } catch (error) {
+          console.warn('Could not record Google Wallet payment', error);
+        }
+      }
     },
 
     syncNotificationToBackend: async (notification: NotificationData) => {

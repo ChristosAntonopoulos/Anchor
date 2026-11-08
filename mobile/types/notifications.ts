@@ -3,6 +3,7 @@
 export interface NotificationData {
   // Core notification data
   id: string;
+  notificationId?: string;
   title: string;
   text: string;
   subText?: string;

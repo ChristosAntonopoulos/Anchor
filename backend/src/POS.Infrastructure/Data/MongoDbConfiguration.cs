@@ -147,6 +147,8 @@ public static class MongoDbConfiguration
         // Money
         services.AddScoped<IRepository<IncomeEntry>>(sp =>
             new MongoRepository<IncomeEntry>(database.GetCollection<IncomeEntry>("incomeEntries")));
+        services.AddScoped<IRepository<WalletSpend>>(sp =>
+            new MongoRepository<WalletSpend>(database.GetCollection<WalletSpend>("walletSpends")));
 
         // Deadlines
         services.AddScoped<IRepository<Deadline>>(sp =>
@@ -264,6 +266,15 @@ public static class MongoDbConfiguration
         incomeEntriesCollection.Indexes.CreateOne(
             new CreateIndexModel<POS.Core.Entities.Money.IncomeEntry>(
                 Builders<POS.Core.Entities.Money.IncomeEntry>.IndexKeys.Ascending(x => x.UserId).Descending(x => x.Date)));
+
+        var walletSpendsCollection = database.GetCollection<POS.Core.Entities.Money.WalletSpend>("walletSpends");
+        walletSpendsCollection.Indexes.CreateOne(
+            new CreateIndexModel<POS.Core.Entities.Money.WalletSpend>(
+                Builders<POS.Core.Entities.Money.WalletSpend>.IndexKeys.Ascending(x => x.UserId).Descending(x => x.Date)));
+        walletSpendsCollection.Indexes.CreateOne(
+            new CreateIndexModel<POS.Core.Entities.Money.WalletSpend>(
+                Builders<POS.Core.Entities.Money.WalletSpend>.IndexKeys.Ascending(x => x.UserId).Ascending(x => x.SourceNotificationId),
+                new CreateIndexOptions { Unique = true }));
 
         // DayStartPlans indexes - compound unique index on UserId and Date
         var dayStartPlansCollection = database.GetCollection<POS.Core.Entities.AIBrief.DayStartPlan>("dayStartPlans");

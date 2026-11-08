@@ -8,6 +8,8 @@ import type {
   CreateDeadlineRequest,
   UpdateDeadlineRequest,
   MoneySummary,
+  CreateWalletSpendRequest,
+  WalletSpend,
   WeeklyReview,
   Category,
   CompleteBetterItemRequest,
@@ -160,6 +162,7 @@ export interface APIClient {
   setDisciplineCounter(date: string, blockId: string, itemId: string, value: number): Promise<DisciplineEntry>;
   updateDiet(request: UpdateDietRequest): Promise<void>;
   createIncome(request: CreateIncomeRequest): Promise<void>;
+  createWalletSpend(request: CreateWalletSpendRequest): Promise<WalletSpend>;
   submitWeeklyReview(request: SubmitWeeklyReviewRequest): Promise<void>;
   markAiBriefApplied(): Promise<void>;
   submitAIInput(text: string): Promise<AIInput>;
@@ -615,6 +618,15 @@ class HTTPAPIClient implements APIClient {
       // Ignore returned IncomeEntryDto, frontend expects void
     } catch (error) {
       throw this.handleError(error, 'Failed to create income entry');
+    }
+  }
+
+  async createWalletSpend(request: CreateWalletSpendRequest): Promise<WalletSpend> {
+    try {
+      const response = await this.axiosInstance.post<ApiResponse<WalletSpend>>('/money/spend', request);
+      return unwrapResponse(response.data);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to record Google Wallet payment');
     }
   }
 

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using POS.Application.DTOs.Money;
 using POS.Core.Entities.Money;
+using POS.Core.Entities.Notifications;
 using POS.Infrastructure.Data;
 
 namespace POS.Application.Services.Money;
@@ -47,6 +48,18 @@ public class MoneyService
             .ToListAsync();
         
         var monthlyTotal = incomeEntries.Sum(i => i.Amount);
+
+        await SyncWalletSpendsAsync(userId);
+
+        var spendFilter = Builders<WalletSpend>.Filter.And(
+            Builders<WalletSpend>.Filter.Eq(s => s.UserId, userId),
+            Builders<WalletSpend>.Filter.Gte(s => s.Date, startOfMonth),
+            Builders<WalletSpend>.Filter.Lte(s => s.Date, endOfMonth)
+        );
+        var walletSpend = await _context.WalletSpends
+            .Find(spendFilter)
+            .SortByDescending(s => s.Date)
+            .ToListAsync();
         
         // Calculate days since last income
         var lastIncome = incomeEntries.OrderByDescending(i => i.Date).FirstOrDefault();
@@ -58,7 +71,9 @@ public class MoneyService
         {
             MonthlyTotal = monthlyTotal,
             DaysSinceLastIncome = daysSinceLastIncome,
-            Income = _mapper.Map<List<IncomeEntryDto>>(incomeEntries)
+            Income = _mapper.Map<List<IncomeEntryDto>>(incomeEntries),
+            MonthlyWalletSpend = walletSpend.Sum(s => s.Amount),
+            WalletSpend = _mapper.Map<List<WalletSpendDto>>(walletSpend)
         };
     }
 
@@ -177,5 +192,103 @@ public class MoneyService
         
         var result = await _context.IncomeEntries.DeleteOneAsync(filter);
         return result.DeletedCount > 0;
+    }
+
+    public async Task<WalletSpendDto> CreateWalletSpendAsync(CreateWalletSpendRequest request, string userId)
+    {
+        var existing = await FindSpendBySourceAsync(userId, request.SourceNotificationId);
+        if (existing != null)
+        {
+            return _mapper.Map<WalletSpendDto>(existing);
+        }
+
+        var spend = new WalletSpend
+        {
+            UserId = userId,
+            Date = DateTime.Parse(request.Date),
+            Merchant = request.Merchant,
+            Amount = request.Amount,
+            Currency = string.IsNullOrWhiteSpace(request.Currency) ? "EUR" : request.Currency.ToUpperInvariant(),
+            SourceNotificationId = request.SourceNotificationId,
+            PackageName = request.PackageName,
+            RawText = request.RawText
+        };
+
+        try
+        {
+            await _context.WalletSpends.InsertOneAsync(spend);
+        }
+        catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
+        {
+            existing = await FindSpendBySourceAsync(userId, request.SourceNotificationId);
+            if (existing != null)
+            {
+                return _mapper.Map<WalletSpendDto>(existing);
+            }
+
+            throw;
+        }
+
+        return _mapper.Map<WalletSpendDto>(spend);
+    }
+
+    public async Task TryIngestWalletNotificationAsync(Notification notification, string userId)
+    {
+        try
+        {
+            var parsed = WalletSpendParser.TryParse(notification);
+            if (parsed == null)
+            {
+                return;
+            }
+
+            await CreateWalletSpendAsync(new CreateWalletSpendRequest
+            {
+                Date = parsed.Date,
+                Merchant = parsed.Merchant,
+                Amount = parsed.Amount,
+                Currency = parsed.Currency,
+                SourceNotificationId = parsed.SourceNotificationId,
+                PackageName = parsed.PackageName,
+                RawText = parsed.RawText
+            }, userId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not ingest Google Wallet notification {NotificationId}", notification.Id);
+        }
+    }
+
+    public async Task SyncWalletSpendsAsync(string userId)
+    {
+        var since = DateTime.UtcNow.AddDays(-120);
+        var filter = Builders<Notification>.Filter.And(
+            Builders<Notification>.Filter.Eq(n => n.UserId, userId),
+            Builders<Notification>.Filter.Gte(n => n.PostTime, since)
+        );
+
+        var projection = Builders<Notification>.Projection
+            .Exclude(n => n.AppIcon)
+            .Exclude(n => n.BigPicture);
+        var notifications = await _context.Notifications
+            .Find(filter)
+            .Project<Notification>(projection)
+            .SortByDescending(n => n.PostTime)
+            .Limit(400)
+            .ToListAsync();
+
+        foreach (var notification in notifications)
+        {
+            await TryIngestWalletNotificationAsync(notification, userId);
+        }
+    }
+
+    private async Task<WalletSpend?> FindSpendBySourceAsync(string userId, string sourceNotificationId)
+    {
+        var filter = Builders<WalletSpend>.Filter.And(
+            Builders<WalletSpend>.Filter.Eq(s => s.UserId, userId),
+            Builders<WalletSpend>.Filter.Eq(s => s.SourceNotificationId, sourceNotificationId)
+        );
+        return await _context.WalletSpends.Find(filter).FirstOrDefaultAsync();
     }
 }

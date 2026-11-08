@@ -74,6 +74,8 @@ public class MongoDbContext
     // Money collections
     public IMongoCollection<IncomeEntry> IncomeEntries =>
         _database.GetCollection<IncomeEntry>("incomeEntries");
+    public IMongoCollection<WalletSpend> WalletSpends =>
+        _database.GetCollection<WalletSpend>("walletSpends");
     public IMongoCollection<MoneyInsight> MoneyInsights =>
         _database.GetCollection<MoneyInsight>("moneyInsights");
 

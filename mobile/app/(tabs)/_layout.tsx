@@ -1,5 +1,4 @@
 import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
 import { useEffect } from 'react';
 import { AppIcon } from '../../components/icons/AppIcon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -37,13 +36,14 @@ export default function TabLayout() {
           headerTitleAlign: 'left',
           tabBarActiveTintColor: colors.primary,
           tabBarInactiveTintColor: colors.textMuted,
+          tabBarHideOnKeyboard: true,
           tabBarStyle: {
             backgroundColor: colors.surface,
             borderTopWidth: 1,
             borderTopColor: colors.border,
-            paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, 16) : 10,
-            paddingTop: 6,
-            height: Platform.OS === 'ios' ? 56 + Math.max(insets.bottom, 16) : 62,
+            paddingBottom: Math.max(insets.bottom, 8) + 14,
+            paddingTop: 8,
+            height: 56 + Math.max(insets.bottom, 8) + 14,
           },
           tabBarLabelStyle: {
             fontSize: 11,

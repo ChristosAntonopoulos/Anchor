@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
+import { formatMoney } from '../../utils/walletSpend';
 import type { MoneySummary } from '../../types';
 
 interface MoneySummaryCardProps {
@@ -16,8 +17,10 @@ export function MoneySummaryCard({ summary }: MoneySummaryCardProps) {
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
-        <Text style={styles.label}>Monthly Total</Text>
-        <Text style={styles.amount}>${summary.monthlyTotal}</Text>
+        <Text style={styles.label}>Income this month</Text>
+        <Text style={styles.amount}>{formatMoney(summary.monthlyTotal)}</Text>
+        <Text style={styles.spendLabel}>Google Wallet spend</Text>
+        <Text style={styles.spend}>{formatMoney(summary.monthlyWalletSpend ?? 0)}</Text>
         <View style={styles.divider} />
         <Text style={styles.daysSince}>
           {summary.daysSinceLastIncome} day{summary.daysSinceLastIncome !== 1 ? 's' : ''} since last income
@@ -50,7 +53,20 @@ const styles = StyleSheet.create({
   amount: {
     fontSize: 36,
     fontWeight: typography.fontWeight.bold,
-    color: colors.category.leverage,
+    color: colors.success,
+    marginBottom: spacing.m,
+  },
+  spendLabel: {
+    fontSize: typography.fontSize.caption,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  spend: {
+    fontSize: 28,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.danger,
     marginBottom: spacing.m,
   },
   divider: {

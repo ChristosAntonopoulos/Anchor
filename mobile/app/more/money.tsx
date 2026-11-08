@@ -1,26 +1,40 @@
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, gradients } from '../../constants/designTokens';
 import { useMoneyStore } from '../../store/useMoneyStore';
+import { useNotificationStore } from '../../store/useNotificationStore';
 import { MoneySummaryCard } from '../../components/money/MoneySummaryCard';
 import { IncomeTrendChart } from '../../components/money/IncomeTrendChart';
 import { IncomeList } from '../../components/money/IncomeList';
 import { AddIncomeButton } from '../../components/money/AddIncomeButton';
+import { WalletSpendList } from '../../components/money/WalletSpendList';
+import { WalletCaptureBanner } from '../../components/money/WalletCaptureBanner';
 import { ErrorBanner } from '../../components/shared/ErrorBanner';
 
 export default function MoneyScreen() {
-  const { data, loading, error, fetchMoneySummary, createIncome } = useMoneyStore();
+  const { data, loading, error, fetchMoneySummary, createIncome, ingestWalletNotifications } = useMoneyStore();
+  const listenerOn = useNotificationStore((s) => s.isEnabled);
+  const checkStatus = useNotificationStore((s) => s.checkStatus);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetchMoneySummary();
-  }, [fetchMoneySummary]);
+  const refresh = useCallback(async () => {
+    await checkStatus();
+    await ingestWalletNotifications();
+    await fetchMoneySummary();
+  }, [checkStatus, fetchMoneySummary, ingestWalletNotifications]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+    }, [refresh])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchMoneySummary();
+    await refresh();
     setRefreshing(false);
   };
 
@@ -41,27 +55,6 @@ export default function MoneyScreen() {
     );
   }
 
-  if (!data) {
-    return (
-      <LinearGradient
-        colors={gradients.background.colors}
-        start={gradients.background.start}
-        end={gradients.background.end}
-        style={styles.container}
-      >
-        <SafeAreaView style={styles.container}>
-          {error ? <ErrorBanner message={error} onRetry={() => void fetchMoneySummary()} /> : null}
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No income logged yet. That's okay. Keep building.</Text>
-          </View>
-          <AddIncomeButton
-            onAddIncome={(date, source, amount) => createIncome({ date, source, amount })}
-          />
-        </SafeAreaView>
-      </LinearGradient>
-    );
-  }
-
   return (
     <LinearGradient
       colors={gradients.background.colors}
@@ -72,15 +65,26 @@ export default function MoneyScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <ScrollView
           style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
           }
         >
-          {error ? <ErrorBanner message={error} onRetry={() => void fetchMoneySummary()} /> : null}
-          <MoneySummaryCard summary={data} />
-          <IncomeTrendChart income={data.income} />
-          <IncomeList income={data.income} />
+          {error ? <ErrorBanner message={error} onRetry={() => void refresh()} /> : null}
+          <WalletCaptureBanner listenerOn={listenerOn} />
+          {data ? (
+            <>
+              <MoneySummaryCard summary={data} />
+              <WalletSpendList spend={data.walletSpend ?? []} />
+              <IncomeTrendChart income={data.income} />
+              <IncomeList income={data.income} />
+            </>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No money logged yet. Wallet receipts will show up here.</Text>
+            </View>
+          )}
           <AddIncomeButton
             onAddIncome={(date, source, amount) => createIncome({ date, source, amount })}
           />
@@ -97,16 +101,17 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  scrollContent: {
+    paddingBottom: 32,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     padding: 24,
+    alignItems: 'center',
   },
   emptyText: {
     fontSize: 16,

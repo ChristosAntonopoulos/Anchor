@@ -13,6 +13,7 @@ import { useNotificationStore } from '../../store/useNotificationStore';
 import { useWeeklyReviewStore } from '../../store/useWeeklyReviewStore';
 import { useCookingStore } from '../../store/useCookingStore';
 import { apiClient } from '../../services/api';
+import { formatMoney } from '../../utils/walletSpend';
 
 function daysUntil(dueDate: string): number {
   const due = new Date(`${dueDate}T12:00:00`);
@@ -115,11 +116,16 @@ export default function SystemsScreen() {
         ? 'No unlocks logged today'
         : `${unlocksToday} today`;
 
-  const moneyStatus = money
-    ? money.daysSinceLastIncome >= 14
-      ? `${money.daysSinceLastIncome} days since income`
-      : `$${money.monthlyTotal} this month`
-    : 'Log income';
+  const walletSpend = money?.monthlyWalletSpend ?? 0;
+  const moneyStatus = !listenerOn
+    ? 'Connect Google Wallet'
+    : walletSpend > 0
+      ? `${formatMoney(walletSpend)} Wallet this month`
+      : money
+        ? money.daysSinceLastIncome >= 14
+          ? `${money.daysSinceLastIncome} days since income`
+          : `${formatMoney(money.monthlyTotal)} income this month`
+        : 'Wallet receipts + income';
 
   const urgent = deadlines.filter(
     (d) => d.status === 'behind' || (d.daysLeft ?? daysUntil(d.dueDate)) <= 7
@@ -189,7 +195,7 @@ export default function SystemsScreen() {
             icon="goals"
             title="Money"
             status={moneyStatus}
-            attention={Boolean(money && money.daysSinceLastIncome >= 14)}
+            attention={Boolean(!listenerOn || (money && money.daysSinceLastIncome >= 14))}
             onPress={() => router.push('/more/money' as any)}
           />
           <SystemTile

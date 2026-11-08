@@ -2,6 +2,7 @@ using AutoMapper;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using POS.Application.DTOs.Notifications;
+using POS.Application.Services.Money;
 using POS.Core.Entities.Notifications;
 using POS.Core.Exceptions;
 using POS.Infrastructure.Data;
@@ -16,12 +17,18 @@ public class NotificationService
     private readonly MongoDbContext _context;
     private readonly IMapper _mapper;
     private readonly ILogger<NotificationService> _logger;
+    private readonly MoneyService _moneyService;
 
-    public NotificationService(MongoDbContext context, IMapper mapper, ILogger<NotificationService> logger)
+    public NotificationService(
+        MongoDbContext context,
+        IMapper mapper,
+        ILogger<NotificationService> logger,
+        MoneyService moneyService)
     {
         _context = context;
         _mapper = mapper;
         _logger = logger;
+        _moneyService = moneyService;
     }
 
     /// <summary>
@@ -40,6 +47,7 @@ public class NotificationService
         notification.UpdatedAt = DateTime.UtcNow;
 
         await _context.Notifications.InsertOneAsync(notification);
+        await _moneyService.TryIngestWalletNotificationAsync(notification, userId);
         return _mapper.Map<NotificationDto>(notification);
     }
 

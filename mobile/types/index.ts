@@ -483,11 +483,33 @@ export interface IncomeEntry {
   amount: number;
 }
 
+export interface WalletSpend {
+  id: string;
+  date: string;
+  merchant: string;
+  amount: number;
+  currency: string;
+  sourceNotificationId: string;
+  packageName: string;
+}
+
+export interface CreateWalletSpendRequest {
+  date: string;
+  merchant: string;
+  amount: number;
+  currency: string;
+  sourceNotificationId: string;
+  packageName: string;
+  rawText?: string;
+}
+
 // MoneySummary
 export interface MoneySummary {
   monthlyTotal: number;
   daysSinceLastIncome: number;
   income: IncomeEntry[];
+  monthlyWalletSpend?: number;
+  walletSpend?: WalletSpend[];
 }
 
 // WeeklyReview

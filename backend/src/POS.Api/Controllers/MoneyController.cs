@@ -138,4 +138,15 @@ public class MoneyController : BaseController
         }
         return Success("Income entry deleted successfully");
     }
+
+    [HttpPost("spend")]
+    [SwaggerOperation(OperationId = "Money_CreateWalletSpend", Summary = "Record a Google Wallet payment")]
+    [ProducesResponseType(typeof(ApiResponse<WalletSpendDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateWalletSpend([FromBody] CreateWalletSpendRequest request)
+    {
+        var userId = GetUserId();
+        var spend = await _moneyService.CreateWalletSpendAsync(request, userId);
+        return Success(spend);
+    }
 }
