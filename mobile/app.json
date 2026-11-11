@@ -32,7 +32,12 @@
     },
     "plugins": [
       "expo-router",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "sounds": ["./assets/sounds/focus_chime.wav"]
+        }
+      ],
       [
         "expo-build-properties",
         {

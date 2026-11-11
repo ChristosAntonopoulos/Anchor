@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { apiClient } from '../services/api';
+import { announceFocusStart } from '../utils/osNotifications';
 import type {
   DayPlan,
   ExecutionProfile,
@@ -92,6 +93,7 @@ export const useExecutionStore = create<ExecutionStore>((set, get) => ({
   start: async (request) => {
     const session = await apiClient.startSession(request);
     set({ session, stuck: null });
+    void announceFocusStart(session.taskTitle || session.currentAction || 'Task started', 'This block is underway.');
     return session;
   },
 
