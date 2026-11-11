@@ -62,9 +62,11 @@ web-build/
 # Native
 ios/
 android/
-# Keep the phone-unlock Expo module sources. The rule above ignores every android directory.
+# Keep local Expo module Android sources. The rule above ignores every android directory.
 !mobile/modules/phone-unlock/android/
 !mobile/modules/phone-unlock/android/**
+!mobile/modules/distraction-guard/android/
+!mobile/modules/distraction-guard/android/**
 .kotlin/
 *.orig.*
 *.jks

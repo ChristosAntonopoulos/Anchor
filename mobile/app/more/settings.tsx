@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, typography, gradients, borderRadius, shadows } from '../../constants/designTokens';
+import { useRouter } from 'expo-router';
 import {
   getUnlockPromptStatus,
   openOverlaySettings,
@@ -19,6 +20,7 @@ const choiceLabels: Record<string, string> = {
 };
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const [status, setStatus] = useState<UnlockPromptStatus | null>(null);
 
   const refresh = useCallback(() => {
@@ -98,6 +100,17 @@ export default function SettingsScreen() {
                   <Text style={styles.actionButtonText}>Allow display over other apps</Text>
                 </TouchableOpacity>
               ) : null}
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Attention</Text>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => router.push('/more/distraction-guard' as any)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.actionButtonText}>Open Distraction Guard</Text>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.section}>

@@ -20,6 +20,7 @@ const menuItems: MenuItem[] = [
   { title: 'Money', icon: 'cash-outline', route: '/more/money', color: colors.category.leverage },
   { title: 'Deadlines', icon: 'calendar-outline', route: '/more/deadlines', color: colors.category.work },
   { title: 'Weekly Review', icon: 'document-text-outline', route: '/more/weekly-review', color: colors.category.stability },
+  { title: 'Distraction Guard', icon: 'shield-checkmark-outline', route: '/more/distraction-guard', color: '#8BB8A8' },
   { title: 'Settings', icon: 'settings-outline', route: '/more/settings', color: colors.textSecondary },
 ];
 

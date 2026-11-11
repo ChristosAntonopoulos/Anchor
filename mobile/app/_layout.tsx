@@ -3,10 +3,12 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ErrorBoundary } from '../components/shared/ErrorBoundary';
 import { ensureUnlockPromptRunning } from 'phone-unlock';
+import { ensureGuardMonitoring } from 'distraction-guard';
 
 export default function RootLayout() {
   useEffect(() => {
     ensureUnlockPromptRunning();
+    ensureGuardMonitoring();
   }, []);
 
   return (

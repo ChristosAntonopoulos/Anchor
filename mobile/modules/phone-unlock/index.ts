@@ -9,6 +9,11 @@ export type UnlockPromptStatus = {
   unavailable: boolean;
 };
 
+export type UnlockEvent = {
+  id: string;
+  timestampMs: number;
+};
+
 type NativeStatus = {
   enabled: boolean;
   overlayGranted: boolean;
@@ -22,6 +27,7 @@ type PhoneUnlockNative = {
   ensureRunning(): void;
   openOverlaySettings(): void;
   requestNotificationPermission(): void;
+  getRecentUnlockEvents(limit: number): UnlockEvent[];
 };
 
 const emptyStatus: UnlockPromptStatus = {
@@ -86,4 +92,17 @@ export function openOverlaySettings(): void {
 
 export function requestUnlockNotificationPermission(): void {
   getNative()?.requestNotificationPermission();
+}
+
+/** Recent unlock observations recorded by the existing unlock watcher. */
+export function getRecentUnlockEvents(limit = 50): UnlockEvent[] {
+  const module = getNative();
+  if (!module?.getRecentUnlockEvents) {
+    return [];
+  }
+  try {
+    return module.getRecentUnlockEvents(limit) ?? [];
+  } catch {
+    return [];
+  }
 }

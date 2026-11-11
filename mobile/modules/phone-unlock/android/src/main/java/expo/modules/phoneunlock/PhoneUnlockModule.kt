@@ -85,6 +85,15 @@ class PhoneUnlockModule : Module() {
         }
       }
     }
+
+    Function("getRecentUnlockEvents") { limit: Int ->
+      val context = appContext.reactContext?.applicationContext
+      if (context == null) {
+        emptyList()
+      } else {
+        Prefs.recentUnlockEvents(context, limit.coerceIn(1, 200))
+      }
+    }
   }
 
   private fun notificationsGranted(context: android.content.Context): Boolean {

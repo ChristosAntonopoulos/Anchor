@@ -16,6 +16,7 @@ class UnlockWatchService : Service() {
   private val unlockReceiver = object : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
       if (intent?.action == Intent.ACTION_USER_PRESENT) {
+        Prefs.recordUnlockEvent(applicationContext)
         UnlockPrompter.show(applicationContext)
       }
     }
