@@ -26,15 +26,15 @@ export default function DistractionGuardInsightsScreen() {
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <Text style={styles.title}>Insights</Text>
-        <Text style={styles.subtitle}>Last 7 days · verified selected-app usage only</Text>
+        <Text style={styles.subtitle}>Τελευταίες 7 μέρες · μόνο verified χρήση επιλεγμένων apps</Text>
 
         <View style={styles.grid}>
           <Stat
-            label="Distracting minutes"
+            label="Λεπτά απόσπασης"
             value={`${Math.round(totalMinutes)}`}
           />
           <Stat
-            label="Unlock→distraction"
+            label="Unlock→απόσπαση"
             value={
               insights?.unlockToDistractionRate == null
                 ? '—'
@@ -42,33 +42,51 @@ export default function DistractionGuardInsightsScreen() {
             }
           />
           <Stat
-            label="Opening dismiss"
+            label="Επιστροφή από παύση"
             value={
               insights?.openingPromptDismissRate == null
                 ? '—'
                 : `${Math.round(insights.openingPromptDismissRate * 100)}%`
             }
           />
-          <Stat label="Coverage" value={insights?.monitoringCoverageLabel?.split(' ')[0] ?? '—'} />
+          <Stat
+            label="Κάλυψη"
+            value={
+              insights?.monitoringCoverageLabel?.startsWith('Επαρκής') ? 'Επαρκής' : insights ? 'Περιορισμένη' : '—'
+            }
+          />
         </View>
 
-        <Text style={styles.section}>Daily selected-app usage</Text>
+        <Text style={styles.section}>Ημερήσια χρήση επιλεγμένων apps</Text>
         <View style={styles.card}>
           {(insights?.distractingMinutesByDay ?? []).length === 0 ? (
-            <Text style={styles.muted}>No verified usage segments in range.</Text>
+            <Text style={styles.muted}>Δεν υπάρχουν verified διαστήματα στο εύρος.</Text>
           ) : (
             insights?.distractingMinutesByDay.map((d) => (
-              <View key={d.date} style={styles.barRow}>
-                <Text style={styles.day}>{d.date.slice(5)}</Text>
-                <View style={styles.barTrack}>
-                  <View
-                    style={[
-                      styles.barFill,
-                      { width: `${Math.min(100, (d.minutes / Math.max(totalMinutes, 1)) * 100)}%` },
-                    ]}
-                  />
+              <View key={d.date} style={{ gap: 4 }}>
+                <View style={styles.barRow}>
+                  <Text style={styles.day}>{d.date.slice(5)}</Text>
+                  <View style={styles.barTrack}>
+                    <View
+                      style={[
+                        styles.barFill,
+                        {
+                          width: `${Math.min(
+                            100,
+                            (d.minutes / Math.max(...(insights?.distractingMinutesByDay.map((x) => x.minutes) ?? [1]), 1)) *
+                              100
+                          )}%`,
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.mins}>{d.minutes}m</Text>
                 </View>
-                <Text style={styles.mins}>{d.minutes}m</Text>
+                <Text style={styles.muted}>
+                  {Object.entries(d.byPackage)
+                    .map(([k, v]) => `${k} ${v}m`)
+                    .join(' · ') || '—'}
+                </Text>
               </View>
             ))
           )}

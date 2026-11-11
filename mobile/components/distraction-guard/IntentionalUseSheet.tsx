@@ -8,7 +8,13 @@ type Props = {
   onSave: (payload: { purpose: string; durationSeconds: number; note?: string }) => void;
 };
 
-const purposes = ['Work / research', 'Learning', 'Communication', 'Entertainment', 'Other'];
+const purposes = [
+  { id: 'work', label: 'Δουλειά / έρευνα' },
+  { id: 'learning', label: 'Μάθηση' },
+  { id: 'communication', label: 'Επικοινωνία' },
+  { id: 'entertainment', label: 'Ψυχαγωγία' },
+  { id: 'other', label: 'Άλλο' },
+];
 const durations = [
   { label: '2 λεπτά', seconds: 120 },
   { label: '5 λεπτά', seconds: 300 },
@@ -16,7 +22,7 @@ const durations = [
 ];
 
 export function IntentionalUseSheet({ visible, onClose, onSave }: Props) {
-  const [purpose, setPurpose] = useState(purposes[0]);
+  const [purpose, setPurpose] = useState(purposes[0].id);
   const [durationSeconds, setDurationSeconds] = useState(300);
   const [note, setNote] = useState('');
 
@@ -25,19 +31,19 @@ export function IntentionalUseSheet({ visible, onClose, onSave }: Props) {
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
           <Text style={styles.title}>Το χρειάζομαι για κάτι συγκεκριμένο</Text>
-          <Text style={styles.label}>Purpose</Text>
+          <Text style={styles.label}>Σκοπός</Text>
           <View style={styles.row}>
             {purposes.map((p) => (
               <TouchableOpacity
-                key={p}
-                style={[styles.chip, purpose === p && styles.chipOn]}
-                onPress={() => setPurpose(p)}
+                key={p.id}
+                style={[styles.chip, purpose === p.id && styles.chipOn]}
+                onPress={() => setPurpose(p.id)}
               >
-                <Text style={styles.chipText}>{p}</Text>
+                <Text style={styles.chipText}>{p.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
-          <Text style={styles.label}>Planned duration</Text>
+          <Text style={styles.label}>Προγραμματισμένη διάρκεια</Text>
           <View style={styles.row}>
             {durations.map((d) => (
               <TouchableOpacity
@@ -49,7 +55,7 @@ export function IntentionalUseSheet({ visible, onClose, onSave }: Props) {
               </TouchableOpacity>
             ))}
           </View>
-          <Text style={styles.label}>What do you want to do? (optional)</Text>
+          <Text style={styles.label}>Τι θέλεις να κάνεις; (προαιρετικό)</Text>
           <TextInput
             style={styles.input}
             value={note}
@@ -60,7 +66,8 @@ export function IntentionalUseSheet({ visible, onClose, onSave }: Props) {
           <TouchableOpacity
             style={styles.save}
             onPress={() => {
-              onSave({ purpose, durationSeconds, note: note.trim() || undefined });
+              const label = purposes.find((p) => p.id === purpose)?.label ?? purpose;
+              onSave({ purpose: label, durationSeconds, note: note.trim() || undefined });
               onClose();
             }}
           >

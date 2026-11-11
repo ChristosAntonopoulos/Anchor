@@ -37,8 +37,18 @@ Native `FocusCycle` state uses:
 - `SystemClock.elapsedRealtime()` for elapsed accounting within a boot
 - Wall-clock timestamps for history / reboot recovery
 - Boot identifier for reconciliation after reboot
+- `getStatus` is read-only; `reconcile` mutates cycle / checkpoint / interventions
+- Open UsageEvents intervals are provisional UI only until closed + verified
 
 JS never owns the source-of-truth timer.
+
+## Cycle recovery invariants
+
+- `CYCLE_COMPLETE` → fresh `ALLOWANCE_AVAILABLE` when schedule+enabled again
+- Reboot: rotate bootId (BOOT_COMPLETED + boot-count/elapsed regression); rewrite elapsed anchors from wall-clock remaining; fail open if cooldown wall expiry missing
+- Temporary bypass does **not** extend cooldown; remaining cooldown resumes after bypass
+- Intentional use: shared allowance (default) still counts; separate exception starts temporary bypass for planned duration
+- Unlock→distraction log is Guard-owned (`USER_PRESENT`), independent of unlock-prompt feature
 
 ## Honest enforcement model
 

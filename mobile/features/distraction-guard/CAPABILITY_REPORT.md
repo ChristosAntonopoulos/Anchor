@@ -1,5 +1,26 @@
 # Distraction Guard — Capability & Completion Report
 
+## Senior hardening pass
+
+Fixed after review:
+
+- `CYCLE_COMPLETE` recovers into a fresh allowance when schedule is active again
+- Boot-aware cooldown (wall clock + bootId; rewrite elapsed anchors; fail open if ambiguous)
+- Boot identity rotates via BOOT_COMPLETED **and** boot-count / elapsedRealtime regression detection
+- Real temporary bypass lifecycle (suppress interventions, resume remaining cooldown, no punishment extension)
+- Intentional-use persistence (`saveIntentionalUse`)
+- Unlock→distraction recording owned by Guard monitor (independent of unlock-prompt being enabled)
+- `getStatus` read-only vs `reconcile` mutation split
+- Usage assembler seeds screen-interactive state; open intervals shown as provisional only
+- Friction/cooldown presentation success tracked; rate caps only on presented prompts
+- Cycle transitions use `SharedPreferences.commit()`
+- Honest capabilities (notifications permission, no fake “live” observation)
+- Sections G/H, Greek copy, custom durations, reset-settings-without-wiping-history
+- Whole-browser counting wires browser packages when explicitly enabled
+- Intentional use (separate exception) starts temporary bypass for planned duration
+- Live 1s UI countdown derived from last native snapshot (native remains authoritative)
+- StatusChip honors temporary-access / Greek labels
+
 ## Files added / changed (high level)
 
 - Native module: `mobile/modules/distraction-guard/**`

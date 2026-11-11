@@ -1,7 +1,10 @@
 package expo.modules.distractionguard
 
 import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.Handler
@@ -11,10 +14,21 @@ import androidx.core.content.ContextCompat
 
 /**
  * Optional specialUse FGS for periodic UsageEvents reconciliation while Guard is enabled.
- * Honest limitation: not second-perfect; uses bounded polling.
+ * Also records USER_PRESENT for unlock→distraction associations without depending on
+ * the unlock-prompt feature being enabled (same Android signal, Guard-owned log).
  */
 class GuardMonitorService : Service() {
   private val handler = Handler(Looper.getMainLooper())
+  private var receiverRegistered = false
+
+  private val unlockReceiver = object : BroadcastReceiver() {
+    override fun onReceive(context: Context?, intent: Intent?) {
+      if (intent?.action == Intent.ACTION_USER_PRESENT) {
+        GuardPrefs.recordUnlockEvent(applicationContext)
+      }
+    }
+  }
+
   private val tick = object : Runnable {
     override fun run() {
       try {
@@ -28,6 +42,13 @@ class GuardMonitorService : Service() {
   override fun onCreate() {
     super.onCreate()
     GuardNotifications.ensureChannels(this)
+    val filter = IntentFilter(Intent.ACTION_USER_PRESENT)
+    if (Build.VERSION.SDK_INT >= 33) {
+      registerReceiver(unlockReceiver, filter, RECEIVER_NOT_EXPORTED)
+    } else {
+      registerReceiver(unlockReceiver, filter)
+    }
+    receiverRegistered = true
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -53,13 +74,17 @@ class GuardMonitorService : Service() {
 
   override fun onDestroy() {
     handler.removeCallbacks(tick)
+    if (receiverRegistered) {
+      unregisterReceiver(unlockReceiver)
+      receiverRegistered = false
+    }
     super.onDestroy()
   }
 
   override fun onBind(intent: Intent?): IBinder? = null
 
   companion object {
-    fun start(context: android.content.Context): Boolean {
+    fun start(context: Context): Boolean {
       return try {
         ContextCompat.startForegroundService(
           context,
@@ -71,7 +96,7 @@ class GuardMonitorService : Service() {
       }
     }
 
-    fun stop(context: android.content.Context) {
+    fun stop(context: Context) {
       context.stopService(Intent(context, GuardMonitorService::class.java))
     }
   }

@@ -40,16 +40,42 @@ class OpeningFrictionActivity : Activity() {
       countdown.text = ""
     }
 
+    val pkg = intent.getStringExtra("packageName") ?: ""
+
     btnReturn.setOnClickListener {
-      // Bring user to home / our app rather than punishing.
+      GuardPrefs.appendFrictionEvent(
+        this,
+        org.json.JSONObject()
+          .put("type", "opening_friction_result")
+          .put("result", "return")
+          .put("packageName", pkg)
+          .put("atMs", System.currentTimeMillis())
+      )
       val home = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
       home.flags = Intent.FLAG_ACTIVITY_NEW_TASK
       startActivity(home)
       finish()
     }
-    btnContinue.setOnClickListener { finish() }
+    btnContinue.setOnClickListener {
+      GuardPrefs.appendFrictionEvent(
+        this,
+        org.json.JSONObject()
+          .put("type", "opening_friction_result")
+          .put("result", "continue")
+          .put("packageName", pkg)
+          .put("atMs", System.currentTimeMillis())
+      )
+      finish()
+    }
     btnIntentional.setOnClickListener {
-      // Deep-link into RN intentional sheet
+      GuardPrefs.appendFrictionEvent(
+        this,
+        org.json.JSONObject()
+          .put("type", "opening_friction_result")
+          .put("result", "intentional")
+          .put("packageName", pkg)
+          .put("atMs", System.currentTimeMillis())
+      )
       val open = Intent(Intent.ACTION_VIEW).apply {
         data = android.net.Uri.parse("pos://more/distraction-guard?intentional=1")
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

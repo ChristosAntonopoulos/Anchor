@@ -9,6 +9,8 @@ export type CycleStatus =
   | 'COOLDOWN_ACTIVE'
   | 'CYCLE_COMPLETE';
 
+export type ExceptionType = 'NONE' | 'TEMPORARY_ACCESS' | 'COOLDOWN_ENDED_BY_USER';
+
 export type FocusCycleState = {
   id: string;
   observedUsageMs: number;
@@ -17,14 +19,17 @@ export type FocusCycleState = {
   thresholdCrossed: boolean;
   cooldownEndsAtMs?: number;
   cooldownEndsElapsedRealtime?: number;
+  bootId?: string;
+  exceptionType?: ExceptionType;
+  bypassExpiresAtMs?: number;
+  bypassExpiresElapsedRealtime?: number;
 };
 
 export function isWithinSchedule(params: {
   nowMs: number;
   startMinutes: number;
   endMinutes: number;
-  activeDays: number[]; // Sunday=0
-  timeZoneOffsetMinutes?: number;
+  activeDays: number[];
   pausedUntilMs?: number;
 }): boolean {
   const { nowMs, startMinutes, endMinutes, activeDays, pausedUntilMs = 0 } = params;
@@ -43,7 +48,120 @@ export function isWithinSchedule(params: {
 }
 
 export function remainingAllowanceMs(cycle: FocusCycleState): number {
+  if (cycle.cycleStatus !== 'ALLOWANCE_AVAILABLE') return 0;
   return Math.max(0, cycle.allowanceMs - cycle.observedUsageMs);
+}
+
+export function isBypassActive(
+  cycle: FocusCycleState,
+  nowMs: number,
+  elapsedRealtime: number
+): boolean {
+  if (cycle.exceptionType !== 'TEMPORARY_ACCESS') return false;
+  if (cycle.bypassExpiresElapsedRealtime != null) {
+    return elapsedRealtime < cycle.bypassExpiresElapsedRealtime;
+  }
+  if (cycle.bypassExpiresAtMs != null) {
+    return nowMs < cycle.bypassExpiresAtMs;
+  }
+  return false;
+}
+
+export function reconcileBootCooldown(
+  cycle: FocusCycleState,
+  currentBootId: string,
+  nowMs: number,
+  elapsedRealtime: number
+): FocusCycleState {
+  if (cycle.bootId && cycle.bootId === currentBootId) return cycle;
+  const next = { ...cycle, bootId: currentBootId };
+  if (next.cycleStatus === 'COOLDOWN_ACTIVE') {
+    if (next.cooldownEndsAtMs != null) {
+      const remaining = Math.max(0, next.cooldownEndsAtMs - nowMs);
+      next.cooldownEndsElapsedRealtime = elapsedRealtime + remaining;
+    } else {
+      next.cycleStatus = 'CYCLE_COMPLETE';
+    }
+  }
+  return next;
+}
+
+export function ensureCycleStatus(params: {
+  cycle: FocusCycleState | null;
+  withinSchedule: boolean;
+  enabled: boolean;
+  nowMs: number;
+  elapsedRealtime: number;
+  allowanceMs: number;
+  newId: string;
+  bootId: string;
+}): FocusCycleState {
+  const { withinSchedule, enabled, nowMs, elapsedRealtime, allowanceMs, newId, bootId } = params;
+  let cycle = params.cycle;
+
+  if (!cycle) {
+    if (withinSchedule && enabled) {
+      return {
+        id: newId,
+        observedUsageMs: 0,
+        allowanceMs,
+        cycleStatus: 'ALLOWANCE_AVAILABLE',
+        thresholdCrossed: false,
+        bootId,
+        exceptionType: 'NONE',
+      };
+    }
+    return {
+      id: '',
+      observedUsageMs: 0,
+      allowanceMs,
+      cycleStatus: 'CYCLE_COMPLETE',
+      thresholdCrossed: false,
+      bootId,
+      exceptionType: 'NONE',
+    };
+  }
+
+  cycle = reconcileBootCooldown(cycle, bootId, nowMs, elapsedRealtime);
+
+  if (cycle.cycleStatus === 'COOLDOWN_ACTIVE' && !isBypassActive(cycle, nowMs, elapsedRealtime)) {
+    const expired =
+      (cycle.cooldownEndsElapsedRealtime != null &&
+        elapsedRealtime >= cycle.cooldownEndsElapsedRealtime) ||
+      (cycle.cooldownEndsAtMs != null && nowMs >= cycle.cooldownEndsAtMs);
+    if (expired) {
+      if (withinSchedule && enabled) {
+        return {
+          id: newId,
+          observedUsageMs: 0,
+          allowanceMs,
+          cycleStatus: 'ALLOWANCE_AVAILABLE',
+          thresholdCrossed: false,
+          bootId,
+          exceptionType: 'NONE',
+        };
+      }
+      return { ...cycle, cycleStatus: 'CYCLE_COMPLETE' };
+    }
+  }
+
+  if (
+    (cycle.cycleStatus === 'CYCLE_COMPLETE' || cycle.cycleStatus === 'ALLOWANCE_EXHAUSTED') &&
+    withinSchedule &&
+    enabled
+  ) {
+    return {
+      id: newId,
+      observedUsageMs: 0,
+      allowanceMs,
+      cycleStatus: 'ALLOWANCE_AVAILABLE',
+      thresholdCrossed: false,
+      bootId,
+      exceptionType: 'NONE',
+    };
+  }
+
+  return cycle;
 }
 
 export function applyVerifiedUsage(
@@ -56,6 +174,9 @@ export function applyVerifiedUsage(
   if (cycle.cycleStatus !== 'ALLOWANCE_AVAILABLE' || addMs <= 0) {
     return { cycle, cooldownStarted: false };
   }
+  if (isBypassActive(cycle, nowMs, elapsedRealtime)) {
+    return { cycle, cooldownStarted: false };
+  }
   const nextObserved = Math.min(cycle.allowanceMs, cycle.observedUsageMs + addMs);
   const next: FocusCycleState = {
     ...cycle,
@@ -66,12 +187,12 @@ export function applyVerifiedUsage(
     next.cycleStatus = 'COOLDOWN_ACTIVE';
     next.cooldownEndsAtMs = nowMs + cooldownSeconds * 1000;
     next.cooldownEndsElapsedRealtime = elapsedRealtime + cooldownSeconds * 1000;
+    next.exceptionType = 'NONE';
     return { cycle: next, cooldownStarted: true };
   }
   return { cycle: next, cooldownStarted: false };
 }
 
-/** One threshold crossing → one cooldown. Duplicate adds after cap do not re-trigger. */
 export function applyVerifiedUsageIdempotent(
   cycle: FocusCycleState,
   segmentsMs: number[],
@@ -87,6 +208,50 @@ export function applyVerifiedUsageIdempotent(
     current = result.cycle;
   }
   return { cycle: current, cooldownStartedCount: started };
+}
+
+export function applyBypassExpiry(params: {
+  cycle: FocusCycleState;
+  nowMs: number;
+  elapsedRealtime: number;
+  withinSchedule: boolean;
+  enabled: boolean;
+  allowanceMs: number;
+  newId: string;
+  bootId: string;
+}): FocusCycleState {
+  const { cycle, nowMs, elapsedRealtime, withinSchedule, enabled, allowanceMs, newId, bootId } =
+    params;
+  if (cycle.exceptionType !== 'TEMPORARY_ACCESS') return cycle;
+  if (isBypassActive(cycle, nowMs, elapsedRealtime)) return cycle;
+
+  const cleared: FocusCycleState = {
+    ...cycle,
+    exceptionType: 'NONE',
+    bypassExpiresAtMs: undefined,
+    bypassExpiresElapsedRealtime: undefined,
+  };
+
+  if (cleared.cycleStatus === 'COOLDOWN_ACTIVE') {
+    const cooldownLeft =
+      (cleared.cooldownEndsElapsedRealtime != null &&
+        elapsedRealtime < cleared.cooldownEndsElapsedRealtime) ||
+      (cleared.cooldownEndsAtMs != null && nowMs < cleared.cooldownEndsAtMs);
+    if (cooldownLeft) return cleared;
+  }
+
+  if (withinSchedule && enabled) {
+    return {
+      id: newId,
+      observedUsageMs: 0,
+      allowanceMs,
+      cycleStatus: 'ALLOWANCE_AVAILABLE',
+      thresholdCrossed: false,
+      bootId,
+      exceptionType: 'NONE',
+    };
+  }
+  return { ...cleared, cycleStatus: 'CYCLE_COMPLETE' };
 }
 
 export function remainingCooldownMs(

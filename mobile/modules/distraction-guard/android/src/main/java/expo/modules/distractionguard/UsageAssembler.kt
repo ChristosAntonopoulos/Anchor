@@ -12,8 +12,7 @@ import org.json.JSONObject
 
 /**
  * Reconstructs verified foreground usage intervals for selected packages.
- * Screen-off time is excluded via SCREEN_NON_INTERACTIVE / INTERACTIVE events.
- * Ambiguous intervals are marked uncertain and not counted toward allowance.
+ * Screen-off time is excluded. Open intervals are returned separately as provisional.
  */
 internal object UsageAssembler {
 
@@ -23,7 +22,13 @@ internal object UsageAssembler {
     val endedAtMs: Long,
     val durationMs: Long,
     val confidence: String,
-    val dedupeKey: String
+    val dedupeKey: String,
+    val closed: Boolean
+  )
+
+  data class QueryResult(
+    val closedSegments: List<AssembledSegment>,
+    val openProvisional: AssembledSegment?
   )
 
   fun hasUsageAccess(context: Context): Boolean {
@@ -50,19 +55,53 @@ internal object UsageAssembler {
     targetPackages: Set<String>,
     startMs: Long,
     endMs: Long
-  ): List<AssembledSegment> {
+  ): QueryResult {
     if (!hasUsageAccess(context) || endMs <= startMs || targetPackages.isEmpty()) {
-      return emptyList()
+      return QueryResult(emptyList(), null)
     }
     val usm = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
-      ?: return emptyList()
+      ?: return QueryResult(emptyList(), null)
 
-    val events = usm.queryEvents(startMs, endMs)
-    val event = UsageEvents.Event()
-
+    // Seed screen/foreground state from a lookback so mid-window SCREEN_NON_INTERACTIVE is correct.
+    val seedStart = (startMs - 120_000L).coerceAtLeast(endMs - 6 * 60 * 60 * 1000L)
+    val seedEvents = usm.queryEvents(seedStart, startMs)
+    val seedEvent = UsageEvents.Event()
     var screenInteractive = true
     var currentPkg: String? = null
     var currentStart: Long? = null
+    while (seedEvents.hasNextEvent()) {
+      seedEvents.getNextEvent(seedEvent)
+      when (seedEvent.eventType) {
+        UsageEvents.Event.SCREEN_NON_INTERACTIVE -> {
+          screenInteractive = false
+          currentPkg = null
+          currentStart = null
+        }
+        UsageEvents.Event.SCREEN_INTERACTIVE -> screenInteractive = true
+        UsageEvents.Event.ACTIVITY_RESUMED,
+        UsageEvents.Event.MOVE_TO_FOREGROUND -> {
+          val pkg = seedEvent.packageName
+          if (screenInteractive && pkg != null && pkg in targetPackages) {
+            currentPkg = pkg
+            currentStart = seedEvent.timeStamp.coerceAtLeast(startMs)
+          } else {
+            currentPkg = null
+            currentStart = null
+          }
+        }
+        UsageEvents.Event.ACTIVITY_PAUSED,
+        UsageEvents.Event.ACTIVITY_STOPPED,
+        UsageEvents.Event.MOVE_TO_BACKGROUND -> {
+          if (seedEvent.packageName == currentPkg) {
+            currentPkg = null
+            currentStart = null
+          }
+        }
+      }
+    }
+
+    val events = usm.queryEvents(startMs, endMs)
+    val event = UsageEvents.Event()
     val out = mutableListOf<AssembledSegment>()
 
     while (events.hasNextEvent()) {
@@ -70,7 +109,7 @@ internal object UsageAssembler {
       val ts = event.timeStamp
       when (event.eventType) {
         UsageEvents.Event.SCREEN_NON_INTERACTIVE -> {
-          flush(currentPkg, currentStart, ts, screenInteractive, out)
+          flush(currentPkg, currentStart, ts, screenInteractive, out, closed = true)
           currentPkg = null
           currentStart = null
           screenInteractive = false
@@ -83,13 +122,13 @@ internal object UsageAssembler {
           if (!screenInteractive) continue
           val pkg = event.packageName ?: continue
           if (pkg !in targetPackages) {
-            flush(currentPkg, currentStart, ts, true, out)
+            flush(currentPkg, currentStart, ts, true, out, closed = true)
             currentPkg = null
             currentStart = null
             continue
           }
           if (currentPkg != null && currentPkg != pkg) {
-            flush(currentPkg, currentStart, ts, true, out)
+            flush(currentPkg, currentStart, ts, true, out, closed = true)
           }
           if (currentPkg != pkg) {
             currentPkg = pkg
@@ -101,16 +140,30 @@ internal object UsageAssembler {
         UsageEvents.Event.MOVE_TO_BACKGROUND -> {
           val pkg = event.packageName
           if (pkg != null && pkg == currentPkg) {
-            flush(currentPkg, currentStart, ts, screenInteractive, out)
+            flush(currentPkg, currentStart, ts, screenInteractive, out, closed = true)
             currentPkg = null
             currentStart = null
           }
         }
       }
     }
-    // Do not invent an end for an open interval at query end — mark unfinished as uncounted.
-    // Open intervals are left out until a pause/stop/non-interactive closes them.
-    return out.filter { it.durationMs > 0 }
+
+    val open = if (currentPkg != null && currentStart != null && screenInteractive) {
+      val duration = endMs - currentStart
+      if (duration >= 800) {
+        AssembledSegment(
+          packageName = currentPkg,
+          startedAtMs = currentStart,
+          endedAtMs = endMs,
+          durationMs = duration,
+          confidence = "provisional",
+          dedupeKey = "$currentPkg:$currentStart:open",
+          closed = false
+        )
+      } else null
+    } else null
+
+    return QueryResult(out.filter { it.durationMs > 0 }, open)
   }
 
   private fun flush(
@@ -118,11 +171,11 @@ internal object UsageAssembler {
     start: Long?,
     end: Long,
     interactive: Boolean,
-    out: MutableList<AssembledSegment>
+    out: MutableList<AssembledSegment>,
+    closed: Boolean
   ) {
     if (pkg == null || start == null || end <= start || !interactive) return
     val duration = end - start
-    // Ignore tiny flicker transitions under 800ms
     if (duration < 800) return
     out.add(
       AssembledSegment(
@@ -131,14 +184,15 @@ internal object UsageAssembler {
         endedAtMs = end,
         durationMs = duration,
         confidence = "verified",
-        dedupeKey = "$pkg:$start:$end"
+        dedupeKey = "$pkg:$start:$end",
+        closed = closed
       )
     )
   }
 
   fun installedTargetApps(context: Context, packages: List<String>): List<Map<String, Any?>> {
     val pm = context.packageManager
-    return packages.map { pkg ->
+    return packages.distinct().map { pkg ->
       try {
         val info = if (Build.VERSION.SDK_INT >= 33) {
           pm.getApplicationInfo(pkg, PackageManager.ApplicationInfoFlags.of(0))
@@ -161,19 +215,13 @@ internal object UsageAssembler {
     }
   }
 
-  fun toJsonArray(segments: List<AssembledSegment>): JSONArray {
-    val arr = JSONArray()
-    for (s in segments) {
-      arr.put(
-        JSONObject()
-          .put("packageName", s.packageName)
-          .put("startedAtMs", s.startedAtMs)
-          .put("endedAtMs", s.endedAtMs)
-          .put("durationMs", s.durationMs)
-          .put("confidence", s.confidence)
-          .put("dedupeKey", s.dedupeKey)
-      )
-    }
-    return arr
-  }
+  fun toJson(segment: AssembledSegment): JSONObject =
+    JSONObject()
+      .put("packageName", segment.packageName)
+      .put("startedAtMs", segment.startedAtMs)
+      .put("endedAtMs", segment.endedAtMs)
+      .put("durationMs", segment.durationMs)
+      .put("confidence", segment.confidence)
+      .put("dedupeKey", segment.dedupeKey)
+      .put("closed", segment.closed)
 }

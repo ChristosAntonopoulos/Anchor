@@ -56,11 +56,16 @@ class CooldownActivity : Activity() {
 
   private fun updateRemaining() {
     val cycle = GuardPrefs.cycle(this) ?: return
-    val ms = PolicyEngine.remainingCooldownMs(
-      cycle,
-      System.currentTimeMillis(),
-      GuardPrefs.elapsedRealtime()
-    )
+    val now = System.currentTimeMillis()
+    val elapsed = GuardPrefs.elapsedRealtime()
+    // Temporary access / end-restriction dismisses the cooldown surface.
+    if (PolicyEngine.isBypassActive(cycle, now, elapsed) ||
+      cycle.optString("cycleStatus") != PolicyEngine.CYCLE_COOLDOWN
+    ) {
+      finish()
+      return
+    }
+    val ms = PolicyEngine.remainingCooldownMs(cycle, now, elapsed)
     val totalSec = (ms / 1000L).toInt()
     val m = totalSec / 60
     val s = totalSec % 60

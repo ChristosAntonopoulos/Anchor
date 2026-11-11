@@ -2,24 +2,32 @@ import { View, Text, StyleSheet } from 'react-native';
 import { guardTokens } from '../../features/distraction-guard/guardTokens';
 
 const labels: Record<string, string> = {
-  ACTIVE: 'Active',
-  OUTSIDE_SCHEDULE: 'Outside schedule',
-  COOLDOWN_ACTIVE: 'Cooling down',
-  PAUSED: 'Paused',
-  DISABLED: 'Disabled',
-  DEGRADED: 'Needs permission',
-  LIMITED: 'Limited monitoring',
+  ACTIVE: 'Ενεργό',
+  OUTSIDE_SCHEDULE: 'Εκτός προγράμματος',
+  COOLDOWN_ACTIVE: 'Διάλειμμα',
+  PAUSED: 'Προσωρινή πρόσβαση',
+  DISABLED: 'Ανενεργό',
+  DEGRADED: 'Χρειάζεται άδεια',
+  LIMITED: 'Περιορισμένη παρακολούθηση',
 };
 
-export function StatusChip({ protectionState, cycleStatus }: { protectionState: string; cycleStatus?: string }) {
+export function StatusChip({
+  protectionState,
+  cycleStatus,
+}: {
+  protectionState: string;
+  cycleStatus?: string;
+}) {
   const key =
-    cycleStatus === 'COOLDOWN_ACTIVE'
-      ? 'COOLDOWN_ACTIVE'
-      : protectionState === 'DEGRADED'
-        ? 'DEGRADED'
-        : protectionState;
+    cycleStatus === 'PAUSED'
+      ? 'PAUSED'
+      : cycleStatus === 'COOLDOWN_ACTIVE'
+        ? 'COOLDOWN_ACTIVE'
+        : protectionState === 'DEGRADED'
+          ? 'DEGRADED'
+          : protectionState;
   const label = labels[key] ?? key;
-  const cool = key === 'COOLDOWN_ACTIVE' || key === 'DEGRADED';
+  const cool = key === 'COOLDOWN_ACTIVE' || key === 'DEGRADED' || key === 'PAUSED';
   return (
     <View style={[styles.chip, cool ? styles.warn : styles.ok]}>
       <Text style={styles.text}>{label}</Text>

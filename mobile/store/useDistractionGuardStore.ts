@@ -3,21 +3,27 @@ import {
   clearGuardHistory,
   disableGuardImmediately,
   ensureGuardMonitoring,
+  getFrictionStats,
   getGuardSettings,
   getGuardStatus,
+  getGuardUnlockEvents,
   getInstalledTargets,
   getRecentSegments,
   isDistractionGuardAvailable,
+  openGuardOverlaySettings,
   openUsageAccessSettings,
   reconcileGuard,
+  requestGuardNotificationPermission,
+  resetGuardSettingsKeepHistory,
   saveGuardSettings,
+  saveIntentionalUse,
   startGuardBypass,
   type GuardSettings,
   type GuardStatus,
   type InstalledTarget,
+  type UnlockEvent,
   type UsageSegment,
 } from 'distraction-guard';
-import { getRecentUnlockEvents, type UnlockEvent } from 'phone-unlock';
 import { buildInsights, type InsightsSummary } from '../features/distraction-guard/insights';
 
 type GuardStore = {
@@ -31,13 +37,22 @@ type GuardStore = {
   loading: boolean;
   error: string | null;
   refresh: () => void;
+  reconcileNow: () => void;
   updateSettings: (patch: Partial<GuardSettings>) => void;
   completeSetup: () => void;
   requestUsageAccess: () => void;
+  requestOverlay: () => void;
+  requestNotifications: () => void;
   bypass: (seconds: number) => void;
   endRestriction: () => void;
   disableAll: () => void;
   clearHistoryOnly: () => void;
+  resetSettingsOnly: () => void;
+  saveIntention: (payload: {
+    purpose: string;
+    durationSeconds: number;
+    note?: string;
+  }) => void;
   loadInsights: (days?: number) => void;
 };
 
@@ -66,16 +81,34 @@ export const useDistractionGuardStore = create<GuardStore>((set, get) => ({
     set({ loading: true, error: null, available: true });
     try {
       ensureGuardMonitoring();
-      const status = reconcileGuard() ?? getGuardStatus();
+      const status = getGuardStatus();
       const settings = getGuardSettings();
       const targets = getInstalledTargets();
       const segments = getRecentSegments(200);
-      const unlocks = getRecentUnlockEvents(100);
+      const unlocks = getGuardUnlockEvents(100);
       set({ status, settings, targets, segments, unlocks, loading: false });
     } catch (e) {
       set({
         loading: false,
         error: e instanceof Error ? e.message : 'Failed to refresh Distraction Guard',
+      });
+    }
+  },
+
+  reconcileNow: () => {
+    if (!isDistractionGuardAvailable()) return;
+    try {
+      const status = reconcileGuard();
+      const settings = getGuardSettings();
+      set({
+        status,
+        settings,
+        segments: getRecentSegments(200),
+        unlocks: getGuardUnlockEvents(100),
+      });
+    } catch (e) {
+      set({
+        error: e instanceof Error ? e.message : 'Reconcile failed',
       });
     }
   },
@@ -86,14 +119,16 @@ export const useDistractionGuardStore = create<GuardStore>((set, get) => ({
   },
 
   completeSetup: () => {
+    requestGuardNotificationPermission();
     saveGuardSettings({ setupComplete: true, enabled: true });
     ensureGuardMonitoring();
+    get().reconcileNow();
     get().refresh();
   },
 
-  requestUsageAccess: () => {
-    openUsageAccessSettings();
-  },
+  requestUsageAccess: () => openUsageAccessSettings(),
+  requestOverlay: () => openGuardOverlaySettings(),
+  requestNotifications: () => requestGuardNotificationPermission(),
 
   bypass: (seconds) => {
     startGuardBypass(seconds, false);
@@ -116,11 +151,22 @@ export const useDistractionGuardStore = create<GuardStore>((set, get) => ({
     get().loadInsights(7);
   },
 
+  resetSettingsOnly: () => {
+    resetGuardSettingsKeepHistory();
+    get().refresh();
+  },
+
+  saveIntention: (payload) => {
+    saveIntentionalUse(payload);
+    get().refresh();
+  },
+
   loadInsights: (days = 7) => {
     const segments = getRecentSegments(500);
-    const unlocks = getRecentUnlockEvents(200);
+    const unlocks = getGuardUnlockEvents(200);
     const settings = getGuardSettings();
     const status = getGuardStatus();
+    const friction = getFrictionStats();
     const end = Date.now();
     const start = end - days * 24 * 60 * 60 * 1000;
     const insights = buildInsights({
@@ -130,6 +176,16 @@ export const useDistractionGuardStore = create<GuardStore>((set, get) => ({
       rangeStartMs: start,
       rangeEndMs: end,
       monitoringHealthy: !!status?.capabilities.usageAccessGranted,
+      openingPresented: friction.presented,
+      openingDismissed: friction.returned,
+      analyzeUnlockPatterns: settings?.analyzeUnlockPatterns !== false,
+      scheduleFilter: settings
+        ? {
+            startMinutes: settings.scheduleStartMinutes,
+            endMinutes: settings.scheduleEndMinutes,
+            activeDays: settings.activeDays,
+          }
+        : undefined,
     });
     set({ insights, segments, unlocks });
   },
