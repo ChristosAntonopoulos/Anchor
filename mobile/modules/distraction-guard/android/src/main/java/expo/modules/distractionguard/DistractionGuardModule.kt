@@ -58,19 +58,21 @@ class DistractionGuardModule : Module() {
     }
 
     Function("openUsageAccessSettings") {
-      val context = appContext.reactContext?.applicationContext ?: return@Function
+      val context = appContext.reactContext?.applicationContext ?: return@Function false
       context.startActivity(
         Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
       )
+      true
     }
 
     Function("openOverlaySettings") {
-      val context = appContext.reactContext?.applicationContext ?: return@Function
+      val context = appContext.reactContext?.applicationContext ?: return@Function false
       val packageUri = Uri.parse("package:${context.packageName}")
       context.startActivity(
         Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, packageUri)
           .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
       )
+      true
     }
 
     Function("requestNotificationPermission") {
@@ -84,6 +86,7 @@ class DistractionGuardModule : Module() {
           activity.requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 4201)
         }
       }
+      true
     }
 
     Function("getInstalledTargets") {
