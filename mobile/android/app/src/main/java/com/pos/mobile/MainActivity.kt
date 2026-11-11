@@ -20,12 +20,25 @@ class MainActivity : ReactActivity() {
     
     handleUnlockIntent(intent)
     super.onCreate(null)
+    if (intent?.getBooleanExtra(MorningModeLauncher.EXTRA, false) == true ||
+        intent?.dataString?.contains("morning") == true
+    ) {
+      MorningModeStore.markPending(this, true)
+      MorningModeLauncher.cancelNotification(this)
+    }
   }
 
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
     setIntent(intent)
     handleUnlockIntent(intent)
+    if (intent.getBooleanExtra(MorningModeLauncher.EXTRA, false) ||
+        intent.dataString?.contains("morning") == true
+    ) {
+      MorningModeStore.markPending(this, true)
+      MorningModeLauncher.cancelNotification(this)
+      MorningModeModule.emitOpened()
+    }
   }
 
   private fun handleUnlockIntent(intent: Intent?) {
@@ -36,7 +49,7 @@ class MainActivity : ReactActivity() {
       val unlockTime = intent.getLongExtra("unlockTime", 0L)
       if (unlockTime > 0) {
         android.util.Log.d("MainActivity", "Unlock intent with unlockTime: $unlockTime")
-        PhoneUnlockPresenter.onPhoneUnlocked(this, unlockTime)
+        PhoneUnlockPresenter.onPhoneUnlocked(this, unlockTime, fromUserPresent = true)
       }
     }
   }

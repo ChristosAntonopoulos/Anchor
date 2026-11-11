@@ -16,6 +16,8 @@ import { useLifeReminders } from '../hooks/useLifeReminders';
 import { useFocusPresence } from '../hooks/useFocusPresence';
 import { useOsWidgetSync } from '../hooks/useOsWidgetSync';
 import { useOsDeepLinks } from '../hooks/useOsDeepLinks';
+import { useMorningGate } from '../hooks/useMorningGate';
+import { isMorningTakeover, useMorningModeStore } from '../store/useMorningModeStore';
 
 export default function RootLayout() {
   const { fetchCategories } = useCategoryStore();
@@ -23,6 +25,7 @@ export default function RootLayout() {
   useFocusPresence();
   useOsWidgetSync();
   useOsDeepLinks();
+  const morningTakeover = useMorningGate();
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [showOverlayPrompt, setShowOverlayPrompt] = useState(false);
   const [overlayPromptPaused, setOverlayPromptPaused] = useState(false);
@@ -148,6 +151,9 @@ export default function RootLayout() {
       if (timeSinceLastUnlock < DEBOUNCE_MS) {
         return;
       }
+      if (isMorningTakeover(useMorningModeStore.getState().session)) {
+        return;
+      }
       if (isShowingModalRef.current) {
         return;
       }
@@ -204,7 +210,7 @@ export default function RootLayout() {
 
   const checkPendingUnlock = useCallback(async () => {
     try {
-      if (isShowingModalRef.current || showUnlockModal) {
+      if (isShowingModalRef.current || showUnlockModal || morningTakeover) {
         return;
       }
 
@@ -217,7 +223,7 @@ export default function RootLayout() {
     } catch (error) {
       console.error('[RootLayout] Error checking pending unlock:', error);
     }
-  }, [showUnlockModal]);
+  }, [morningTakeover, showUnlockModal]);
 
   // Listen for app state changes to check pending unlock when app comes to foreground
   useEffect(() => {
@@ -304,19 +310,28 @@ export default function RootLayout() {
         <Stack.Screen name="more" />
         <Stack.Screen name="check-in" />
         <Stack.Screen name="work" />
+        <Stack.Screen
+          name="morning"
+          options={{
+            presentation: 'fullScreenModal',
+            animation: 'fade',
+            gestureEnabled: false,
+            headerShown: false,
+          }}
+        />
       </Stack>
       <ErrorBoundary>
-        <AppUpdatePrompt />
+        {morningTakeover ? null : <AppUpdatePrompt />}
       </ErrorBoundary>
       <ErrorBoundary>
         <PhoneUnlockReasonModal
-          visible={showUnlockModal}
+          visible={showUnlockModal && !morningTakeover}
           unlockTime={unlockTime}
           onClose={handleUnlockModalClose}
         />
       </ErrorBoundary>
       <Modal
-        visible={showOverlayPrompt && !overlayPromptPaused}
+        visible={showOverlayPrompt && !overlayPromptPaused && !morningTakeover}
         transparent
         animationType="fade"
         onRequestClose={() => undefined}

@@ -148,6 +148,9 @@ export interface APIClient {
   setRoutineVersion(blockId: string, version: 'regular' | 'shorter'): Promise<void>;
   skipRoutine(blockId: string): Promise<void>;
   getExecutionReview(): Promise<import('../types/execution').ExecutionReview>;
+  syncMorningSession(session: import('../utils/morningMode').MorningSession): Promise<void>;
+  getMorningFirstTask(): Promise<import('../utils/morningMode').MorningFirstTask>;
+  helpMorning(request: { step: string; text: string }): Promise<string | null>;
   getTodayFocus(): Promise<Task[]>;
   getInbox(limit?: number): Promise<TaskInboxResponse>;
   promoteTask(id: string): Promise<Task>;
@@ -1212,6 +1215,20 @@ class HTTPAPIClient implements APIClient {
   async getExecutionReview(): Promise<import('../types/execution').ExecutionReview> {
     const response = await this.axiosInstance.get<ApiResponse<import('../types/execution').ExecutionReview>>('/execution/review');
     return unwrapResponse(response.data);
+  }
+
+  async syncMorningSession(session: import('../utils/morningMode').MorningSession): Promise<void> {
+    await this.axiosInstance.put('/morning/session', session);
+  }
+
+  async getMorningFirstTask(): Promise<import('../utils/morningMode').MorningFirstTask> {
+    const response = await this.axiosInstance.get<ApiResponse<import('../utils/morningMode').MorningFirstTask>>('/morning/first-task');
+    return unwrapResponse(response.data);
+  }
+
+  async helpMorning(request: { step: string; text: string }): Promise<string | null> {
+    const response = await this.axiosInstance.post<ApiResponse<{ text?: string }>>('/morning/help', request);
+    return unwrapResponse(response.data)?.text ?? null;
   }
 
   private handleError(error: unknown, defaultMessage: string): Error {
