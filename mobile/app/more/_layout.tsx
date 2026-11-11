@@ -41,6 +41,18 @@ export default function MoreLayout() {
         }}
       />
       <Stack.Screen
+        name="distraction-guard"
+        options={{
+          title: 'Distraction Guard',
+        }}
+      />
+      <Stack.Screen
+        name="distraction-guard-insights"
+        options={{
+          title: 'Guard Insights',
+        }}
+      />
+      <Stack.Screen
         name="meals"
         options={{
           headerShown: false,

@@ -199,12 +199,17 @@ export default function SystemsScreen() {
         </View>
         <View style={styles.row}>
           <SystemTile
+            icon="habits"
+            title="Distraction Guard"
+            status="Usage limit · cooldown"
+            onPress={() => router.push('/more/distraction-guard' as any)}
+          />
+          <SystemTile
             icon="notification"
             title="Inbox"
             status={inboxStatus}
             attention={unread > 0}
             onPress={() => router.push('/more/notifications' as any)}
-            wide
           />
         </View>
 

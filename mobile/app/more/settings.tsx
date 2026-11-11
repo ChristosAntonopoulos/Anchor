@@ -1,7 +1,8 @@
-import { View, Text, StyleSheet, ScrollView, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity } from 'react-native';
 import { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import { colors, spacing, typography, gradients, borderRadius, shadows } from '../../constants/designTokens';
 import { CHECK_IN_COPY } from '../../constants/checkIn';
 import { CrisisCard } from '../../components/checkIn/CrisisCard';
@@ -10,6 +11,7 @@ import { useExecutionStore } from '../../store/useExecutionStore';
 import { ExecutionProfileCard } from '../../components/execution/ExecutionProfileCard';
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const usePreviousEntries = useCheckInStore((state) => state.usePreviousEntries);
   const profile = useExecutionStore((state) => state.profile);
@@ -106,6 +108,30 @@ export default function SettingsScreen() {
                 </LinearGradient>
               </View>
               <CrisisCard />
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Focus</Text>
+              <TouchableOpacity
+                style={styles.settingItem}
+                onPress={() => router.push('/more/distraction-guard' as any)}
+                accessibilityRole="button"
+                accessibilityLabel="Open Distraction Guard"
+              >
+                <LinearGradient
+                  colors={[colors.surface, colors.surface]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.settingCard}
+                >
+                  <View style={styles.settingContent}>
+                    <Text style={styles.settingLabel}>Distraction Guard</Text>
+                    <Text style={styles.settingDescription}>
+                      Limit selected apps, cooldown, and opening pause
+                    </Text>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.section}>
