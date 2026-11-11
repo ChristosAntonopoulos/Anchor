@@ -24,6 +24,8 @@ import { AiBriefCard } from '../../components/today/AiBriefCard';
 import { TodayMealCard } from '../../components/meals/TodayMealCard';
 import { ActiveTimersBar } from '../../components/meals/ActiveTimersBar';
 import { ErrorBanner } from '../../components/shared/ErrorBanner';
+import { HydrationCard } from '../../components/today/HydrationCard';
+import { apiClient } from '../../services/api';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -200,6 +202,16 @@ export default function HomeScreen() {
 
           <ActiveTimersBar />
           <TodayMealCard />
+          {data.discipline ? (
+            <HydrationCard
+              discipline={data.discipline}
+              onAddGlass={async (blockId, itemId) => {
+                const today = data.discipline.date || new Date().toISOString().slice(0, 10);
+                await apiClient.incrementDisciplineCounter(today, blockId, itemId);
+                await fetchToday();
+              }}
+            />
+          ) : null}
 
           <CurrentBlockIndicator
             block={data.currentBlock}

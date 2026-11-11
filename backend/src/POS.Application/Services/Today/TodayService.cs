@@ -147,6 +147,18 @@ public class TodayService
                     discipline = null;
                 }
             }
+            else if (HydrationDefaults.Normalize(discipline))
+            {
+                discipline.UpdatedAt = DateTime.UtcNow;
+                try
+                {
+                    await _context.DisciplineEntries.ReplaceOneAsync(disciplineFilter, discipline);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to normalize hydration item.");
+                }
+            }
             
             if (discipline != null)
             {
@@ -321,7 +333,7 @@ public class TodayService
                     new DisciplineItem { ItemId = "DietFollowed", ItemName = "Diet followed (no cheat meals, no alcohol)", Type = DisciplineItemType.Toggle, ToggleValue = false },
                     new DisciplineItem { ItemId = "Workout1", ItemName = "Workout #1 (45 min)", Type = DisciplineItemType.Toggle, ToggleValue = false },
                     new DisciplineItem { ItemId = "Workout2", ItemName = "Workout #2 (45 min – outdoor)", Type = DisciplineItemType.Toggle, ToggleValue = false },
-                    new DisciplineItem { ItemId = "GallonWater", ItemName = "1 gallon water", Type = DisciplineItemType.Toggle, ToggleValue = false },
+                    HydrationDefaults.CreateItem(),
                     new DisciplineItem { ItemId = "Read10Pages", ItemName = "Read 10 pages nonfiction", Type = DisciplineItemType.Toggle, ToggleValue = false },
                     new DisciplineItem { ItemId = "ProgressPhoto", ItemName = "Progress photo", Type = DisciplineItemType.Toggle, ToggleValue = false }
                 }

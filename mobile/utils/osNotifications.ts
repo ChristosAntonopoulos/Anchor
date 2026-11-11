@@ -3,6 +3,7 @@ import type { Task, ScheduleBlock } from '../types';
 import type { TodayMealCard } from '../types/meals';
 import type { WorkSession } from '../types/execution';
 import { FOCUS_PREFIX, buildFocusCues, focusPlanFingerprint, focusWindows } from './focusPresence';
+import { buildWaterReminders } from './waterReminders';
 
 type NotifMod = {
   setNotificationHandler: (handler: unknown) => void;
@@ -85,6 +86,11 @@ export async function ensureOsNotifications(): Promise<NotifMod | null> {
           importance: low,
           sound: FOCUS_CHIME,
           enableVibrate: false,
+        }),
+        mod.setNotificationChannelAsync('os-water', {
+          name: 'Water',
+          importance: mod.AndroidImportance?.DEFAULT ?? 3,
+          sound: 'default',
         }),
       ]);
     }
@@ -173,12 +179,14 @@ export async function syncLifeReminders(input: {
   tasks: Task[];
   todayCard: TodayMealCard | null;
   weeklyCompleted: boolean;
+  waterGlasses?: number;
 }): Promise<void> {
   const mod = await ensureOsNotifications();
   if (!mod) return;
   await cancelPrefix(mod, `${PREFIX}task:`);
   await cancelPrefix(mod, `${PREFIX}meal:`);
   await cancelPrefix(mod, `${PREFIX}review`);
+  await cancelPrefix(mod, `${PREFIX}water:`);
 
   for (const task of input.tasks) {
     if (task.completed || task.status === 'done' || task.status === 'archived') continue;
@@ -227,6 +235,19 @@ export async function syncLifeReminders(input: {
       'Look back on the week. Four short answers.',
       'os-review',
       'pos://os/review'
+    );
+  }
+
+  const waterCues = buildWaterReminders(input.waterGlasses ?? 0, new Date());
+  for (const cue of waterCues) {
+    await schedule(
+      mod,
+      `${PREFIX}water:${cue.glassNumber}`,
+      cue.at,
+      'Water',
+      `Glass ${cue.glassNumber} of 10 · 250 ml (${((cue.glassNumber * 250) / 1000).toFixed(1)} L of 2.5 L).`,
+      'os-water',
+      'pos://os/discipline'
     );
   }
 }

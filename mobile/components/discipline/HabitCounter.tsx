@@ -7,11 +7,13 @@ import { colors, spacing, typography, borderRadius } from '../../constants/desig
 interface HabitCounterProps {
   label: string;
   count: number;
+  target?: number;
+  detail?: string;
   onIncrement: () => void;
   onDecrement: () => void;
 }
 
-export function HabitCounter({ label, count, onIncrement, onDecrement }: HabitCounterProps) {
+export function HabitCounter({ label, count, target, detail, onIncrement, onDecrement }: HabitCounterProps) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
@@ -34,7 +36,10 @@ export function HabitCounter({ label, count, onIncrement, onDecrement }: HabitCo
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+      <View style={styles.copy}>
+        <Text style={styles.label}>{label}</Text>
+        {detail ? <Text style={styles.detail}>{detail}</Text> : null}
+      </View>
       <View style={styles.counterContainer}>
         <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
           <TouchableOpacity
@@ -50,7 +55,7 @@ export function HabitCounter({ label, count, onIncrement, onDecrement }: HabitCo
         </Animated.View>
         
         <View style={styles.countContainer}>
-          <Text style={styles.countText}>{count}</Text>
+          <Text style={styles.countText}>{target != null ? `${count}/${target}` : count}</Text>
         </View>
         
         <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
@@ -82,11 +87,19 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     marginBottom: spacing.s,
   },
+  copy: {
+    flex: 1,
+    paddingRight: spacing.s,
+  },
   label: {
     fontSize: typography.fontSize.body,
     color: colors.textPrimary,
     fontWeight: typography.fontWeight.medium,
-    flex: 1,
+  },
+  detail: {
+    fontSize: typography.fontSize.caption,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
   counterContainer: {
     flexDirection: 'row',
