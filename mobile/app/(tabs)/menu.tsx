@@ -14,6 +14,7 @@ import { useWeeklyReviewStore } from '../../store/useWeeklyReviewStore';
 import { useCookingStore } from '../../store/useCookingStore';
 import { apiClient } from '../../services/api';
 import { formatMoney } from '../../utils/walletSpend';
+import { WATER_TARGET_GLASSES, findWaterGlasses } from '../../utils/waterReminders';
 
 function daysUntil(dueDate: string): number {
   const due = new Date(`${dueDate}T12:00:00`);
@@ -99,8 +100,13 @@ export default function SystemsScreen() {
       }
     });
   });
+  const waterGlasses = findWaterGlasses(discipline);
   const disciplineStatus =
-    disciplineTotal > 0 ? `${disciplineDone}/${disciplineTotal} checked today` : 'Daily checklist';
+    waterGlasses < WATER_TARGET_GLASSES
+      ? `${waterGlasses}/${WATER_TARGET_GLASSES} water`
+      : disciplineTotal > 0
+        ? `${disciplineDone}/${disciplineTotal} checked today`
+        : 'Daily checklist';
 
   const unread = notifications.filter((n) => !n.isRead && !n.isDismissed).length;
   const inboxStatus = !listenerOn
@@ -168,6 +174,7 @@ export default function SystemsScreen() {
             icon="habits"
             title="Discipline"
             status={disciplineStatus}
+            attention={waterGlasses < WATER_TARGET_GLASSES}
             onPress={() => router.push('/(tabs)/discipline')}
           />
         </View>

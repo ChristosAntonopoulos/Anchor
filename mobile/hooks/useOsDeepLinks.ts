@@ -28,6 +28,9 @@ function openOsUrl(url: string | null) {
       case 'tasks':
         router.push('/(tabs)/tasks');
         break;
+      case 'discipline':
+        router.push('/(tabs)/discipline');
+        break;
       default:
         break;
     }

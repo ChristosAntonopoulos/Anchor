@@ -3,7 +3,9 @@ import { AppState } from 'react-native';
 import { useTaskStore } from '../store/useTaskStore';
 import { useMealsStore } from '../store/useMealsStore';
 import { useWeeklyReviewStore } from '../store/useWeeklyReviewStore';
+import { useTodayStore } from '../store/useTodayStore';
 import { syncLifeReminders } from '../utils/osNotifications';
+import { findWaterGlasses } from '../utils/waterReminders';
 
 export function useLifeReminders() {
   const tasks = useTaskStore((s) => s.todayFocus);
@@ -13,6 +15,8 @@ export function useLifeReminders() {
   const fetchTodayCard = useMealsStore((s) => s.fetchTodayCard);
   const weeklyCompleted = useWeeklyReviewStore((s) => Boolean(s.data?.completed));
   const fetchWeeklyReview = useWeeklyReviewStore((s) => s.fetchWeeklyReview);
+  const discipline = useTodayStore((s) => s.data?.discipline);
+  const waterGlasses = findWaterGlasses(discipline);
 
   useEffect(() => {
     void fetchTasks();
@@ -25,8 +29,9 @@ export function useLifeReminders() {
       tasks: [...tasks, ...inbox],
       todayCard,
       weeklyCompleted,
+      waterGlasses,
     });
-  }, [inbox, tasks, todayCard, weeklyCompleted]);
+  }, [inbox, tasks, todayCard, weeklyCompleted, waterGlasses]);
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
@@ -35,6 +40,7 @@ export function useLifeReminders() {
           tasks: [...useTaskStore.getState().todayFocus, ...useTaskStore.getState().inboxItems],
           todayCard: useMealsStore.getState().todayCard,
           weeklyCompleted: Boolean(useWeeklyReviewStore.getState().data?.completed),
+          waterGlasses: findWaterGlasses(useTodayStore.getState().data?.discipline),
         });
       }
     });

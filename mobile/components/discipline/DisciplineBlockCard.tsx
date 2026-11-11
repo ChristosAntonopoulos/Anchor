@@ -3,7 +3,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
 import { HabitToggle } from './HabitToggle';
 import { HabitCounter } from './HabitCounter';
-import type { DisciplineBlock, DisciplineItem } from '../../types';
+import { WATER_ITEM_ID, WATER_LEGACY_ITEM_ID, WATER_TARGET_GLASSES, waterLitres } from '../../utils/waterReminders';
+import type { DisciplineBlock } from '../../types';
 
 interface DisciplineBlockCardProps {
   block: DisciplineBlock;
@@ -61,11 +62,15 @@ export function DisciplineBlockCard({
                 />
               );
             } else {
+              const isWater = item.itemId === WATER_ITEM_ID || item.itemId === WATER_LEGACY_ITEM_ID;
+              const glasses = item.counterValue ?? 0;
               return (
                 <HabitCounter
                   key={item.itemId}
                   label={item.itemName}
-                  count={item.counterValue ?? 0}
+                  count={glasses}
+                  target={isWater ? WATER_TARGET_GLASSES : undefined}
+                  detail={isWater ? `${waterLitres(glasses)} of ${waterLitres(WATER_TARGET_GLASSES)} drinks` : undefined}
                   onIncrement={() => onIncrementItem(item.itemId)}
                   onDecrement={() => onDecrementItem(item.itemId)}
                 />
