@@ -141,7 +141,7 @@ class MorningModeModule(reactContext: ReactApplicationContext) :
     }
 
     private fun runOnActivity(promise: Promise, block: (Activity) -> Unit) {
-        val activity = currentActivity
+        val activity = getCurrentActivity()
         if (activity == null) {
             promise.resolve(false)
             return

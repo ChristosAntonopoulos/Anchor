@@ -31,6 +31,7 @@ class PhoneUnlockReceiver : BroadcastReceiver() {
                     ),
                 )
             }
+        }
     }
 
     companion object {
