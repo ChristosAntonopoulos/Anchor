@@ -314,10 +314,16 @@ stages:
           
           - task: Bash@3
             displayName: 'Create Kubernetes Secrets'
+            env:
+              MONGO_CONNECTION_STRING: $(MONGO_CONNECTION_STRING)
+              DOCKER_USERNAME: $(DOCKER_USERNAME)
+              DOCKER_PASSWORD: $(DOCKER_PASSWORD)
+              AzureDevOps__PersonalAccessToken: $(AzureDevOps__PersonalAccessToken)
             inputs:
               targetType: 'inline'
               script: |
-                # Verify required variables are set
+                set -euo pipefail
+                # Verify required variables are set (names only — never echo secret values)
                 MISSING_VARS=()
                 
                 if [ -z "${MONGO_CONNECTION_STRING:-}" ]; then
@@ -330,6 +336,10 @@ stages:
                 
                 if [ -z "${DOCKER_PASSWORD:-}" ]; then
                   MISSING_VARS+=("DOCKER_PASSWORD")
+                fi
+
+                if [ -z "${AzureDevOps__PersonalAccessToken:-}" ]; then
+                  MISSING_VARS+=("AzureDevOps__PersonalAccessToken")
                 fi
                 
                 if [ ${#MISSING_VARS[@]} -gt 0 ]; then
@@ -344,29 +354,43 @@ stages:
                   exit 1
                 fi
                 
-                # Verify connection string format (basic check)
-                if ! echo "${MONGO_CONNECTION_STRING}" | grep -q "mongodb"; then
+                # Verify connection string format (basic check; do not print the value)
+                if ! printf '%s' "${MONGO_CONNECTION_STRING}" | grep -q "mongodb"; then
                   echo "WARNING: MONGO_CONNECTION_STRING may be malformed (should start with 'mongodb://' or 'mongodb+srv://')"
                 fi
-                
-                APP_RELEASE_TOKEN=`openssl rand -hex 32 2>/dev/null || od -An -N32 -tx1 /dev/urandom | tr -d ' \n'`
+
+                # Preserve existing upload token when present so redeploys do not rotate it
+                APP_RELEASE_TOKEN=""
+                if kubectl get secret pos-api-secrets -n $(kubernetesNamespace) > /dev/null 2>&1; then
+                  APP_RELEASE_TOKEN=$(kubectl get secret pos-api-secrets -n $(kubernetesNamespace) -o jsonpath='{.data.AppRelease__UploadToken}' 2>/dev/null | base64 -d || true)
+                fi
+                if [ -z "${APP_RELEASE_TOKEN}" ]; then
+                  APP_RELEASE_TOKEN=$(openssl rand -hex 32 2>/dev/null || od -An -N32 -tx1 /dev/urandom | tr -d ' \n')
+                fi
                 if [ -z "${APP_RELEASE_TOKEN}" ]; then
                   echo "ERROR: Could not generate the app release upload token."
                   exit 1
                 fi
 
-                echo "Creating Kubernetes secrets..."
-                # Create or update secrets from pipeline variables
+                echo "Creating Kubernetes secrets (Mongo + AppRelease + AzureDevOps PAT)..."
+                # Replace pos-api-secrets with the full known key set so apply does not drop the ADO PAT
                 kubectl create secret generic pos-api-secrets \
                   --from-literal=ConnectionStrings__MongoDb="${MONGO_CONNECTION_STRING}" \
                   --from-literal=AppRelease__UploadToken="${APP_RELEASE_TOKEN}" \
+                  --from-literal=AzureDevOps__PersonalAccessToken="${AzureDevOps__PersonalAccessToken}" \
                   --namespace=$(kubernetesNamespace) \
                   --dry-run=client -o yaml | kubectl apply -f -
                 
                 echo "Verifying secret was created..."
                 if kubectl get secret pos-api-secrets -n $(kubernetesNamespace) > /dev/null 2>&1; then
-                  CONN_STR_PREVIEW=$(kubectl get secret pos-api-secrets -n $(kubernetesNamespace) -o jsonpath='{.data.ConnectionStrings__MongoDb}' | base64 -d | head -c 50)
-                  echo "Secret created successfully. Connection string preview: ${CONN_STR_PREVIEW}..."
+                  echo "Secret created successfully."
+                  echo "Keys present:"
+                  kubectl get secret pos-api-secrets -n $(kubernetesNamespace) -o go-template='{{range $k, $v := .data}}  - {{$k}}{{"\n"}}{{end}}'
+                  if ! kubectl get secret pos-api-secrets -n $(kubernetesNamespace) -o jsonpath='{range $k,$v := .data}{$k}{"\n"}{end}' | grep -qx 'AzureDevOps__PersonalAccessToken'; then
+                    echo "ERROR: AzureDevOps__PersonalAccessToken key missing from secret"
+                    exit 1
+                  fi
+                  echo "AzureDevOps__PersonalAccessToken key is present (value not shown)."
                 else
                   echo "ERROR: Failed to create secret!"
                   exit 1

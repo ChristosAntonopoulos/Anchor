@@ -11,7 +11,7 @@ data:
   BotSystem__IntakeBotKey: "anchor.intake"
   BotSystem__DayStartBotKey: "anchor.day-start"
   # Azure DevOps org for home launcher latest-pipeline widget (PAT lives in secrets)
-  AzureDevOps__Organization: ""
+  AzureDevOps__Organization: "CaptainBot"
   AzureDevOps__CacheSeconds: "60"
   # MongoDB connection string without credentials (credentials in secrets)
   # Format: mongodb://mongodb-service:27017/pos
