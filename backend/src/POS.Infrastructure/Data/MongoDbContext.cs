@@ -11,6 +11,7 @@ using POS.Core.Entities.Discipline;
 using POS.Core.Entities.Execution;
 using POS.Core.Entities.Meals;
 using POS.Core.Entities.Morning;
+using POS.Core.Entities.Night;
 using POS.Core.Entities.Money;
 using POS.Core.Entities.Notifications;
 using POS.Core.Entities.Schedule;
@@ -127,6 +128,9 @@ public class MongoDbContext
 
     public IMongoCollection<MorningModeSession> MorningModeSessions =>
         _database.GetCollection<MorningModeSession>("morningModeSessions");
+
+    public IMongoCollection<NightModeSession> NightModeSessions =>
+        _database.GetCollection<NightModeSession>("nightModeSessions");
 
     // Meals collections
     public IMongoCollection<FoodProfile> FoodProfiles =>
