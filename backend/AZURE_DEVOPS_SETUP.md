@@ -27,8 +27,8 @@ Configure the API (ConfigMap / secrets / env):
 
 | Setting | Env / key | Notes |
 |--------|-----------|-------|
-| Organization | `AzureDevOps__Organization` or `AZURE_DEVOPS_ORG` | Name in `https://dev.azure.com/{org}` |
-| PAT | `AzureDevOps__PersonalAccessToken` or `AZURE_DEVOPS_PAT` | Secret; scopes **Build (Read)** + **Project and Team (Read)** |
+| Organization | ConfigMap `pos-api-config` → `AzureDevOps__Organization` (repo value: `CaptainBot`) | Also kept in POS-Secrets for reference; live pod reads the ConfigMap |
+| PAT | POS-Secrets `AzureDevOps__PersonalAccessToken` → Deploy writes `pos-api-secrets` | Secret; scopes **Build (Read)** + **Project and Team (Read)** |
 
 Without these, the widget shows a calm empty state (“No pipeline yet”).
 
