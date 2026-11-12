@@ -186,7 +186,7 @@ internal object GuardController {
     }
 
     if (cooldownStarted) {
-      val replacement = "Άσε το κινητό και πήγαινε στο γραφείο."
+      val replacement = "Put the phone down and go to your desk."
       if (notificationsGranted(context)) {
         GuardNotifications.cooldownStarted(context, replacement)
       }

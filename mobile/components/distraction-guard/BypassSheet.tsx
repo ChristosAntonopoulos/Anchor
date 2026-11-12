@@ -13,12 +13,12 @@ export function BypassSheet({ visible, onClose, onBypass, onEndRestriction }: Pr
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-          <Text style={styles.title}>Χρειάζεσαι πρόσβαση;</Text>
-          <Text style={styles.hint}>Προσωρινή πρόσβαση — χωρίς ντροπή, χωρίς τιμωρία.</Text>
+          <Text style={styles.title}>Need access?</Text>
+          <Text style={styles.hint}>Temporary access — no shame, no punishment.</Text>
           {[
-            { label: '2 λεπτά', seconds: 120 },
-            { label: '5 λεπτά', seconds: 300 },
-            { label: '15 λεπτά', seconds: 900 },
+            { label: '2 minutes', seconds: 120 },
+            { label: '5 minutes', seconds: 300 },
+            { label: '15 minutes', seconds: 900 },
           ].map((opt) => (
             <TouchableOpacity
               key={opt.seconds}
@@ -38,10 +38,10 @@ export function BypassSheet({ visible, onClose, onBypass, onEndRestriction }: Pr
               onClose();
             }}
           >
-            <Text style={styles.btnText}>Τέλος περιορισμού</Text>
+            <Text style={styles.btnText}>End restriction</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.cancel} onPress={onClose}>
-            <Text style={styles.cancelText}>Κλείσιμο</Text>
+            <Text style={styles.cancelText}>Close</Text>
           </TouchableOpacity>
         </Pressable>
       </Pressable>
