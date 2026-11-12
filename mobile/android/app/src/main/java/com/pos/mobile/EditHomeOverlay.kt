@@ -24,8 +24,6 @@ class EditHomeOverlay(
     init {
         orientation = VERTICAL
         setBackgroundColor(LauncherPalette.charcoal)
-        val pad = LauncherPalette.dp(this, 20)
-        setPadding(pad, pad, pad, pad)
         addView(LauncherPalette.text(this, 22f, LauncherPalette.text, true).apply { text = "Edit Home" })
         addView(LauncherPalette.text(this, 13f, LauncherPalette.muted).apply {
             text = "Two cards on Home. Developer is a swipe away. Pin apps from All apps."

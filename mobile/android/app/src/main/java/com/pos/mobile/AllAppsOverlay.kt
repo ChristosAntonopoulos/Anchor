@@ -28,20 +28,19 @@ class AllAppsOverlay(
     init {
         orientation = VERTICAL
         setBackgroundColor(LauncherPalette.charcoal)
-        val pad = LauncherPalette.dp(this, 20)
-        setPadding(pad, pad, pad, pad)
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
         val title = LauncherPalette.text(this, 22f, LauncherPalette.text, true)
         title.text = if (pickingFavorites) "Favorites" else "All apps"
         val caption = LauncherPalette.text(this, 13f, LauncherPalette.muted)
-        caption.text = if (pickingFavorites) "Pin up to five. Star to keep them on Home." else "Search on device. Star to pin."
+        caption.text = if (pickingFavorites) "Pin up to five. They stay on Home." else "Search on device. Pin to keep on Home."
+        val fieldPad = LauncherPalette.dp(this, 14)
         val search = EditText(context).apply {
             setHint("Search")
             setHintTextColor(LauncherPalette.faint)
             setTextColor(LauncherPalette.text)
             background = LauncherPalette.searchField()
             minHeight = LauncherPalette.dp(this@AllAppsOverlay, 48)
-            setPadding(pad, LauncherPalette.dp(this@AllAppsOverlay, 12), pad, LauncherPalette.dp(this@AllAppsOverlay, 12))
+            setPadding(fieldPad, LauncherPalette.dp(this@AllAppsOverlay, 12), fieldPad, LauncherPalette.dp(this@AllAppsOverlay, 12))
             isSingleLine = true
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
