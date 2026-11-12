@@ -42,7 +42,7 @@ internal object GuardNotifications {
     val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     val notification = NotificationCompat.Builder(context, CHANNEL_ALERT)
       .setContentTitle("Distraction Guard")
-      .setContentText("1 λεπτό απομένει στα επιλεγμένα apps.")
+      .setContentText("1 minute left on selected apps.")
       .setSmallIcon(android.R.drawable.ic_dialog_info)
       .setAutoCancel(true)
       .build()
@@ -62,7 +62,7 @@ internal object GuardNotifications {
     )
     val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     val notification = NotificationCompat.Builder(context, CHANNEL_ALERT)
-      .setContentTitle("Ώρα για ένα διάλειμμα")
+      .setContentTitle("Time for a break")
       .setContentText(replacement)
       .setSmallIcon(android.R.drawable.ic_lock_lock)
       .setContentIntent(pi)
