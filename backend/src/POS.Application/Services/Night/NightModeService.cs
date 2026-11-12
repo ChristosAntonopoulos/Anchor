@@ -77,24 +77,24 @@ public class NightModeService
             now = new NowRecommendationDto();
         }
 
-        var title = string.IsNullOrWhiteSpace(now.TaskTitle) ? "Πρώτο βήμα για αύριο" : now.TaskTitle;
+        var title = string.IsNullOrWhiteSpace(now.TaskTitle) ? "First step for tomorrow" : now.TaskTitle;
         var first = string.IsNullOrWhiteSpace(now.NextAction)
-            ? "Γράψε ένα μικρό πρώτο βήμα για αύριο."
-            : $"Για αύριο: {Physicalize(now.NextAction)}";
+            ? "Write one small first step for tomorrow."
+            : $"For tomorrow: {Physicalize(now.NextAction)}";
         return new NightTomorrowPlanDto
         {
             TaskId = now.TaskId,
             TaskTitle = title,
-            Reason = string.IsNullOrWhiteSpace(now.Reason) ? "Κλείσε το μυαλό με ένα μικρό, συγκεκριμένο βήμα." : now.Reason,
+            Reason = string.IsNullOrWhiteSpace(now.Reason) ? "Close the loop with one small, concrete step." : now.Reason,
             FirstPhysicalAction = first,
             NextMicroActions = new List<string>
             {
-                "Βάλε το τηλέφωνο να φορτίζει μακριά από το κρεβάτι.",
-                "Διάλεξε ένα μόνο πράγμα για αύριο το πρωί.",
+                "Put the phone on charge away from the bed.",
+                "Pick just one thing for tomorrow morning.",
             },
             EasierAlternative = now.AlternativeTitle is { Length: > 0 }
-                ? $"Γράψε μόνο: {now.AlternativeTitle}."
-                : "Γράψε μόνο μία λέξη για αύριο. Τίποτα άλλο.",
+                ? $"Write only: {now.AlternativeTitle}."
+                : "Write only one word for tomorrow. Nothing else.",
         };
     }
 
@@ -102,11 +102,11 @@ public class NightModeService
     {
         var fallback = request.Step switch
         {
-            "screens" => "Κλείσε μόνο μία οθόνη. Άφησε το υπόλοιπο.",
-            "prepare" => "Κάνε μόνο ένα πράγμα: δροσιά, πλύσιμο, ή κρεβάτι.",
-            "settle" => "Δεν χρειάζεται να κάνεις κάτι σωστά. Μείνε ήσυχα.",
-            "close" => "Γράψε ένα μικρό βήμα. Μετά άφησε το τηλέφωνο.",
-            _ => "Χαμήλωσε ένα φως. Ζεστό φως είναι αρκετό.",
+            "screens" => "Close just one screen. Leave the rest.",
+            "prepare" => "Do only one thing: cool the room, wash up, or make the bed.",
+            "settle" => "You do not need to do it right. Stay quiet.",
+            "close" => "Write one small step. Then put the phone away.",
+            _ => "Dim one light. Warm light is enough.",
         };
 
         if (!_llm.IsConfigured || string.IsNullOrWhiteSpace(request.Text))
@@ -117,7 +117,7 @@ public class NightModeService
         try
         {
             var json = await _llm.CompleteJsonAsync(
-                "You help one adult wind down for a quiet 30-minute indoor night routine. Reply JSON {\"text\":\"...\"}. Maximum two short Greek sentences. Practical sleep hygiene only: dim light, screens away, cool room, quiet breath, one tomorrow step. No medical advice. No pep talk.",
+                "You help one adult wind down for a quiet 30-minute indoor night routine. Reply JSON {\"text\":\"...\"}. Maximum two short English sentences. Practical sleep hygiene only: dim light, screens away, cool room, quiet breath, one tomorrow step. No medical advice. No pep talk.",
                 "The user is stuck during a night wind-down step. Make the next action smaller.",
                 JsonSerializer.Serialize(new { request.Step, request.Text, userId }),
                 ct);
@@ -140,11 +140,11 @@ public class NightModeService
 
     private static string Physicalize(string action)
     {
-        if (action.Contains("γράψε", StringComparison.OrdinalIgnoreCase) || action.Contains("Cursor", StringComparison.OrdinalIgnoreCase))
+        if (action.Contains("write", StringComparison.OrdinalIgnoreCase) || action.Contains("Cursor", StringComparison.OrdinalIgnoreCase))
         {
             return action;
         }
-        return $"Σημείωσε: {action}".Trim();
+        return $"Note: {action}".Trim();
     }
 
     private static string TrimHelp(string value)

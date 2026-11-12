@@ -99,10 +99,10 @@
   <string name="morning_channel_name">Morning Mode</string>
   <string name="morning_channel_description">First unlock after 07:00</string>
   <string name="morning_notification_title">Morning Mode</string>
-  <string name="morning_notification_body">Σήκω. Πάμε να ξεκινήσουμε.</string>
+  <string name="morning_notification_body">Get up. Let\'s get started.</string>
 
   <string name="night_channel_name">Night Mode</string>
   <string name="night_channel_description">First unlock after 22:00</string>
   <string name="night_notification_title">Night Mode</string>
-  <string name="night_notification_body">Χαμήλωσε τα φώτα. Πάμε να κλείσουμε την ημέρα.</string>
+  <string name="night_notification_body">Dim the lights. Let\'s close out the day.</string>
 </resources>

@@ -78,9 +78,9 @@ test('dim ready then screen commands stay one at a time', () => {
   let session = reduceNight(emptyWaiting(night(22)), { type: 'unlock', fromUserPresent: true }, night(22));
   session = reduceNight(session, { type: 'ready' }, night(22, 0, 20));
   assert.equal(session.currentStep, 'screens');
-  assert.equal(currentCommand(session), 'Κλείσε τα feeds.');
+  assert.equal(currentCommand(session), 'Close the feeds.');
   session = reduceNight(session, { type: 'easier' }, night(22, 0, 21));
-  assert.equal(currentCommand(session), 'Κλείσε μόνο τα feeds.');
+  assert.equal(currentCommand(session), 'Just close the feeds.');
 });
 
 test('skipping prepare does not invent extra chores', () => {

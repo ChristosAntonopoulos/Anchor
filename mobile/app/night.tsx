@@ -113,11 +113,11 @@ export default function NightScreen() {
         <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
           <Text style={styles.kicker}>{COPY.title}</Text>
           <View style={styles.center}>
-            <Text style={styles.command}>Μετά τις 22:00, στο πρώτο ξεκλείδωμα.</Text>
-            <Text style={styles.sub}>Δεν ξεκινά αν το τηλέφωνο μείνει ξεκλείδωτο. Ένα unlock. Μία φορά τη μέρα.</Text>
+            <Text style={styles.command}>After 22:00, on the first unlock.</Text>
+            <Text style={styles.sub}>It will not start if the phone stays unlocked. One unlock. Once a day.</Text>
           </View>
           <Pressable onPress={() => router.replace('/(tabs)')} style={styles.primary}>
-            <Text style={styles.primaryText}>Πίσω</Text>
+            <Text style={styles.primaryText}>Back</Text>
           </Pressable>
         </SafeAreaView>
       </View>
