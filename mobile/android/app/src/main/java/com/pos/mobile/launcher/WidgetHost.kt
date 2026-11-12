@@ -1,6 +1,7 @@
 package com.pos.mobile.launcher
 
 import android.content.Context
+import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
 import java.util.concurrent.TimeUnit
@@ -27,7 +28,7 @@ class WidgetHost(
             providers[instance.instanceId] = provider
             val card = WidgetCard(context)
             addView(card, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-                bottomMargin = LauncherPalette.dp(this@WidgetHost, 12)
+                bottomMargin = LauncherPalette.dp(this@WidgetHost, 10)
             })
             val unsub = provider.observe {
                 card.render(provider) { action ->
@@ -51,47 +52,56 @@ class WidgetHost(
 }
 
 private class WidgetCard(context: Context) : LinearLayout(context) {
-    private val title = LauncherPalette.text(this, 12f, LauncherPalette.muted, true)
-    private val body = LauncherPalette.text(this, 22f, LauncherPalette.text, true)
-    private val rows = LinearLayout(context).apply { orientation = VERTICAL }
+    private val header = LinearLayout(context).apply {
+        orientation = HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+    }
+    private val title = LauncherPalette.eyebrow(this, "")
+    private val action = LauncherPalette.text(this, 13f, LauncherPalette.accent, true)
+    private val body = LauncherPalette.text(this, 20f, LauncherPalette.text, true)
     private val status = LauncherPalette.text(this, 13f, LauncherPalette.muted)
-    private val action = LauncherPalette.button(this, "Open") {}
+    private val rows = LinearLayout(context).apply { orientation = HORIZONTAL }
 
     init {
         orientation = VERTICAL
         background = LauncherPalette.card()
-        val pad = LauncherPalette.dp(this, 18)
+        val pad = LauncherPalette.dp(this, 16)
         setPadding(pad, pad, pad, pad)
-        title.letterSpacing = 0.08f
-        addView(title)
+        header.addView(title, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
+        action.minHeight = LauncherPalette.dp(this, 44)
+        action.gravity = Gravity.CENTER_VERTICAL or Gravity.END
+        action.isClickable = true
+        action.isFocusable = true
+        header.addView(action, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
+        addView(header)
         addView(body, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
             topMargin = LauncherPalette.dp(this@WidgetCard, 8)
         })
         addView(rows, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-            topMargin = LauncherPalette.dp(this@WidgetCard, 4)
+            topMargin = LauncherPalette.dp(this@WidgetCard, 6)
         })
         addView(status, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
             topMargin = LauncherPalette.dp(this@WidgetCard, 8)
         })
-        addView(action, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
-            topMargin = LauncherPalette.dp(this@WidgetCard, 14)
-        })
-        body.setLineSpacing(6f, 1.05f)
+        body.setLineSpacing(4f, 1.04f)
         isClickable = true
         isFocusable = true
     }
 
     fun render(provider: WidgetContentProvider, onAction: (WidgetAction) -> Unit) {
         val state = provider.current()
-        title.text = provider.primaryLabel()?.uppercase()
+        title.text = provider.primaryLabel()?.uppercase().orEmpty()
         contentDescription = provider.primaryLabel()
         setOnLongClickListener {
             onAction(WidgetAction.Details(provider.instance.instanceId))
             true
         }
-        provider.primaryAction()?.let { primary ->
+        val primary = provider.primaryAction()
+        if (primary != null) {
             setOnClickListener { onAction(primary) }
-        } ?: setOnClickListener(null)
+        } else {
+            setOnClickListener(null)
+        }
         when (state) {
             WidgetUiState.Loading -> {
                 body.visibility = View.VISIBLE
@@ -119,19 +129,21 @@ private class WidgetCard(context: Context) : LinearLayout(context) {
                     rows.visibility = View.GONE
                 }
                 val age = if (state.hideTimestamp) null else freshness(state.sourceAtMs)
-                val line = listOfNotNull(provider.status(), age, if (state.refreshing) "Checking…" else null)
-                    .joinToString(" · ")
+                val line = listOfNotNull(
+                    provider.status()?.takeUnless { it.equals(provider.body(), ignoreCase = true) },
+                    age,
+                    if (state.refreshing) "Checking…" else null,
+                ).joinToString(" · ")
                 status.text = line
                 status.visibility = if (line.isBlank()) View.GONE else View.VISIBLE
                 val label = provider.actionLabel()
-                val widgetAction = provider.primaryAction()
-                if (label.isNullOrBlank() || widgetAction == null) {
+                if (label.isNullOrBlank() || primary == null) {
                     action.visibility = View.GONE
                 } else {
                     action.visibility = View.VISIBLE
                     action.text = label
                     action.contentDescription = label
-                    action.setOnClickListener { onAction(widgetAction) }
+                    action.setOnClickListener { onAction(primary) }
                 }
             }
         }
@@ -140,33 +152,36 @@ private class WidgetCard(context: Context) : LinearLayout(context) {
     private fun bindRows(items: List<WidgetRow>, onAction: (WidgetAction) -> Unit) {
         rows.removeAllViews()
         items.forEachIndexed { index, item ->
-            val row = LinearLayout(context).apply {
+            if (index > 0) {
+                val rule = View(context).apply { setBackgroundColor(LauncherPalette.hairline) }
+                rows.addView(rule, LayoutParams(LauncherPalette.dp(this, 1), LayoutParams.MATCH_PARENT).apply {
+                    marginStart = LauncherPalette.dp(this@WidgetCard, 12)
+                    marginEnd = LauncherPalette.dp(this@WidgetCard, 12)
+                    topMargin = LauncherPalette.dp(this@WidgetCard, 4)
+                    bottomMargin = LauncherPalette.dp(this@WidgetCard, 4)
+                })
+            }
+            val cell = LinearLayout(context).apply {
                 orientation = VERTICAL
                 isClickable = item.action != null
                 isFocusable = item.action != null
-                minimumHeight = LauncherPalette.dp(this@WidgetCard, 48)
+                minimumHeight = LauncherPalette.dp(this@WidgetCard, 56)
                 contentDescription = listOf(item.label, item.value, item.meta).filter { it.isNotBlank() }.joinToString(" ")
-                item.action?.let { action -> setOnClickListener { onAction(action) } }
+                item.action?.let { next -> setOnClickListener { onAction(next) } }
             }
-            val label = LauncherPalette.text(this, 11f, LauncherPalette.muted, true)
-            label.text = item.label.uppercase()
-            label.letterSpacing = 0.08f
-            val value = LauncherPalette.text(this, 18f, LauncherPalette.text, true)
-            value.text = item.value
-            row.addView(label)
-            row.addView(value, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-                topMargin = LauncherPalette.dp(this@WidgetCard, 4)
+            cell.addView(LauncherPalette.eyebrow(this, item.label))
+            cell.addView(LauncherPalette.text(this, 17f, LauncherPalette.text, true).apply {
+                text = item.value
+                maxLines = 2
+            }, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+                topMargin = LauncherPalette.dp(this@WidgetCard, 6)
             })
             if (item.meta.isNotBlank()) {
-                val meta = LauncherPalette.text(this, 13f, LauncherPalette.muted)
-                meta.text = item.meta
-                row.addView(meta, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-                    topMargin = LauncherPalette.dp(this@WidgetCard, 2)
+                cell.addView(LauncherPalette.text(this, 12f, LauncherPalette.muted).apply { text = item.meta }, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+                    topMargin = LauncherPalette.dp(this@WidgetCard, 3)
                 })
             }
-            rows.addView(row, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-                if (index > 0) topMargin = LauncherPalette.dp(this@WidgetCard, 12)
-            })
+            rows.addView(cell, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
         }
     }
 

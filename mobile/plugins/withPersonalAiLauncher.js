@@ -52,6 +52,9 @@ module.exports = function withPersonalAiLauncher(config) {
     ensureUsesPermission(config.modResults, 'android.permission.QUERY_ALL_PACKAGES');
     ensurePackageQuery(config.modResults, 'com.openai.chatgpt');
     ensurePackageQuery(config.modResults, 'com.google.android.apps.walletnfcrel');
+    ensurePackageQuery(config.modResults, 'com.spotify.music');
+    ensurePackageQuery(config.modResults, 'com.spotify.lite');
+    ensurePackageQuery(config.modResults, 'com.anysphere.cursor');
     ensureHomeActivity(config.modResults);
     return config;
   });

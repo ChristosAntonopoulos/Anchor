@@ -60,6 +60,24 @@ class InstalledAppsSearchTest {
     fun blankQueryMatchesEverything() {
         assertEquals(0, InstalledApps.matchRank("Wallet", "com.google.android.apps.walletnfcrel", "  "))
     }
+
+    @Test
+    fun cursorAndSpotifyMatchByName() {
+        assertEquals(0, InstalledApps.matchRank("Cursor", "com.anysphere.cursor", "cur"))
+        assertEquals(0, InstalledApps.matchRank("Spotify", "com.spotify.music", "spo"))
+    }
+}
+
+class DockAppsTest {
+    @Test
+    fun dockHasWalletChatGptCursorAndSpotify() {
+        assertEquals("Wallet", InstalledApps.WALLET_APP.label)
+        assertEquals("ChatGPT", InstalledApps.CHATGPT_APP.label)
+        assertEquals("Cursor", InstalledApps.CURSOR_APP.label)
+        assertEquals("Spotify", InstalledApps.SPOTIFY_APP.label)
+        assertTrue(InstalledApps.CURSOR_APP.packages.contains("com.anysphere.cursor"))
+        assertTrue(InstalledApps.SPOTIFY_APP.packages.contains("com.spotify.music"))
+    }
 }
 
 class WidgetRegistryTest {

@@ -1,6 +1,8 @@
 package com.pos.mobile
 
+import android.graphics.Typeface
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.GestureDetector
 import android.view.Gravity
 import android.view.MotionEvent
@@ -17,6 +19,7 @@ import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import com.pos.mobile.launcher.DockApp
 import com.pos.mobile.launcher.InstalledApps
 import com.pos.mobile.launcher.LauncherIntents
 import com.pos.mobile.launcher.LauncherLayout
@@ -93,35 +96,52 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun buildChrome() {
-        val pad = LauncherPalette.dp(root, 20)
+        val pad = LauncherPalette.dp(root, 22)
         val clock = TextClock(this).apply {
             format12Hour = "h:mm"
             format24Hour = "HH:mm"
             setTextColor(LauncherPalette.text)
-            textSize = 64f
-            letterSpacing = -0.03f
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 56f)
+            typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
+            letterSpacing = -0.04f
+            includeFontPadding = false
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
-            contentDescription = "Clock"
+            contentDescription = "Clock. Open Personal AI."
+            isClickable = true
+            isFocusable = true
+            minHeight = LauncherPalette.dp(root, 48)
+            setOnClickListener { LauncherIntents.openPersonalAi(this@HomeActivity, "pos://os/now") }
         }
         val date = TextView(this).apply {
             setTextColor(LauncherPalette.muted)
-            textSize = 16f
-            text = SimpleDateFormat("EEEE d MMMM", Locale.getDefault()).format(Date())
+            textSize = 13f
+            letterSpacing = 0.04f
+            includeFontPadding = false
+            text = SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(Date())
+            isClickable = true
+            isFocusable = true
+            minHeight = LauncherPalette.dp(root, 36)
+            gravity = Gravity.CENTER_VERTICAL
+            setOnClickListener { LauncherIntents.openPersonalAi(this@HomeActivity, "pos://os/now") }
         }
         homeWidgets = WidgetHost(this, ::dispatch)
         developerWidgets = WidgetHost(this, ::dispatch)
         favoritesColumn = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val developerTitle = LauncherPalette.eyebrow(root, "Developer")
         homeColumn = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             addView(homeWidgets)
             addView(favoritesColumn, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                topMargin = LauncherPalette.dp(root, 8)
+                topMargin = LauncherPalette.dp(root, 6)
             })
         }
         developerColumn = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            addView(developerWidgets)
             visibility = View.GONE
+            addView(developerTitle, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = LauncherPalette.dp(root, 12)
+            })
+            addView(developerWidgets)
         }
         val pages = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -138,69 +158,102 @@ class HomeActivity : AppCompatActivity() {
         })
         val scroll = ScrollView(this).apply {
             isFillViewport = true
+            overScrollMode = View.OVER_SCROLL_NEVER
             addView(pages)
             setOnTouchListener { view, event ->
                 detector.onTouchEvent(event)
                 view.onTouchEvent(event)
             }
         }
-        val dock = dock()
-        val footer = footer()
-        root.setPadding(pad, pad, pad, LauncherPalette.dp(root, 8))
+        root.setPadding(pad, LauncherPalette.dp(root, 8), pad, LauncherPalette.dp(root, 4))
         root.addView(clock)
         root.addView(date, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-            bottomMargin = LauncherPalette.dp(root, 20)
+            topMargin = LauncherPalette.dp(root, 4)
+            bottomMargin = LauncherPalette.dp(root, 18)
         })
         root.addView(scroll, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
-        root.addView(dock)
-        root.addView(footer)
+        root.addView(dock())
+        root.addView(footer())
         bindWidgets()
         bindFavorites()
     }
 
     private fun dock(): LinearLayout {
-        val wrap = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
+        val wrap = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val apps = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            background = LauncherPalette.well()
+            val inset = LauncherPalette.dp(root, 6)
+            setPadding(inset, inset, inset, inset)
         }
-        val actions = LinearLayout(this).apply {
+        listOf(
+            InstalledApps.WALLET_APP,
+            InstalledApps.CHATGPT_APP,
+            InstalledApps.CURSOR_APP,
+            InstalledApps.SPOTIFY_APP,
+        ).forEach { target ->
+            apps.addView(dockCell(target), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        }
+        val tools = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
         }
-        val gap = LauncherPalette.dp(root, 10)
-        val wallet = LauncherPalette.button(root, "Wallet") {
-            if (!InstalledApps.openWallet(this)) Toast.makeText(this, "Wallet isn’t installed", Toast.LENGTH_SHORT).show()
-        }
-        wallet.contentDescription = "Open Wallet"
-        val chatgpt = LauncherPalette.button(root, "ChatGPT") {
-            openKnown(InstalledApps.CHATGPT, "ChatGPT")
-        }
-        chatgpt.contentDescription = "Open ChatGPT"
-        actions.addView(wallet, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-            marginEnd = gap
+        tools.addView(quietLink("Capture") { LauncherIntents.openCapture(this) }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        tools.addView(quietLink("All apps") { openAllApps(false) }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        tools.addView(quietLink("Personal AI") { LauncherIntents.openPersonalAi(this, "pos://os/now") }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        wrap.addView(apps, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = LauncherPalette.dp(root, 8)
         })
-        actions.addView(chatgpt, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-            marginStart = gap
-        })
-        val secondary = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-        }
-        fun quiet(label: String, desc: String, onClick: () -> Unit): TextView {
-            return LauncherPalette.button(root, label, filled = false, onClick = onClick).apply {
-                contentDescription = desc
-            }
-        }
-        secondary.addView(quiet("Capture", "Open capture") { LauncherIntents.openCapture(this) }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-            marginEnd = gap
-        })
-        secondary.addView(quiet("All apps", "All apps") { openAllApps(false) }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-            marginStart = gap
-        })
-        wrap.addView(actions)
-        wrap.addView(secondary, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-            topMargin = LauncherPalette.dp(root, 10)
+        wrap.addView(tools, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = LauncherPalette.dp(root, 2)
         })
         return wrap
+    }
+
+    private fun dockCell(target: DockApp): View {
+        val col = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            isClickable = true
+            isFocusable = true
+            contentDescription = "Open ${target.label}"
+            minimumHeight = LauncherPalette.dp(root, 72)
+            setPadding(0, LauncherPalette.dp(root, 8), 0, LauncherPalette.dp(root, 4))
+            setOnClickListener {
+                if (!InstalledApps.openDock(this@HomeActivity, target)) {
+                    Toast.makeText(this@HomeActivity, "${target.label} isn’t installed", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        val app = InstalledApps.resolveDock(this, target)
+        val icon = app?.let { InstalledApps.icon(this, it) }
+        if (icon != null) {
+            col.addView(LauncherPalette.appIcon(root, icon, 44))
+        } else {
+            col.addView(LauncherPalette.glyph(root, target.letter, 44))
+        }
+        col.addView(LauncherPalette.text(root, 11f, LauncherPalette.muted).apply {
+            text = target.label
+            gravity = Gravity.CENTER
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = LauncherPalette.dp(root, 6)
+        })
+        return col
+    }
+
+    private fun quietLink(label: String, onClick: () -> Unit): TextView {
+        return LauncherPalette.text(root, 13f, LauncherPalette.accent, true).apply {
+            text = label
+            gravity = Gravity.CENTER
+            minHeight = LauncherPalette.dp(root, 44)
+            isClickable = true
+            isFocusable = true
+            contentDescription = label
+            setOnClickListener { onClick() }
+        }
     }
 
     private fun footer(): LinearLayout {
@@ -209,11 +262,10 @@ class HomeActivity : AppCompatActivity() {
             gravity = Gravity.CENTER
         }
         fun link(label: String, onClick: () -> Unit): TextView {
-            return LauncherPalette.text(root, 13f, LauncherPalette.muted).apply {
+            return LauncherPalette.text(root, 12f, LauncherPalette.faint).apply {
                 text = label
-                minHeight = LauncherPalette.dp(root, 48)
+                minHeight = LauncherPalette.dp(root, 44)
                 gravity = Gravity.CENTER
-                setPadding(LauncherPalette.dp(root, 10), 0, LauncherPalette.dp(root, 10), 0)
                 isClickable = true
                 isFocusable = true
                 setOnClickListener { onClick() }
@@ -221,8 +273,8 @@ class HomeActivity : AppCompatActivity() {
         }
         pageLabel = link("Developer") { showDeveloper() }
         row.addView(pageLabel, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        row.addView(link("Edit Home") { openEdit() }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        row.addView(link("Switch home screen") { LauncherIntents.openHomeSettings(this) }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        row.addView(link("Edit") { openEdit() }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        row.addView(link("Switch Home") { LauncherIntents.openHomeSettings(this) }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         return row
     }
 
@@ -233,34 +285,39 @@ class HomeActivity : AppCompatActivity() {
 
     private fun bindFavorites() {
         favoritesColumn.removeAllViews()
-        val heading = LauncherPalette.text(root, 12f, LauncherPalette.muted, true)
-        heading.text = "FAVORITES"
-        heading.letterSpacing = 0.08f
-        favoritesColumn.addView(heading, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-            topMargin = LauncherPalette.dp(root, 8)
-            bottomMargin = LauncherPalette.dp(root, 4)
-        })
+        val heading = LauncherPalette.eyebrow(root, "Favorites")
+        heading.minHeight = LauncherPalette.dp(root, 28)
+        heading.gravity = Gravity.CENTER_VERTICAL
+        heading.isClickable = true
+        heading.isFocusable = true
+        heading.contentDescription = "Edit favorites"
+        heading.setOnClickListener { openAllApps(true) }
+        favoritesColumn.addView(heading)
         val favorites = layout.favorites.mapNotNull { favorite ->
             InstalledApps.resolve(this, favorite)
         }.take(5)
         if (favorites.isEmpty()) {
-            val empty = LauncherPalette.text(root, 14f, LauncherPalette.muted)
-            empty.text = "Choose up to five favorites."
-            empty.minHeight = LauncherPalette.dp(root, 48)
+            val empty = LauncherPalette.text(root, 13f, LauncherPalette.muted)
+            empty.text = "Tap to pin up to five apps"
+            empty.minHeight = LauncherPalette.dp(root, 44)
             empty.gravity = Gravity.CENTER_VERTICAL
             empty.setOnClickListener { openAllApps(true) }
             favoritesColumn.addView(empty)
             return
         }
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.START or Gravity.CENTER_VERTICAL
+        }
         favorites.forEach { app ->
-            val row = LauncherPalette.text(root, 16f, LauncherPalette.text, true).apply {
-                text = app.label
-                minHeight = LauncherPalette.dp(root, 48)
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(0, LauncherPalette.dp(root, 8), 0, LauncherPalette.dp(root, 8))
-                contentDescription = "Open ${app.label}"
+            val cell = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER_HORIZONTAL
                 isClickable = true
                 isFocusable = true
+                contentDescription = "Open ${app.label}"
+                minimumHeight = LauncherPalette.dp(root, 72)
+                setPadding(LauncherPalette.dp(root, 4), LauncherPalette.dp(root, 6), LauncherPalette.dp(root, 4), LauncherPalette.dp(root, 4))
                 setOnClickListener {
                     if (!InstalledApps.launch(this@HomeActivity, app)) {
                         Toast.makeText(this@HomeActivity, "Couldn’t open ${app.label}", Toast.LENGTH_SHORT).show()
@@ -271,8 +328,25 @@ class HomeActivity : AppCompatActivity() {
                     true
                 }
             }
-            favoritesColumn.addView(row)
+            val icon = InstalledApps.icon(this, app)
+            if (icon != null) {
+                cell.addView(LauncherPalette.appIcon(root, icon, 40))
+            } else {
+                cell.addView(LauncherPalette.glyph(root, app.label, 40))
+            }
+            cell.addView(LauncherPalette.text(root, 10f, LauncherPalette.muted).apply {
+                text = app.label
+                gravity = Gravity.CENTER
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = LauncherPalette.dp(root, 6)
+            })
+            row.addView(cell, LinearLayout.LayoutParams(LauncherPalette.dp(root, 64), LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                marginEnd = LauncherPalette.dp(root, 8)
+            })
         }
+        favoritesColumn.addView(row)
     }
 
     private fun dispatch(action: WidgetAction) {
@@ -288,13 +362,6 @@ class HomeActivity : AppCompatActivity() {
                 homeWidgets.provider(action.instanceId)?.refresh()
                 developerWidgets.provider(action.instanceId)?.refresh()
             }
-        }
-    }
-
-    private fun openKnown(packageName: String, name: String) {
-        val app = InstalledApps.findPackage(this, packageName)
-        if (app == null || !InstalledApps.launch(this, app)) {
-            Toast.makeText(this, "$name isn’t installed", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -328,7 +395,6 @@ class HomeActivity : AppCompatActivity() {
             layout = next
             LauncherLayoutStore.save(this, layout)
             bindFavorites()
-            if (!pickingFavorites) closeAllApps()
         }
         overlay.setOnClose { closeAllApps() }
         allApps = overlay

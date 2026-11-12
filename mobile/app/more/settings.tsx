@@ -127,7 +127,7 @@ export default function SettingsScreen() {
                     <View style={styles.settingContent}>
                       <Text style={styles.settingLabel}>Preview Home</Text>
                       <Text style={styles.settingDescription}>
-                        Open the quiet launcher without leaving Personal AI as your default home.
+                        Open the launcher as it will look: Next, Today, favorites, and a dock for Wallet, ChatGPT, Cursor, and Spotify.
                       </Text>
                     </View>
                   </LinearGradient>
