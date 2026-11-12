@@ -19,6 +19,9 @@ class OsWidgetModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                 mealMeta = string(map, "mealMeta"),
                 blockTitle = string(map, "blockTitle"),
                 blockMeta = string(map, "blockMeta"),
+                pipelineTitle = string(map, "pipelineTitle"),
+                pipelineMeta = string(map, "pipelineMeta"),
+                pipelineStatus = string(map, "pipelineStatus"),
             )
             OsWidgetStore.write(reactApplicationContext, snapshot)
             OsWidgetUpdater.refreshAll(reactApplicationContext)

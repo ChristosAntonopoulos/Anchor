@@ -34,6 +34,9 @@ function openOsUrl(url: string | null) {
       case 'morning':
         router.replace('/morning' as never);
         break;
+      case 'pipeline':
+        router.replace('/(tabs)');
+        break;
       default:
         break;
     }

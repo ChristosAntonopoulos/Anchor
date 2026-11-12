@@ -8,6 +8,7 @@ using POS.Application.Mappings;
 using POS.Application.Services.AIBrief;
 using POS.Application.Services.BetterToday;
 using POS.Application.Services.Meals;
+using POS.Application.Services.Pipelines;
 using POS.Application.Services.Day;
 using POS.Application.Services.Deadlines;
 using POS.Application.Services.Diet;
@@ -97,6 +98,26 @@ builder.Services.AddScoped<ShoppingService>();
 builder.Services.AddScoped<CookEventService>();
 builder.Services.Configure<BotSystemOptions>(builder.Configuration.GetSection(BotSystemOptions.SectionName));
 builder.Services.AddHttpClient<BotSystemIntakeClient>();
+builder.Services.Configure<AzureDevOpsOptions>(options =>
+{
+    builder.Configuration.GetSection(AzureDevOpsOptions.SectionName).Bind(options);
+    if (string.IsNullOrWhiteSpace(options.Organization))
+    {
+        options.Organization = Environment.GetEnvironmentVariable("AZURE_DEVOPS_ORG")
+            ?? Environment.GetEnvironmentVariable("AzureDevOps__Organization")
+            ?? string.Empty;
+    }
+
+    if (string.IsNullOrWhiteSpace(options.PersonalAccessToken))
+    {
+        options.PersonalAccessToken = Environment.GetEnvironmentVariable("AZURE_DEVOPS_PAT")
+            ?? Environment.GetEnvironmentVariable("AzureDevOps__PersonalAccessToken");
+    }
+});
+builder.Services.AddHttpClient<AzureDevOpsLatestPipelineService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(20);
+});
 builder.Services.AddScoped<AIInputService>();
 builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<CBTService>();
