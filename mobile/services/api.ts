@@ -1256,6 +1256,11 @@ class HTTPAPIClient implements APIClient {
     return unwrapResponse(response.data)?.text ?? null;
   }
 
+  async getLatestPipeline(): Promise<import('../types').LatestPipelineRun> {
+    const response = await this.axiosInstance.get<ApiResponse<import('../types').LatestPipelineRun>>('/pipelines/latest');
+    return unwrapResponse(response.data);
+  }
+
   private handleError(error: unknown, defaultMessage: string): Error {
     if (error instanceof Error) {
       return error;
