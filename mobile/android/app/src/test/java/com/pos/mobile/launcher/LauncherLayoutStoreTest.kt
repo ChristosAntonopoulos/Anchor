@@ -9,7 +9,22 @@ class LauncherLayoutStoreTest {
     fun defaultHomeHasNextActionAndToday() {
         val layout = LauncherLayoutStore.defaultLayout()
         assertEquals(listOf(WidgetRegistry.NEXT_ACTION, WidgetRegistry.TODAY), layout.homeWidgets().map { it.typeId })
-        assertEquals(listOf(WidgetRegistry.SERVER, WidgetRegistry.TRADING_BOT), layout.developerWidgets().map { it.typeId })
+        assertEquals(listOf(WidgetRegistry.PIPELINE, WidgetRegistry.SERVER), layout.developerWidgets().map { it.typeId })
+    }
+
+    @Test
+    fun migratesTradingBotSampleSlotToLivePipeline() {
+        val raw = """
+            {"schema":1,"widgets":[
+              {"instanceId":"home-next","typeId":"next_action","placement":"HOME","order":0},
+              {"instanceId":"home-today","typeId":"today_glance","placement":"HOME","order":1},
+              {"instanceId":"dev-server","typeId":"server","placement":"DEVELOPER","order":0},
+              {"instanceId":"dev-bot","typeId":"trading_bot","placement":"DEVELOPER","order":1}
+            ],"favorites":[],"sawFavoritesPrompt":false}
+        """.trimIndent()
+        val layout = LauncherLayoutStore.parse(raw)
+        assertEquals(LauncherLayoutStore.SCHEMA, layout.schema)
+        assertEquals(listOf(WidgetRegistry.PIPELINE, WidgetRegistry.SERVER), layout.developerWidgets().map { it.typeId })
     }
 
     @Test
@@ -110,8 +125,18 @@ class WidgetRegistryTest {
             WidgetRegistry.picker(WidgetPlacement.HOME).map { it.title },
         )
         assertEquals(
-            listOf("Server", "Trading bot"),
+            listOf("Pipeline", "Server"),
             WidgetRegistry.picker(WidgetPlacement.DEVELOPER).map { it.title },
         )
     }
 }
+
+class PipelineStatusLabelTest {
+    @Test
+    fun mapsKnownStatuses() {
+        assertEquals("Succeeded", PipelineStatusProvider.statusLabel("succeeded"))
+        assertEquals("Running", PipelineStatusProvider.statusLabel("running"))
+        assertEquals("Failed", PipelineStatusProvider.statusLabel("failed"))
+    }
+}
+

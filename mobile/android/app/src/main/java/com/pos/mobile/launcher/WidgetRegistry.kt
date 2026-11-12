@@ -5,6 +5,7 @@ import android.content.Context
 object WidgetRegistry {
     const val NEXT_ACTION = "next_action"
     const val TODAY = "today_glance"
+    const val PIPELINE = "pipeline"
     const val SERVER = "server"
     const val TRADING_BOT = "trading_bot"
 
@@ -15,11 +16,12 @@ object WidgetRegistry {
         WidgetDefinition(TODAY, "Today", WidgetPlacement.HOME) { context, instance ->
             TodayGlanceProvider(context, instance)
         },
+        WidgetDefinition(PIPELINE, "Pipeline", WidgetPlacement.DEVELOPER) { context, instance ->
+            PipelineStatusProvider(context, instance)
+        },
+        // Optional sample Personal AI API card. Live org-wide CI is PIPELINE.
         WidgetDefinition(SERVER, "Server", WidgetPlacement.DEVELOPER) { _, instance ->
             SampleStatusProvider(instance, SampleCatalog.server(), "server")
-        },
-        WidgetDefinition(TRADING_BOT, "Trading bot", WidgetPlacement.DEVELOPER) { _, instance ->
-            SampleStatusProvider(instance, SampleCatalog.trading(), "exchange")
         },
     )
 
