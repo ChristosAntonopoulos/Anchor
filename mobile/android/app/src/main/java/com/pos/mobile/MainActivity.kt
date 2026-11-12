@@ -26,6 +26,12 @@ class MainActivity : ReactActivity() {
       MorningModeStore.markPending(this, true)
       MorningModeLauncher.cancelNotification(this)
     }
+    if (intent?.getBooleanExtra(NightModeLauncher.EXTRA, false) == true ||
+        intent?.dataString?.contains("os/night") == true
+    ) {
+      NightModeStore.markPending(this, true)
+      NightModeLauncher.cancelNotification(this)
+    }
   }
 
   override fun onNewIntent(intent: Intent) {
@@ -38,6 +44,13 @@ class MainActivity : ReactActivity() {
       MorningModeStore.markPending(this, true)
       MorningModeLauncher.cancelNotification(this)
       MorningModeModule.emitOpened()
+    }
+    if (intent.getBooleanExtra(NightModeLauncher.EXTRA, false) ||
+        intent.dataString?.contains("os/night") == true
+    ) {
+      NightModeStore.markPending(this, true)
+      NightModeLauncher.cancelNotification(this)
+      NightModeModule.emitOpened()
     }
   }
 
