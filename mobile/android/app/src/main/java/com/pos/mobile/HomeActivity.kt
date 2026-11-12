@@ -73,7 +73,8 @@ class HomeActivity : AppCompatActivity() {
                 }
             }
         })
-        if (!layout.sawFavoritesPrompt) {
+        val fromUnlock = intent?.getBooleanExtra(LauncherIntents.EXTRA_FROM_UNLOCK, false) == true
+        if (!layout.sawFavoritesPrompt && !fromUnlock) {
             openAllApps(pickingFavorites = true)
         }
     }

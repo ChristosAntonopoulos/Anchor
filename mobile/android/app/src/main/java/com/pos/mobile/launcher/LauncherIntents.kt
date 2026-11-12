@@ -13,6 +13,7 @@ import com.pos.mobile.MorningModeLauncher
 
 object LauncherIntents {
     const val EXTRA_PREVIEW = "previewHome"
+    const val EXTRA_FROM_UNLOCK = "fromUnlock"
     const val REQUEST_HOME_ROLE = 7101
 
     fun preview(context: Context) {
@@ -20,6 +21,18 @@ object LauncherIntents {
             Intent(context, HomeActivity::class.java).apply {
                 putExtra(EXTRA_PREVIEW, true)
                 if (context !is Activity) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+        )
+    }
+
+    fun revealHome(context: Context) {
+        context.startActivity(
+            Intent(context, HomeActivity::class.java).apply {
+                putExtra(EXTRA_FROM_UNLOCK, true)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
+                    Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
             }
         )
     }
