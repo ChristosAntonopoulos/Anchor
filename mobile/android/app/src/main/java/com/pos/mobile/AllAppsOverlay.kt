@@ -8,7 +8,6 @@ import android.view.View
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
-import android.widget.TextView
 import android.widget.Toast
 import com.pos.mobile.launcher.InstalledApps
 import com.pos.mobile.launcher.LaunchableApp
@@ -29,18 +28,18 @@ class AllAppsOverlay(
     init {
         orientation = VERTICAL
         setBackgroundColor(LauncherPalette.charcoal)
-        val pad = LauncherPalette.dp(this, 16)
+        val pad = LauncherPalette.dp(this, 20)
         setPadding(pad, pad, pad, pad)
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
-        val title = LauncherPalette.text(this, 20f, LauncherPalette.text, true)
-        title.text = if (pickingFavorites) "Choose favorites" else "All apps"
-        val caption = LauncherPalette.text(this, 14f, LauncherPalette.muted)
-        caption.text = if (pickingFavorites) "Up to five. Tap a star to pin." else "Search locally. Star to favorite."
+        val title = LauncherPalette.text(this, 22f, LauncherPalette.text, true)
+        title.text = if (pickingFavorites) "Favorites" else "All apps"
+        val caption = LauncherPalette.text(this, 13f, LauncherPalette.muted)
+        caption.text = if (pickingFavorites) "Pin up to five. Star to keep them on Home." else "Search on device. Star to pin."
         val search = EditText(context).apply {
-            setHint("Search apps")
-            setHintTextColor(LauncherPalette.muted)
+            setHint("Search")
+            setHintTextColor(LauncherPalette.faint)
             setTextColor(LauncherPalette.text)
-            setBackgroundColor(LauncherPalette.surface)
+            background = LauncherPalette.searchField()
             minHeight = LauncherPalette.dp(this@AllAppsOverlay, 48)
             setPadding(pad, LauncherPalette.dp(this@AllAppsOverlay, 12), pad, LauncherPalette.dp(this@AllAppsOverlay, 12))
             isSingleLine = true
@@ -53,19 +52,19 @@ class AllAppsOverlay(
                 override fun afterTextChanged(s: Editable?) {}
             })
         }
-        val done = LauncherPalette.button(this, "Done") { close?.invoke() }
         addView(title)
         addView(caption, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
             topMargin = LauncherPalette.dp(this@AllAppsOverlay, 4)
-            bottomMargin = LauncherPalette.dp(this@AllAppsOverlay, 12)
+            bottomMargin = LauncherPalette.dp(this@AllAppsOverlay, 14)
         })
         addView(search, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-            bottomMargin = LauncherPalette.dp(this@AllAppsOverlay, 12)
+            bottomMargin = LauncherPalette.dp(this@AllAppsOverlay, 8)
         })
         addView(ScrollView(context).apply {
+            overScrollMode = OVER_SCROLL_NEVER
             addView(list)
         }, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
-        addView(done, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
+        addView(LauncherPalette.button(this, "Done") { close?.invoke() }, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
             topMargin = LauncherPalette.dp(this@AllAppsOverlay, 12)
         })
         render()
@@ -84,6 +83,7 @@ class AllAppsOverlay(
         if (results.isEmpty()) {
             val empty = LauncherPalette.text(this, 14f, LauncherPalette.muted)
             empty.text = "No matching apps"
+            empty.setPadding(0, LauncherPalette.dp(this, 16), 0, 0)
             list.addView(empty)
         }
     }
@@ -95,9 +95,19 @@ class AllAppsOverlay(
         val row = LinearLayout(context).apply {
             orientation = HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            minimumHeight = LauncherPalette.dp(this@AllAppsOverlay, 48)
+            minimumHeight = LauncherPalette.dp(this@AllAppsOverlay, 56)
         }
-        val name = LauncherPalette.text(this, 16f, LauncherPalette.text).apply {
+        val icon = InstalledApps.icon(context, app)
+        if (icon != null) {
+            row.addView(LauncherPalette.appIcon(this, icon, 36), LayoutParams(LauncherPalette.dp(this, 36), LauncherPalette.dp(this, 36)).apply {
+                marginEnd = LauncherPalette.dp(this@AllAppsOverlay, 12)
+            })
+        } else {
+            row.addView(LauncherPalette.glyph(this, app.label, 36), LayoutParams(LauncherPalette.dp(this, 36), LauncherPalette.dp(this, 36)).apply {
+                marginEnd = LauncherPalette.dp(this@AllAppsOverlay, 12)
+            })
+        }
+        val name = LauncherPalette.text(this, 15f, LauncherPalette.text).apply {
             text = app.label
             isClickable = true
             isFocusable = true
@@ -106,15 +116,17 @@ class AllAppsOverlay(
             setOnClickListener {
                 if (!InstalledApps.launch(context, app)) {
                     Toast.makeText(context, "Couldn’t open ${app.label}", Toast.LENGTH_SHORT).show()
+                } else if (!pickingFavorites) {
+                    close?.invoke()
                 }
             }
         }
-        val star = LauncherPalette.text(this, 16f, if (favored) LauncherPalette.accent else LauncherPalette.muted).apply {
+        val star = LauncherPalette.text(this, 18f, if (favored) LauncherPalette.accent else LauncherPalette.faint).apply {
             text = if (favored) "★" else "☆"
             minHeight = LauncherPalette.dp(this@AllAppsOverlay, 48)
             minWidth = LauncherPalette.dp(this@AllAppsOverlay, 48)
             gravity = Gravity.CENTER
-            contentDescription = if (favored) "Unfavorite ${app.label}" else "Favorite ${app.label}"
+            contentDescription = if (favored) "Unpin ${app.label}" else "Pin ${app.label}"
             isClickable = true
             isFocusable = true
             setOnClickListener { toggle(app) }

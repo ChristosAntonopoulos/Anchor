@@ -24,22 +24,24 @@ class EditHomeOverlay(
     init {
         orientation = VERTICAL
         setBackgroundColor(LauncherPalette.charcoal)
-        val pad = LauncherPalette.dp(this, 16)
+        val pad = LauncherPalette.dp(this, 20)
         setPadding(pad, pad, pad, pad)
-        addView(LauncherPalette.text(this, 20f, LauncherPalette.text, true).apply { text = "Edit Home" })
-        addView(LauncherPalette.text(this, 14f, LauncherPalette.muted).apply {
-            text = "Two Home widgets. Developer cards below. Favorites are chosen in All apps."
+        addView(LauncherPalette.text(this, 22f, LauncherPalette.text, true).apply { text = "Edit Home" })
+        addView(LauncherPalette.text(this, 13f, LauncherPalette.muted).apply {
+            text = "Two cards on Home. Developer is a swipe away. Pin apps from All apps."
+        }, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+            topMargin = LauncherPalette.dp(this@EditHomeOverlay, 4)
         })
-        val scroll = ScrollView(context)
+        val scroll = ScrollView(context).apply { overScrollMode = OVER_SCROLL_NEVER }
         val column = LinearLayout(context).apply { orientation = VERTICAL }
-        column.addView(section("Home widgets", homeList, WidgetPlacement.HOME))
+        column.addView(section("Home", homeList, WidgetPlacement.HOME))
         column.addView(section("Developer", developerList, WidgetPlacement.DEVELOPER))
         scroll.addView(column)
         addView(scroll, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
         val row = LinearLayout(context).apply { orientation = HORIZONTAL }
-        row.addView(LauncherPalette.button(this, "Cancel") { close?.invoke() })
+        row.addView(LauncherPalette.button(this, "Cancel", filled = false) { close?.invoke() })
         row.addView(LauncherPalette.button(this, "Save") { onSave(layout) }, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
-            marginStart = LauncherPalette.dp(this@EditHomeOverlay, 12)
+            marginStart = LauncherPalette.dp(this@EditHomeOverlay, 10)
         })
         addView(row, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
             topMargin = LauncherPalette.dp(this@EditHomeOverlay, 12)
@@ -53,16 +55,15 @@ class EditHomeOverlay(
 
     private fun section(title: String, list: LinearLayout, placement: WidgetPlacement): LinearLayout {
         val wrap = LinearLayout(context).apply { orientation = VERTICAL }
-        wrap.addView(LauncherPalette.text(this, 13f, LauncherPalette.muted, true).apply {
-            text = title.uppercase()
-            setPadding(0, LauncherPalette.dp(this@EditHomeOverlay, 16), 0, LauncherPalette.dp(this@EditHomeOverlay, 8))
+        wrap.addView(LauncherPalette.eyebrow(this, title).apply {
+            setPadding(0, LauncherPalette.dp(this@EditHomeOverlay, 20), 0, LauncherPalette.dp(this@EditHomeOverlay, 8))
         })
         wrap.addView(list)
         val addRow = LinearLayout(context).apply { orientation = HORIZONTAL }
         WidgetRegistry.picker(placement).forEach { definition ->
-            addRow.addView(LauncherPalette.text(this, 14f, LauncherPalette.accent).apply {
+            addRow.addView(LauncherPalette.text(this, 13f, LauncherPalette.accent, true).apply {
                 text = "+ ${definition.title}"
-                minHeight = LauncherPalette.dp(this@EditHomeOverlay, 48)
+                minHeight = LauncherPalette.dp(this@EditHomeOverlay, 44)
                 gravity = Gravity.CENTER_VERTICAL
                 setPadding(0, 0, LauncherPalette.dp(this@EditHomeOverlay, 16), 0)
                 isClickable = true
@@ -75,36 +76,38 @@ class EditHomeOverlay(
     }
 
     private fun render() {
-        fill(homeList, layout.homeWidgets(), WidgetPlacement.HOME, max = 2)
-        fill(developerList, layout.developerWidgets(), WidgetPlacement.DEVELOPER, max = 6)
+        fill(homeList, layout.homeWidgets(), WidgetPlacement.HOME)
+        fill(developerList, layout.developerWidgets(), WidgetPlacement.DEVELOPER)
     }
 
-    private fun fill(target: LinearLayout, items: List<WidgetInstance>, placement: WidgetPlacement, max: Int) {
+    private fun fill(target: LinearLayout, items: List<WidgetInstance>, placement: WidgetPlacement) {
         target.removeAllViews()
         items.forEachIndexed { index, item ->
             val row = LinearLayout(context).apply {
                 orientation = HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
-                minimumHeight = LauncherPalette.dp(this@EditHomeOverlay, 48)
+                minimumHeight = LauncherPalette.dp(this@EditHomeOverlay, 52)
+                background = LauncherPalette.card()
+                val inset = LauncherPalette.dp(this@EditHomeOverlay, 12)
+                setPadding(inset, 0, inset, 0)
             }
             val missing = WidgetRegistry.get(item.typeId) == null
-            val name = LauncherPalette.text(this, 16f, LauncherPalette.text)
+            val name = LauncherPalette.text(this, 15f, LauncherPalette.text, true)
             name.text = if (missing) "Missing · ${item.typeId}" else WidgetRegistry.titleFor(item.typeId)
             row.addView(name, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
             row.addView(small("Up") { move(placement, index, -1) })
             row.addView(small("Down") { move(placement, index, 1) })
             row.addView(small("Remove") { remove(item.instanceId) })
-            target.addView(row)
-        }
-        if (items.size >= max) {
-            // at cap
+            target.addView(row, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = LauncherPalette.dp(this@EditHomeOverlay, 8)
+            })
         }
     }
 
     private fun small(label: String, onClick: () -> Unit): TextView {
-        return LauncherPalette.text(this, 13f, LauncherPalette.accent).apply {
+        return LauncherPalette.text(this, 12f, LauncherPalette.accent).apply {
             text = label
-            minHeight = LauncherPalette.dp(this@EditHomeOverlay, 48)
+            minHeight = LauncherPalette.dp(this@EditHomeOverlay, 44)
             gravity = Gravity.CENTER
             setPadding(LauncherPalette.dp(this@EditHomeOverlay, 8), 0, LauncherPalette.dp(this@EditHomeOverlay, 8), 0)
             isClickable = true

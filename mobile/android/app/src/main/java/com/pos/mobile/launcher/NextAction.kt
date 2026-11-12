@@ -54,7 +54,7 @@ object NextActionResolver {
             return NextActionContent(
                 title = "Morning Mode",
                 detail = "Due after 07:00. First unlock starts it.",
-                button = "Open morning",
+                button = "Morning",
                 route = ROUTE_MORNING,
             )
         }
@@ -63,7 +63,7 @@ object NextActionResolver {
             return NextActionContent(
                 title = now.nowTitle,
                 detail = now.nowAction.ifBlank { "First small step." },
-                button = "Open task",
+                button = "Open",
                 route = ROUTE_NOW,
             )
         }
@@ -71,7 +71,7 @@ object NextActionResolver {
             return NextActionContent(
                 title = block.title,
                 detail = block.entryAction?.ifBlank { null } ?: block.timeRange().orEmpty(),
-                button = "Open block",
+                button = "Open",
                 route = ROUTE_BLOCK,
             )
         }
@@ -79,7 +79,7 @@ object NextActionResolver {
             return NextActionContent(
                 title = "Choose one thing",
                 detail = now.nowAction,
-                button = "Choose a task",
+                button = "Choose",
                 route = ROUTE_TASKS,
                 sample = now.nowAction.contains("Open the app", ignoreCase = true),
             )
@@ -87,7 +87,7 @@ object NextActionResolver {
         return NextActionContent(
             title = "Choose one thing",
             detail = "Nothing is queued yet.",
-            button = "Choose a task",
+            button = "Choose",
             route = ROUTE_TASKS,
             sample = true,
         )

@@ -21,6 +21,9 @@
     <package android:name="com.openai.chatgpt"/>
     <package android:name="com.google.android.apps.nbu.paisa.user"/>
     <package android:name="com.samsung.android.spay"/>
+    <package android:name="com.spotify.music"/>
+    <package android:name="com.spotify.lite"/>
+    <package android:name="com.anysphere.cursor"/>
     <intent>
       <action android:name="android.intent.action.VIEW"/>
       <category android:name="android.intent.category.BROWSABLE"/>

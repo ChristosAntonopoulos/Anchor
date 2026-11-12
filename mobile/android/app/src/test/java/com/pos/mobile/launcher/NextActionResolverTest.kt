@@ -58,7 +58,7 @@ class NextActionResolverTest {
     @Test
     fun waitingAfterSevenPromptsMorning() {
         val next = NextActionResolver.resolve(gate(MorningModeLogic.WAITING, 7), at(7, 5), now(title = "Write"), null, athens)
-        assertEquals("Open morning", next.button)
+        assertEquals("Morning", next.button)
         assertEquals(NextActionResolver.ROUTE_MORNING, next.route)
     }
 
@@ -72,7 +72,7 @@ class NextActionResolverTest {
             athens,
         )
         assertEquals("Draft the outline", next.title)
-        assertEquals("Open task", next.button)
+        assertEquals("Open", next.button)
         assertEquals(NextActionResolver.ROUTE_NOW, next.route)
         assertFalse(next.sample)
     }

@@ -116,7 +116,7 @@ class TodayGlanceProvider(
         return "$block\n$meal"
     }
     override fun status() = if ((state as? WidgetUiState.Content)?.sample == true) "Sample until Today loads" else null
-    override fun actionLabel() = "Open Today"
+    override fun actionLabel() = "Today"
     override fun primaryAction() = WidgetAction.OpenRoute("pos://os/now")
     override fun rows(): List<WidgetRow> {
         val value = (state as? WidgetUiState.Content)?.value ?: return emptyList()

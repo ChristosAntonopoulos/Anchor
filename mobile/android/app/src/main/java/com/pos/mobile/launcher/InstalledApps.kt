@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
+import android.graphics.drawable.Drawable
 import android.os.Process
 import android.os.UserHandle
 import android.os.UserManager
@@ -19,15 +20,21 @@ data class LaunchableApp(
     fun asFavorite() = FavoriteApp(packageName, className, userSerial, label)
 }
 
+data class DockApp(
+    val label: String,
+    val letter: String,
+    val packages: List<String>,
+    val names: List<String> = listOf(label),
+)
+
 object InstalledApps {
     const val WALLET = "com.google.android.apps.walletnfcrel"
     const val CHATGPT = "com.openai.chatgpt"
-    private val WALLET_PACKAGES = listOf(
-        WALLET,
-        "com.google.android.apps.nbu.paisa.user",
-        "com.samsung.android.spay",
-        "com.samsung.android.spaylite",
-    )
+    const val SPOTIFY = "com.spotify.music"
+    val WALLET_APP = DockApp("Wallet", "W", listOf(WALLET, "com.google.android.apps.nbu.paisa.user", "com.samsung.android.spay", "com.samsung.android.spaylite"), listOf("Wallet", "Google Wallet", "GPay", "Samsung Pay"))
+    val CHATGPT_APP = DockApp("ChatGPT", "G", listOf(CHATGPT), listOf("ChatGPT"))
+    val CURSOR_APP = DockApp("Cursor", "C", listOf("com.anysphere.cursor", "com.todesktop.20100701"), listOf("Cursor"))
+    val SPOTIFY_APP = DockApp("Spotify", "S", listOf(SPOTIFY, "com.spotify.lite"), listOf("Spotify"))
 
     fun list(context: Context): List<LaunchableApp> {
         val launcherApps = context.getSystemService(LauncherApps::class.java) ?: return emptyList()
@@ -121,18 +128,49 @@ object InstalledApps {
         return list(context).find { it.packageName == packageName }
     }
 
-    fun openWallet(context: Context): Boolean {
-        WALLET_PACKAGES.forEach { pkg ->
-            val app = findPackage(context, pkg)
-            if (app != null && launch(context, app)) return true
+    fun resolveDock(context: Context, target: DockApp): LaunchableApp? {
+        target.packages.forEach { pkg ->
+            findPackage(context, pkg)?.let { return it }
         }
-        return try {
-            val intent = Intent(Intent.ACTION_MAIN).addCategory("android.intent.category.APP_WALLET")
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(intent)
-            true
-        } catch (_: Exception) {
-            false
+        val apps = list(context)
+        target.names.forEach { name ->
+            apps.find { it.label.equals(name, ignoreCase = true) }?.let { return it }
+        }
+        return apps.find { app ->
+            target.names.any { name -> app.label.contains(name, ignoreCase = true) }
         }
     }
+
+    fun icon(context: Context, app: LaunchableApp): Drawable? {
+        return try {
+            val launcherApps = context.getSystemService(LauncherApps::class.java)
+            if (launcherApps != null) {
+                val match = launcherApps.getActivityList(app.packageName, app.user)
+                    .find { it.componentName?.className == app.className }
+                    ?: launcherApps.getActivityList(app.packageName, app.user).firstOrNull()
+                match?.getBadgedIcon(0)?.let { return it }
+            }
+            context.packageManager.getApplicationIcon(app.packageName)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    fun openDock(context: Context, target: DockApp): Boolean {
+        val app = resolveDock(context, target)
+        if (app != null && launch(context, app)) return true
+        if (target === WALLET_APP) {
+            return try {
+                val intent = Intent(Intent.ACTION_MAIN).addCategory("android.intent.category.APP_WALLET")
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+                true
+            } catch (_: Exception) {
+                false
+            }
+        }
+        return false
+    }
+
+    fun openWallet(context: Context): Boolean = openDock(context, WALLET_APP)
 }
