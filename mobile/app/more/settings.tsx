@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Switch, Pressable } from 'react-native';
 import { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,6 +8,7 @@ import { CrisisCard } from '../../components/checkIn/CrisisCard';
 import { useCheckInStore } from '../../store/useCheckInStore';
 import { useExecutionStore } from '../../store/useExecutionStore';
 import { ExecutionProfileCard } from '../../components/execution/ExecutionProfileCard';
+import { hasLauncherModule, previewHome, useAsHome } from '../../services/launcherNative';
 
 export default function SettingsScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -107,6 +108,52 @@ export default function SettingsScreen() {
               </View>
               <CrisisCard />
             </View>
+
+            {hasLauncherModule ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Home screen</Text>
+                <Pressable
+                  onPress={() => void previewHome()}
+                  style={styles.settingItem}
+                  accessibilityRole="button"
+                  accessibilityLabel="Preview Home"
+                >
+                  <LinearGradient
+                    colors={[colors.surface, colors.surface]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.settingCard}
+                  >
+                    <View style={styles.settingContent}>
+                      <Text style={styles.settingLabel}>Preview Home</Text>
+                      <Text style={styles.settingDescription}>
+                        Open the launcher as it will look: Next, Today, favorites, and a dock for Wallet, ChatGPT, Cursor, and Spotify.
+                      </Text>
+                    </View>
+                  </LinearGradient>
+                </Pressable>
+                <Pressable
+                  onPress={() => void useAsHome()}
+                  style={styles.settingItem}
+                  accessibilityRole="button"
+                  accessibilityLabel="Use Personal AI as Home"
+                >
+                  <LinearGradient
+                    colors={[colors.surface, colors.surface]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.settingCard}
+                  >
+                    <View style={styles.settingContent}>
+                      <Text style={styles.settingLabel}>Use Personal AI as Home</Text>
+                      <Text style={styles.settingDescription}>
+                        Android will ask you to set this app as the Home app. Switch home screen later to return to the stock launcher.
+                      </Text>
+                    </View>
+                  </LinearGradient>
+                </Pressable>
+              </View>
+            ) : null}
 
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>About</Text>
