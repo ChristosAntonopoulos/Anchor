@@ -33,6 +33,7 @@ class MainApplication : Application(), ReactApplication {
               add(AppUpdatePackage())
               add(OsWidgetPackage())
               add(MorningModePackage())
+              add(LauncherPackage())
             }
 
           override fun getJSMainModuleName(): String = ".expo/.virtual-metro-entry"
