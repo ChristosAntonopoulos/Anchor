@@ -21,3 +21,9 @@ class OsBlockWidget : AppWidgetProvider() {
         OsWidgetUpdater.refreshAll(context)
     }
 }
+
+class OsPipelineWidget : AppWidgetProvider() {
+    override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+        OsWidgetUpdater.refreshAll(context)
+    }
+}

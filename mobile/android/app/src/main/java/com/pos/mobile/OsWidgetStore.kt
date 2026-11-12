@@ -10,6 +10,9 @@ data class OsWidgetSnapshot(
     val mealMeta: String,
     val blockTitle: String,
     val blockMeta: String,
+    val pipelineTitle: String,
+    val pipelineMeta: String,
+    val pipelineStatus: String,
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
         put("nowTitle", nowTitle)
@@ -18,6 +21,9 @@ data class OsWidgetSnapshot(
         put("mealMeta", mealMeta)
         put("blockTitle", blockTitle)
         put("blockMeta", blockMeta)
+        put("pipelineTitle", pipelineTitle)
+        put("pipelineMeta", pipelineMeta)
+        put("pipelineStatus", pipelineStatus)
     }
 
     companion object {
@@ -28,6 +34,9 @@ data class OsWidgetSnapshot(
             mealMeta = "",
             blockTitle = "No block",
             blockMeta = "",
+            pipelineTitle = "No pipeline yet",
+            pipelineMeta = "",
+            pipelineStatus = "unknown",
         )
 
         fun fromJson(raw: String): OsWidgetSnapshot {
@@ -39,6 +48,9 @@ data class OsWidgetSnapshot(
                 mealMeta = json.optString("mealMeta"),
                 blockTitle = json.optString("blockTitle").ifBlank { empty().blockTitle },
                 blockMeta = json.optString("blockMeta"),
+                pipelineTitle = json.optString("pipelineTitle").ifBlank { empty().pipelineTitle },
+                pipelineMeta = json.optString("pipelineMeta"),
+                pipelineStatus = json.optString("pipelineStatus").ifBlank { empty().pipelineStatus },
             )
         }
     }

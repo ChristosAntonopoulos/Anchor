@@ -710,3 +710,20 @@ export interface CreatePhoneUnlockEntryRequest {
   unlockedDurationMs?: number | null;
   lockedAtUtc?: string | null;
 }
+
+/** Org-wide latest Azure DevOps pipeline run for the home launcher widget. */
+export interface LatestPipelineRun {
+  available: boolean;
+  message?: string | null;
+  status: 'running' | 'succeeded' | 'failed' | 'partial' | 'canceled' | 'queued' | 'unknown' | string;
+  name?: string | null;
+  project?: string | null;
+  branch?: string | null;
+  buildNumber?: string | null;
+  occurredAtUtc?: string | null;
+  localTime?: string | null;
+  timezone: string;
+  webUrl?: string | null;
+  title: string;
+  subtitle: string;
+}
