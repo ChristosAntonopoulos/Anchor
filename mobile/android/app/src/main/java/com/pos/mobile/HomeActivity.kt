@@ -1,6 +1,8 @@
 package com.pos.mobile
 
+import android.graphics.Color
 import android.graphics.Typeface
+import android.os.Build
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.GestureDetector
@@ -15,12 +17,10 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.graphics.Insets
-import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
 import com.pos.mobile.launcher.DockApp
 import com.pos.mobile.launcher.InstalledApps
+import com.pos.mobile.launcher.LauncherEdges
 import com.pos.mobile.launcher.LauncherIntents
 import com.pos.mobile.launcher.LauncherLayout
 import com.pos.mobile.launcher.LauncherLayoutStore
@@ -50,20 +50,23 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        WindowCompat.setDecorFitsSystemWindows(window, true)
-        window.statusBarColor = LauncherPalette.charcoal
-        window.navigationBarColor = LauncherPalette.charcoal
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.statusBarColor = Color.TRANSPARENT
+        window.navigationBarColor = Color.TRANSPARENT
+        if (Build.VERSION.SDK_INT >= 29) {
+            window.isNavigationBarContrastEnforced = false
+        }
         layout = LauncherLayoutStore.load(this)
         root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(LauncherPalette.charcoal)
         }
         setContentView(root)
-        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
-            val bars: Insets = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
-            insets
+        WindowCompat.getInsetsController(window, root).apply {
+            isAppearanceLightStatusBars = false
+            isAppearanceLightNavigationBars = false
         }
+        LauncherEdges.bind(root)
         buildChrome()
         showHome()
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -97,7 +100,6 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun buildChrome() {
-        val pad = LauncherPalette.dp(root, 22)
         val openNow = View.OnClickListener { LauncherIntents.openPersonalAi(this, "pos://os/now") }
         dateView = LauncherPalette.text(root, 11f, LauncherPalette.faint, true).apply {
             letterSpacing = 0.2f
@@ -166,7 +168,6 @@ class HomeActivity : AppCompatActivity() {
                 view.onTouchEvent(event)
             }
         }
-        root.setPadding(pad, LauncherPalette.dp(root, 8), pad, LauncherPalette.dp(root, 4))
         root.addView(dateView)
         root.addView(clock, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
             topMargin = LauncherPalette.dp(root, 6)
@@ -380,6 +381,7 @@ class HomeActivity : AppCompatActivity() {
         overlay.setOnClose { closeAllApps() }
         allApps = overlay
         addContentView(overlay, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        LauncherEdges.bind(overlay)
     }
 
     private fun closeAllApps() {
@@ -403,6 +405,7 @@ class HomeActivity : AppCompatActivity() {
         overlay.setOnClose { closeEdit() }
         edit = overlay
         addContentView(overlay, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        LauncherEdges.bind(overlay)
     }
 
     private fun closeEdit() {
