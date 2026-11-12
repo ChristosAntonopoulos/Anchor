@@ -2,12 +2,10 @@ package com.pos.mobile.launcher
 
 import android.graphics.Color
 import android.graphics.Typeface
-import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
-import android.view.ViewOutlineProvider
 import android.widget.ImageView
 import android.widget.TextView
 
@@ -70,7 +68,7 @@ object LauncherPalette {
     }
 
     fun link(view: View, label: String, onClick: () -> Unit): TextView {
-        return text(view, 13f, accent, true).apply {
+        return text(view, 13f, muted, true).apply {
             text = label
             gravity = Gravity.CENTER_VERTICAL
             minHeight = dp(view, 44)
@@ -95,30 +93,12 @@ object LauncherPalette {
         }
     }
 
-    fun appIcon(view: View, drawable: Drawable, sizeDp: Int = 40): ImageView {
+    fun mark(view: View, kind: DockMark, sizeDp: Int = 28): ImageView {
         val size = dp(view, sizeDp)
-        val radius = size * 0.28f
         return ImageView(view.context).apply {
-            setImageDrawable(drawable)
-            scaleType = ImageView.ScaleType.CENTER_CROP
-            background = GradientDrawable().apply {
-                setColor(raised)
-                cornerRadius = radius
-            }
-            clipToOutline = true
-            outlineProvider = ViewOutlineProvider.BACKGROUND
-            layoutParams = android.widget.LinearLayout.LayoutParams(size, size)
-        }
-    }
-
-    fun glyph(view: View, letter: String, sizeDp: Int = 40): TextView {
-        val size = dp(view, sizeDp)
-        return text(view, 15f, accent, true).apply {
-            text = letter.take(1).uppercase()
-            gravity = Gravity.CENTER
-            background = well()
-            minHeight = size
-            minWidth = size
+            setImageDrawable(DockMarks.drawable(kind, faint, dp(view, 1).toFloat().coerceAtLeast(2f)))
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             layoutParams = android.widget.LinearLayout.LayoutParams(size, size)
         }
     }

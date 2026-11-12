@@ -40,6 +40,7 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var developerColumn: LinearLayout
     private lateinit var favoritesColumn: LinearLayout
     private lateinit var pageLabel: TextView
+    private lateinit var dateView: TextView
     private var allApps: AllAppsOverlay? = null
     private var edit: EditHomeOverlay? = null
     private var layout: LauncherLayout = LauncherLayoutStore.defaultLayout()
@@ -97,33 +98,33 @@ class HomeActivity : AppCompatActivity() {
 
     private fun buildChrome() {
         val pad = LauncherPalette.dp(root, 22)
+        val openNow = View.OnClickListener { LauncherIntents.openPersonalAi(this, "pos://os/now") }
+        dateView = LauncherPalette.text(root, 11f, LauncherPalette.faint, true).apply {
+            letterSpacing = 0.2f
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
+            isClickable = true
+            isFocusable = true
+            minHeight = LauncherPalette.dp(root, 32)
+            gravity = Gravity.CENTER_VERTICAL
+            setOnClickListener(openNow)
+        }
+        bindDate()
         val clock = TextClock(this).apply {
-            format12Hour = "h:mm"
-            format24Hour = "HH:mm"
+            format12Hour = "h · mm"
+            format24Hour = "HH · mm"
             setTextColor(LauncherPalette.text)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 56f)
-            typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
-            letterSpacing = -0.04f
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 44f)
+            typeface = Typeface.create("sans-serif-thin", Typeface.NORMAL)
+            letterSpacing = 0.08f
             includeFontPadding = false
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
             contentDescription = "Clock. Open Personal AI."
             isClickable = true
             isFocusable = true
             minHeight = LauncherPalette.dp(root, 48)
-            setOnClickListener { LauncherIntents.openPersonalAi(this@HomeActivity, "pos://os/now") }
+            setOnClickListener(openNow)
         }
-        val date = TextView(this).apply {
-            setTextColor(LauncherPalette.muted)
-            textSize = 13f
-            letterSpacing = 0.04f
-            includeFontPadding = false
-            text = SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(Date())
-            isClickable = true
-            isFocusable = true
-            minHeight = LauncherPalette.dp(root, 36)
-            gravity = Gravity.CENTER_VERTICAL
-            setOnClickListener { LauncherIntents.openPersonalAi(this@HomeActivity, "pos://os/now") }
-        }
+        val rule = View(this).apply { setBackgroundColor(LauncherPalette.hairline) }
         homeWidgets = WidgetHost(this, ::dispatch)
         developerWidgets = WidgetHost(this, ::dispatch)
         favoritesColumn = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -166,9 +167,12 @@ class HomeActivity : AppCompatActivity() {
             }
         }
         root.setPadding(pad, LauncherPalette.dp(root, 8), pad, LauncherPalette.dp(root, 4))
-        root.addView(clock)
-        root.addView(date, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-            topMargin = LauncherPalette.dp(root, 4)
+        root.addView(dateView)
+        root.addView(clock, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = LauncherPalette.dp(root, 6)
+        })
+        root.addView(rule, LinearLayout.LayoutParams(LauncherPalette.dp(root, 40), 1).apply {
+            topMargin = LauncherPalette.dp(root, 16)
             bottomMargin = LauncherPalette.dp(root, 18)
         })
         root.addView(scroll, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
@@ -183,9 +187,6 @@ class HomeActivity : AppCompatActivity() {
         val apps = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
-            background = LauncherPalette.well()
-            val inset = LauncherPalette.dp(root, 6)
-            setPadding(inset, inset, inset, inset)
         }
         listOf(
             InstalledApps.WALLET_APP,
@@ -226,14 +227,8 @@ class HomeActivity : AppCompatActivity() {
                 }
             }
         }
-        val app = InstalledApps.resolveDock(this, target)
-        val icon = app?.let { InstalledApps.icon(this, it) }
-        if (icon != null) {
-            col.addView(LauncherPalette.appIcon(root, icon, 44))
-        } else {
-            col.addView(LauncherPalette.glyph(root, target.letter, 44))
-        }
-        col.addView(LauncherPalette.text(root, 11f, LauncherPalette.muted).apply {
+        col.addView(LauncherPalette.mark(root, target.mark, 26))
+        col.addView(LauncherPalette.text(root, 11f, LauncherPalette.faint).apply {
             text = target.label
             gravity = Gravity.CENTER
             maxLines = 1
@@ -245,7 +240,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun quietLink(label: String, onClick: () -> Unit): TextView {
-        return LauncherPalette.text(root, 13f, LauncherPalette.accent, true).apply {
+        return LauncherPalette.text(root, 13f, LauncherPalette.muted, true).apply {
             text = label
             gravity = Gravity.CENTER
             minHeight = LauncherPalette.dp(root, 44)
@@ -297,7 +292,7 @@ class HomeActivity : AppCompatActivity() {
             InstalledApps.resolve(this, favorite)
         }.take(5)
         if (favorites.isEmpty()) {
-            val empty = LauncherPalette.text(root, 13f, LauncherPalette.muted)
+            val empty = LauncherPalette.text(root, 15f, LauncherPalette.muted)
             empty.text = "Tap to pin up to five apps"
             empty.minHeight = LauncherPalette.dp(root, 44)
             empty.gravity = Gravity.CENTER_VERTICAL
@@ -305,19 +300,14 @@ class HomeActivity : AppCompatActivity() {
             favoritesColumn.addView(empty)
             return
         }
-        val row = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.START or Gravity.CENTER_VERTICAL
-        }
         favorites.forEach { app ->
-            val cell = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                gravity = Gravity.CENTER_HORIZONTAL
+            val name = LauncherPalette.text(root, 16f, LauncherPalette.text).apply {
+                text = app.label
+                minHeight = LauncherPalette.dp(root, 44)
+                gravity = Gravity.CENTER_VERTICAL
                 isClickable = true
                 isFocusable = true
                 contentDescription = "Open ${app.label}"
-                minimumHeight = LauncherPalette.dp(root, 72)
-                setPadding(LauncherPalette.dp(root, 4), LauncherPalette.dp(root, 6), LauncherPalette.dp(root, 4), LauncherPalette.dp(root, 4))
                 setOnClickListener {
                     if (!InstalledApps.launch(this@HomeActivity, app)) {
                         Toast.makeText(this@HomeActivity, "Couldn’t open ${app.label}", Toast.LENGTH_SHORT).show()
@@ -328,25 +318,15 @@ class HomeActivity : AppCompatActivity() {
                     true
                 }
             }
-            val icon = InstalledApps.icon(this, app)
-            if (icon != null) {
-                cell.addView(LauncherPalette.appIcon(root, icon, 40))
-            } else {
-                cell.addView(LauncherPalette.glyph(root, app.label, 40))
-            }
-            cell.addView(LauncherPalette.text(root, 10f, LauncherPalette.muted).apply {
-                text = app.label
-                gravity = Gravity.CENTER
-                maxLines = 1
-                ellipsize = android.text.TextUtils.TruncateAt.END
-            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                topMargin = LauncherPalette.dp(root, 6)
-            })
-            row.addView(cell, LinearLayout.LayoutParams(LauncherPalette.dp(root, 64), LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                marginEnd = LauncherPalette.dp(root, 8)
-            })
+            favoritesColumn.addView(name)
         }
-        favoritesColumn.addView(row)
+    }
+
+    private fun bindDate() {
+        dateView.text = SimpleDateFormat("EEEE  d MMMM", Locale.getDefault())
+            .format(Date())
+            .uppercase(Locale.getDefault())
+        dateView.contentDescription = dateView.text
     }
 
     private fun dispatch(action: WidgetAction) {
@@ -384,6 +364,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun refreshVisible() {
+        bindDate()
         layout.homeWidgets().forEach { homeWidgets.provider(it.instanceId)?.refresh() }
         layout.developerWidgets().forEach { developerWidgets.provider(it.instanceId)?.refresh() }
         bindFavorites()

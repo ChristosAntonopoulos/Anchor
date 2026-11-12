@@ -64,7 +64,7 @@ class AllAppsOverlay(
             overScrollMode = OVER_SCROLL_NEVER
             addView(list)
         }, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
-        addView(LauncherPalette.button(this, "Done") { close?.invoke() }, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
+        addView(LauncherPalette.link(this, "Done") { close?.invoke() }, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
             topMargin = LauncherPalette.dp(this@AllAppsOverlay, 12)
         })
         render()
@@ -95,19 +95,9 @@ class AllAppsOverlay(
         val row = LinearLayout(context).apply {
             orientation = HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            minimumHeight = LauncherPalette.dp(this@AllAppsOverlay, 56)
+            minimumHeight = LauncherPalette.dp(this@AllAppsOverlay, 48)
         }
-        val icon = InstalledApps.icon(context, app)
-        if (icon != null) {
-            row.addView(LauncherPalette.appIcon(this, icon, 36), LayoutParams(LauncherPalette.dp(this, 36), LauncherPalette.dp(this, 36)).apply {
-                marginEnd = LauncherPalette.dp(this@AllAppsOverlay, 12)
-            })
-        } else {
-            row.addView(LauncherPalette.glyph(this, app.label, 36), LayoutParams(LauncherPalette.dp(this, 36), LauncherPalette.dp(this, 36)).apply {
-                marginEnd = LauncherPalette.dp(this@AllAppsOverlay, 12)
-            })
-        }
-        val name = LauncherPalette.text(this, 15f, LauncherPalette.text).apply {
+        val name = LauncherPalette.text(this, 16f, LauncherPalette.text).apply {
             text = app.label
             isClickable = true
             isFocusable = true
@@ -121,8 +111,8 @@ class AllAppsOverlay(
                 }
             }
         }
-        val star = LauncherPalette.text(this, 18f, if (favored) LauncherPalette.accent else LauncherPalette.faint).apply {
-            text = if (favored) "★" else "☆"
+        val star = LauncherPalette.text(this, 13f, LauncherPalette.faint).apply {
+            text = if (favored) "Pinned" else "Pin"
             minHeight = LauncherPalette.dp(this@AllAppsOverlay, 48)
             minWidth = LauncherPalette.dp(this@AllAppsOverlay, 48)
             gravity = Gravity.CENTER

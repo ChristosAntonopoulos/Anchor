@@ -22,7 +22,7 @@ data class LaunchableApp(
 
 data class DockApp(
     val label: String,
-    val letter: String,
+    val mark: DockMark,
     val packages: List<String>,
     val names: List<String> = listOf(label),
 )
@@ -31,10 +31,10 @@ object InstalledApps {
     const val WALLET = "com.google.android.apps.walletnfcrel"
     const val CHATGPT = "com.openai.chatgpt"
     const val SPOTIFY = "com.spotify.music"
-    val WALLET_APP = DockApp("Wallet", "W", listOf(WALLET, "com.google.android.apps.nbu.paisa.user", "com.samsung.android.spay", "com.samsung.android.spaylite"), listOf("Wallet", "Google Wallet", "GPay", "Samsung Pay"))
-    val CHATGPT_APP = DockApp("ChatGPT", "G", listOf(CHATGPT), listOf("ChatGPT"))
-    val CURSOR_APP = DockApp("Cursor", "C", listOf("com.anysphere.cursor", "com.todesktop.20100701"), listOf("Cursor"))
-    val SPOTIFY_APP = DockApp("Spotify", "S", listOf(SPOTIFY, "com.spotify.lite"), listOf("Spotify"))
+    val WALLET_APP = DockApp("Wallet", DockMark.WALLET, listOf(WALLET, "com.google.android.apps.nbu.paisa.user", "com.samsung.android.spay", "com.samsung.android.spaylite"), listOf("Wallet", "Google Wallet", "GPay", "Samsung Pay"))
+    val CHATGPT_APP = DockApp("ChatGPT", DockMark.CHAT, listOf(CHATGPT), listOf("ChatGPT"))
+    val CURSOR_APP = DockApp("Cursor", DockMark.CURSOR, listOf("com.anysphere.cursor", "com.todesktop.20100701"), listOf("Cursor"))
+    val SPOTIFY_APP = DockApp("Spotify", DockMark.SPOTIFY, listOf(SPOTIFY, "com.spotify.lite"), listOf("Spotify"))
 
     fun list(context: Context): List<LaunchableApp> {
         val launcherApps = context.getSystemService(LauncherApps::class.java) ?: return emptyList()
