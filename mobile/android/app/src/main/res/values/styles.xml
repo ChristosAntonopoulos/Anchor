@@ -8,4 +8,11 @@
   <style name="Theme.App.SplashScreen" parent="AppTheme">
     <item name="android:windowBackground">@drawable/ic_launcher_background</item>
   </style>
+  <style name="LauncherTheme" parent="Theme.AppCompat.NoActionBar">
+    <item name="android:windowBackground">#151D1B</item>
+    <item name="android:statusBarColor">#151D1B</item>
+    <item name="android:navigationBarColor">#151D1B</item>
+    <item name="android:windowLightStatusBar">false</item>
+    <item name="android:colorPrimary">#A4CDBB</item>
+  </style>
 </resources>
