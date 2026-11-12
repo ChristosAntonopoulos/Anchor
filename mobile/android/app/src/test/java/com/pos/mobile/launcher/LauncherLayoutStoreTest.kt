@@ -84,6 +84,24 @@ class DockAppsTest {
     }
 }
 
+class RecentAppsTest {
+    @Test
+    fun mergeKeepsNewestAndDropsOlderDuplicates() {
+        val first = RecentEntry("com.instagram.android", "Main", "Instagram", 10)
+        val later = RecentEntry("com.instagram.android", "Main", "Instagram", 40)
+        val other = RecentEntry("com.spotify.music", "Main", "Spotify", 30)
+        val ranked = RecentApps.merge(listOf(first, other), listOf(later))
+        assertEquals(listOf("Instagram", "Spotify"), ranked.map { it.label })
+        assertEquals(40L, ranked.first().atMs)
+    }
+
+    @Test
+    fun parseRoundTripSkipsBlankPackages() {
+        val parsed = RecentApps.parse("""[{"packageName":"com.openai.chatgpt","className":"Main","label":"ChatGPT","atMs":9},{"packageName":"","label":"Nope"}]""")
+        assertEquals(listOf("ChatGPT"), parsed.map { it.label })
+    }
+}
+
 class WidgetRegistryTest {
     @Test
     fun homePickerIsTheTwoWidgets() {

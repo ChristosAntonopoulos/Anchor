@@ -91,6 +91,12 @@ object InstalledApps {
     }
 
     fun launch(context: Context, app: LaunchableApp): Boolean {
+        val launched = start(context, app)
+        if (launched) RecentApps.remember(context, app)
+        return launched
+    }
+
+    private fun start(context: Context, app: LaunchableApp): Boolean {
         val launcherApps = context.getSystemService(LauncherApps::class.java)
         if (launcherApps != null) {
             try {
@@ -101,7 +107,7 @@ object InstalledApps {
         }
         return try {
             val intent = context.packageManager.getLaunchIntentForPackage(app.packageName) ?: return false
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
             context.startActivity(intent)
             true
         } catch (_: Exception) {
@@ -162,7 +168,7 @@ object InstalledApps {
         if (target === WALLET_APP) {
             return try {
                 val intent = Intent(Intent.ACTION_MAIN).addCategory("android.intent.category.APP_WALLET")
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
                 context.startActivity(intent)
                 true
             } catch (_: Exception) {
