@@ -37,6 +37,9 @@ function openOsUrl(url: string | null) {
       case 'night':
         router.replace('/night' as never);
         break;
+      case 'capture':
+        router.push('/check-in/capture' as never);
+        break;
       default:
         break;
     }
