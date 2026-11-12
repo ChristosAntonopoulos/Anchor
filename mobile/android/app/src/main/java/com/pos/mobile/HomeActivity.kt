@@ -1,6 +1,7 @@
 package com.pos.mobile
 
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.graphics.Typeface
 import android.os.Build
 import android.os.Bundle
@@ -42,7 +43,13 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var pageLabel: TextView
     private lateinit var dateView: TextView
     private var allApps: AllAppsOverlay? = null
+    private var recents: RecentsOverlay? = null
     private var edit: EditHomeOverlay? = null
+    private var openedRecents = false
+    private var recentsTrack = false
+    private var recentsStartX = 0f
+    private var recentsStartY = 0f
+    private lateinit var recentsDetector: GestureDetector
     private var layout: LauncherLayout = LauncherLayoutStore.defaultLayout()
     private var showingDeveloper = false
     private val preview: Boolean
@@ -67,11 +74,25 @@ class HomeActivity : AppCompatActivity() {
             isAppearanceLightNavigationBars = false
         }
         LauncherEdges.bind(root)
+        recentsDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+                val start = e1 ?: return false
+                if (recents != null || allApps != null || edit != null) return false
+                val zone = root.height - LauncherPalette.dp(root, 96)
+                if (start.y < zone) return false
+                if (velocityY > -1100 || abs(velocityY) < abs(velocityX) * 1.15f) return false
+                if (start.y - e2.y < LauncherPalette.dp(root, 64)) return false
+                openRecents()
+                openedRecents = true
+                return true
+            }
+        })
         buildChrome()
         showHome()
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 when {
+                    recents != null -> closeRecents()
                     edit != null -> closeEdit()
                     allApps != null -> closeAllApps()
                     showingDeveloper -> showHome()
@@ -91,7 +112,38 @@ class HomeActivity : AppCompatActivity() {
         setIntent(intent)
         closeAllApps()
         closeEdit()
+        closeRecents()
         showHome()
+    }
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        if (::recentsDetector.isInitialized) recentsDetector.onTouchEvent(event)
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                recentsTrack = recents == null && allApps == null && edit == null &&
+                    ::root.isInitialized && event.y >= root.height - LauncherPalette.dp(root, 96)
+                recentsStartX = event.x
+                recentsStartY = event.y
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                if (recentsTrack && recents == null && ::root.isInitialized) {
+                    val climb = recentsStartY - event.y
+                    val sideways = abs(event.x - recentsStartX)
+                    if (climb > LauncherPalette.dp(root, 72) && climb > sideways * 1.2f) {
+                        openRecents()
+                        openedRecents = true
+                    }
+                }
+                recentsTrack = false
+            }
+        }
+        if (openedRecents) {
+            if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
+                openedRecents = false
+            }
+            return true
+        }
+        return super.dispatchTouchEvent(event)
     }
 
     override fun onResume() {
@@ -179,6 +231,7 @@ class HomeActivity : AppCompatActivity() {
         root.addView(scroll, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
         root.addView(dock())
         root.addView(footer())
+        root.addView(homeHandle())
         bindWidgets()
         bindFavorites()
     }
@@ -271,6 +324,26 @@ class HomeActivity : AppCompatActivity() {
         row.addView(pageLabel, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         row.addView(link("Edit") { openEdit() }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         row.addView(link("Switch Home") { LauncherIntents.openHomeSettings(this) }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        return row
+    }
+
+    private fun homeHandle(): View {
+        val row = LinearLayout(this).apply {
+            gravity = Gravity.CENTER
+            minimumHeight = LauncherPalette.dp(root, 28)
+            isClickable = true
+            isFocusable = true
+            contentDescription = "Open apps"
+            setOnClickListener { openRecents() }
+        }
+        val pill = View(this).apply {
+            background = GradientDrawable().apply {
+                setColor(LauncherPalette.faint)
+                alpha = 120
+                cornerRadius = LauncherPalette.dp(root, 2).toFloat()
+            }
+        }
+        row.addView(pill, LinearLayout.LayoutParams(LauncherPalette.dp(root, 40), LauncherPalette.dp(root, 3)))
         return row
     }
 
@@ -371,7 +444,24 @@ class HomeActivity : AppCompatActivity() {
         bindFavorites()
     }
 
+    private fun openRecents() {
+        if (recents != null) return
+        closeAllApps()
+        closeEdit()
+        val overlay = RecentsOverlay(this)
+        overlay.setOnClose { closeRecents() }
+        recents = overlay
+        addContentView(overlay, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        LauncherEdges.bind(overlay)
+    }
+
+    private fun closeRecents() {
+        (recents?.parent as? ViewGroup)?.removeView(recents)
+        recents = null
+    }
+
     private fun openAllApps(pickingFavorites: Boolean) {
+        closeRecents()
         closeAllApps()
         val overlay = AllAppsOverlay(this, layout, pickingFavorites) { next ->
             layout = next
@@ -394,6 +484,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun openEdit() {
+        closeRecents()
         closeEdit()
         val overlay = EditHomeOverlay(this, layout) { next ->
             layout = next
