@@ -39,9 +39,9 @@ class EditHomeOverlay(
         scroll.addView(column)
         addView(scroll, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
         val row = LinearLayout(context).apply { orientation = HORIZONTAL }
-        row.addView(LauncherPalette.button(this, "Cancel", filled = false) { close?.invoke() })
-        row.addView(LauncherPalette.button(this, "Save") { onSave(layout) }, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
-            marginStart = LauncherPalette.dp(this@EditHomeOverlay, 10)
+        row.addView(LauncherPalette.link(this, "Cancel") { close?.invoke() })
+        row.addView(LauncherPalette.link(this, "Save") { onSave(layout) }, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
+            marginStart = LauncherPalette.dp(this@EditHomeOverlay, 16)
         })
         addView(row, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
             topMargin = LauncherPalette.dp(this@EditHomeOverlay, 12)
@@ -61,7 +61,7 @@ class EditHomeOverlay(
         wrap.addView(list)
         val addRow = LinearLayout(context).apply { orientation = HORIZONTAL }
         WidgetRegistry.picker(placement).forEach { definition ->
-            addRow.addView(LauncherPalette.text(this, 13f, LauncherPalette.accent, true).apply {
+            addRow.addView(LauncherPalette.text(this, 13f, LauncherPalette.muted, true).apply {
                 text = "+ ${definition.title}"
                 minHeight = LauncherPalette.dp(this@EditHomeOverlay, 44)
                 gravity = Gravity.CENTER_VERTICAL
@@ -105,7 +105,7 @@ class EditHomeOverlay(
     }
 
     private fun small(label: String, onClick: () -> Unit): TextView {
-        return LauncherPalette.text(this, 12f, LauncherPalette.accent).apply {
+        return LauncherPalette.text(this, 12f, LauncherPalette.muted).apply {
             text = label
             minHeight = LauncherPalette.dp(this@EditHomeOverlay, 44)
             gravity = Gravity.CENTER

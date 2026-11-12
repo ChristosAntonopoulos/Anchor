@@ -77,6 +77,10 @@ class DockAppsTest {
         assertEquals("Spotify", InstalledApps.SPOTIFY_APP.label)
         assertTrue(InstalledApps.CURSOR_APP.packages.contains("com.anysphere.cursor"))
         assertTrue(InstalledApps.SPOTIFY_APP.packages.contains("com.spotify.music"))
+        assertEquals(DockMark.WALLET, InstalledApps.WALLET_APP.mark)
+        assertEquals(DockMark.CHAT, InstalledApps.CHATGPT_APP.mark)
+        assertEquals(DockMark.CURSOR, InstalledApps.CURSOR_APP.mark)
+        assertEquals(DockMark.SPOTIFY, InstalledApps.SPOTIFY_APP.mark)
     }
 }
 

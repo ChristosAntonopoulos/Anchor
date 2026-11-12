@@ -57,7 +57,7 @@ private class WidgetCard(context: Context) : LinearLayout(context) {
         gravity = Gravity.CENTER_VERTICAL
     }
     private val title = LauncherPalette.eyebrow(this, "")
-    private val action = LauncherPalette.text(this, 13f, LauncherPalette.accent, true)
+    private val action = LauncherPalette.text(this, 13f, LauncherPalette.muted, true)
     private val body = LauncherPalette.text(this, 20f, LauncherPalette.text, true)
     private val status = LauncherPalette.text(this, 13f, LauncherPalette.muted)
     private val rows = LinearLayout(context).apply { orientation = HORIZONTAL }
