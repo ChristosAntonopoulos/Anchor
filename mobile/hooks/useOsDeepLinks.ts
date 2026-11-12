@@ -31,6 +31,9 @@ function openOsUrl(url: string | null) {
       case 'discipline':
         router.push('/(tabs)/discipline');
         break;
+      case 'morning':
+        router.replace('/morning' as never);
+        break;
       default:
         break;
     }

@@ -15,6 +15,7 @@ import { useCookingStore } from '../../store/useCookingStore';
 import { apiClient } from '../../services/api';
 import { formatMoney } from '../../utils/walletSpend';
 import { WATER_TARGET_GLASSES, findWaterGlasses } from '../../utils/waterReminders';
+import { isMorningTakeover, useMorningModeStore } from '../../store/useMorningModeStore';
 
 function daysUntil(dueDate: string): number {
   const due = new Date(`${dueDate}T12:00:00`);
@@ -41,6 +42,7 @@ export default function SystemsScreen() {
   const weekly = useWeeklyReviewStore((s) => s.data);
   const fetchWeeklyReview = useWeeklyReviewStore((s) => s.fetchWeeklyReview);
   const timers = useCookingStore((s) => s.timers);
+  const morning = useMorningModeStore((s) => s.session);
   const [unlocksToday, setUnlocksToday] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -182,17 +184,27 @@ export default function SystemsScreen() {
         <Text style={styles.section}>Attention</Text>
         <View style={styles.row}>
           <SystemTile
+            icon="sun"
+            title="Morning"
+            status={isMorningTakeover(morning) ? 'In progress' : 'First unlock after 07:00'}
+            attention={isMorningTakeover(morning)}
+            onPress={() => router.replace('/morning' as never)}
+          />
+          <SystemTile
             icon="focus"
             title="Unlocks"
             status={unlocksStatus}
             onPress={() => router.push('/(tabs)/unlocks')}
           />
+        </View>
+        <View style={styles.row}>
           <SystemTile
             icon="notification"
             title="Inbox"
             status={inboxStatus}
             attention={unread > 0}
             onPress={() => router.push('/more/notifications' as any)}
+            wide
           />
         </View>
 

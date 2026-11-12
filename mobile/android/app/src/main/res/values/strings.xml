@@ -93,4 +93,9 @@
   <string name="unlock_lock_admin_body">So Put phone down can turn the screen off. This only lets the app lock the screen. It cannot erase data.</string>
   <string name="unlock_lock_admin_button">Allow screen lock</string>
   <string name="unlock_lock_yourself">You can lock the phone now if you want to put it down.</string>
+
+  <string name="morning_channel_name">Morning Mode</string>
+  <string name="morning_channel_description">First unlock after 07:00</string>
+  <string name="morning_notification_title">Morning Mode</string>
+  <string name="morning_notification_body">Σήκω. Πάμε να ξεκινήσουμε.</string>
 </resources>

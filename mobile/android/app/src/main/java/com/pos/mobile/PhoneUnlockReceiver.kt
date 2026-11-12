@@ -14,7 +14,7 @@ class PhoneUnlockReceiver : BroadcastReceiver() {
                 PhoneUnlockPresenter.onScreenOff(context)
             }
             Intent.ACTION_USER_PRESENT -> {
-                PhoneUnlockPresenter.onPhoneUnlocked(context, System.currentTimeMillis())
+                PhoneUnlockPresenter.onPhoneUnlocked(context, System.currentTimeMillis(), fromUserPresent = true)
             }
             Intent.ACTION_SCREEN_ON -> {
                 val keyguard = context.getSystemService(KeyguardManager::class.java)
@@ -22,7 +22,15 @@ class PhoneUnlockReceiver : BroadcastReceiver() {
                     PhoneUnlockPresenter.onScreenOnWhileUnlocked(context)
                 }
             }
-        }
+            Intent.ACTION_TIMEZONE_CHANGED, Intent.ACTION_DATE_CHANGED -> {
+                MorningModeStore.saveGate(
+                    context.applicationContext,
+                    MorningModeLogic.onCivilDate(
+                        MorningModeStore.gate(context.applicationContext),
+                        System.currentTimeMillis(),
+                    ),
+                )
+            }
     }
 
     companion object {
@@ -32,6 +40,8 @@ class PhoneUnlockReceiver : BroadcastReceiver() {
                 addAction(Intent.ACTION_USER_PRESENT)
                 addAction(Intent.ACTION_SCREEN_ON)
                 addAction(Intent.ACTION_SCREEN_OFF)
+                addAction(Intent.ACTION_TIMEZONE_CHANGED)
+                addAction(Intent.ACTION_DATE_CHANGED)
                 priority = IntentFilter.SYSTEM_HIGH_PRIORITY
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

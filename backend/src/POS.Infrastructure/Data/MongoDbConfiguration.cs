@@ -248,6 +248,12 @@ public static class MongoDbConfiguration
             new CreateIndexModel<POS.Core.Entities.Schedule.ScheduleBlockInstance>(
                 Builders<POS.Core.Entities.Schedule.ScheduleBlockInstance>.IndexKeys.Ascending(x => x.UserId).Ascending(x => x.Date)));
 
+        var morningSessions = database.GetCollection<POS.Core.Entities.Morning.MorningModeSession>("morningModeSessions");
+        morningSessions.Indexes.CreateOne(
+            new CreateIndexModel<POS.Core.Entities.Morning.MorningModeSession>(
+                Builders<POS.Core.Entities.Morning.MorningModeSession>.IndexKeys.Ascending(x => x.UserId).Ascending(x => x.LocalDate),
+                new CreateIndexOptions { Unique = true }));
+
         // WeeklyReviews indexes - compound unique index on UserId and WeekId
         var weeklyReviewsCollection = database.GetCollection<POS.Core.Entities.WeeklyReview.WeeklyReview>("weeklyReviews");
         weeklyReviewsCollection.Indexes.CreateOne(

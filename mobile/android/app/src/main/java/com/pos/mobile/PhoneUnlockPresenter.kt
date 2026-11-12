@@ -29,11 +29,11 @@ object PhoneUnlockPresenter {
         }
         val appContext = context.applicationContext
         mainHandler.postDelayed({
-            onPhoneUnlocked(appContext, System.currentTimeMillis())
+            onPhoneUnlocked(appContext, System.currentTimeMillis(), fromUserPresent = false)
         }, 250)
     }
 
-    fun onPhoneUnlocked(context: Context, unlockTime: Long) {
+    fun onPhoneUnlocked(context: Context, unlockTime: Long, fromUserPresent: Boolean = true) {
         val now = System.currentTimeMillis()
         if (now - lastUnlockAt < DEBOUNCE_MS) {
             return
@@ -43,8 +43,14 @@ object PhoneUnlockPresenter {
         }
         lastUnlockAt = now
         screenWasOff = false
-        android.util.Log.d(TAG, "Phone unlock detected: $unlockTime")
+        android.util.Log.d(TAG, "Phone unlock detected: $unlockTime present=$fromUserPresent")
         val appContext = context.applicationContext
+        if (MorningModeLauncher.consumeUnlock(appContext, unlockTime, fromUserPresent)) {
+            PhoneUnlockModule.resetPendingUnlockTime()
+            MorningModeModule.emitOpened()
+            android.util.Log.d(TAG, "Morning Mode consumed this unlock")
+            return
+        }
         PhoneUnlockStore.openSession(appContext, unlockTime)
         PhoneUnlockModule.setPendingUnlockTime(unlockTime)
 
