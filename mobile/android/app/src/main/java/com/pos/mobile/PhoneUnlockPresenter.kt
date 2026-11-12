@@ -3,6 +3,8 @@ package com.pos.mobile
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import com.pos.mobile.launcher.LauncherIntents
+import com.pos.mobile.launcher.UnlockHomePolicy
 
 object PhoneUnlockPresenter {
     private const val TAG = "PhoneUnlockPresenter"
@@ -55,6 +57,7 @@ object PhoneUnlockPresenter {
         PhoneUnlockModule.setPendingUnlockTime(unlockTime)
 
         if (!WalletLaunchDetector.isUsageAccessGranted(appContext)) {
+            revealHome(appContext, fromUserPresent, walletLaunch = false)
             showPrompt(appContext, unlockTime)
             return
         }
@@ -65,10 +68,22 @@ object PhoneUnlockPresenter {
             }
             mainHandler.postDelayed({
                 if (!tryRecordWallet(appContext, unlockTime)) {
+                    revealHome(appContext, fromUserPresent, walletLaunch = false)
                     showPrompt(appContext, unlockTime)
                 }
             }, WALLET_RETRY_MS)
         }, WALLET_CHECK_MS)
+    }
+
+    private fun revealHome(context: Context, fromUserPresent: Boolean, walletLaunch: Boolean) {
+        if (!UnlockHomePolicy.shouldRevealHome(fromUserPresent, morningTakeover = false, walletLaunch = walletLaunch)) {
+            return
+        }
+        try {
+            LauncherIntents.revealHome(context)
+        } catch (error: Exception) {
+            android.util.Log.w(TAG, "Could not bring Home forward after unlock", error)
+        }
     }
 
     private fun tryRecordWallet(context: Context, unlockTime: Long): Boolean {
