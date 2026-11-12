@@ -67,6 +67,22 @@ spec:
             configMapKeyRef:
               name: pos-api-config
               key: BotSystem__DayStartBotKey
+        - name: AzureDevOps__Organization
+          valueFrom:
+            configMapKeyRef:
+              name: pos-api-config
+              key: AzureDevOps__Organization
+        - name: AzureDevOps__CacheSeconds
+          valueFrom:
+            configMapKeyRef:
+              name: pos-api-config
+              key: AzureDevOps__CacheSeconds
+        - name: AzureDevOps__PersonalAccessToken
+          valueFrom:
+            secretKeyRef:
+              name: pos-api-secrets
+              key: AzureDevOps__PersonalAccessToken
+              optional: true
         resources:
           requests:
             memory: "256Mi"

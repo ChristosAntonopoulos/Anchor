@@ -11,13 +11,26 @@
 
 ### Step 2: Add Variables
 
-Add these 3 variables:
+Add these variables:
 
 | Variable Name | Value | Secret? | Notes |
 |--------------|-------|---------|-------|
 | `MONGO_CONNECTION_STRING` | `mongodb://posuser:PosUserPassword123!@185.193.66.50:27017/pos?authSource=admin` | ✅ **Yes** | Mark as secret |
 | `DOCKER_USERNAME` | Your Docker Hub username | ❌ No | e.g., `yourusername` |
 | `DOCKER_PASSWORD` | Your Docker Hub password/token | ✅ **Yes** | Mark as secret |
+
+### Home launcher — latest pipeline widget
+
+The Android home widget reads the **latest org-wide** Azure DevOps run via `GET /api/pipelines/latest`.
+
+Configure the API (ConfigMap / secrets / env):
+
+| Setting | Env / key | Notes |
+|--------|-----------|-------|
+| Organization | `AzureDevOps__Organization` or `AZURE_DEVOPS_ORG` | Name in `https://dev.azure.com/{org}` |
+| PAT | `AzureDevOps__PersonalAccessToken` or `AZURE_DEVOPS_PAT` | Secret; scopes **Build (Read)** + **Project and Team (Read)** |
+
+Without these, the widget shows a calm empty state (“No pipeline yet”).
 
 ### Step 3: Grant Pipeline Access
 

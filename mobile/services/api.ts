@@ -194,6 +194,9 @@ export interface APIClient {
   // Phone Unlock endpoints
   createPhoneUnlockEntry(request: CreatePhoneUnlockEntryRequest): Promise<void>;
   getPhoneUnlockEntries(startDate?: string, endDate?: string): Promise<PhoneUnlockEntry[]>;
+
+  // Home launcher — org-wide Azure DevOps latest pipeline
+  getLatestPipeline(): Promise<import('../types').LatestPipelineRun>;
 }
 
 // HTTP API Client Implementation
@@ -1246,6 +1249,11 @@ class HTTPAPIClient implements APIClient {
   async helpNight(request: { step: string; text: string }): Promise<string | null> {
     const response = await this.axiosInstance.post<ApiResponse<{ text?: string }>>('/night/help', request);
     return unwrapResponse(response.data)?.text ?? null;
+  }
+
+  async getLatestPipeline(): Promise<import('../types').LatestPipelineRun> {
+    const response = await this.axiosInstance.get<ApiResponse<import('../types').LatestPipelineRun>>('/pipelines/latest');
+    return unwrapResponse(response.data);
   }
 
   private handleError(error: unknown, defaultMessage: string): Error {

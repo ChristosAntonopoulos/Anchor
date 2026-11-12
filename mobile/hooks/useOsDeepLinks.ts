@@ -40,6 +40,9 @@ function openOsUrl(url: string | null) {
       case 'capture':
         router.push('/check-in/capture' as never);
         break;
+      case 'pipeline':
+        router.replace('/(tabs)');
+        break;
       default:
         break;
     }
