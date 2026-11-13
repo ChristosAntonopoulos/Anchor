@@ -180,5 +180,49 @@ class K8sWidgetParseTest {
         assertTrue(snap.notDeployed)
         assertEquals("unknown", snap.status)
     }
+
+    @Test
+    fun mapsAppsAndOverviewFallback() {
+        val apps = org.json.JSONObject(
+            """
+            {
+              "lastUpdated":"2026-11-13T17:00:00.0000000Z",
+              "summary":{"total":3,"healthy":1,"degraded":0,"offline":2,"starting":0,"unknown":0},
+              "apps":[
+                {"appKey":"ok","displayName":"Ok App","namespace":"ok","userStatus":"Healthy","isSystem":false,"readyPods":1,"totalPods":1,"primaryUrl":null,"statusReason":""},
+                {"appKey":"agrotrack","displayName":"Agrotrack","namespace":"agrotrack-backend","userStatus":"Offline","isSystem":false,"readyPods":0,"totalPods":1,"primaryUrl":null,"statusReason":"CrashLoopBackOff: restarting"},
+                {"appKey":"worker","displayName":"Worker","namespace":"botsystem","userStatus":"Offline","isSystem":false,"readyPods":0,"totalPods":0,"primaryUrl":null,"statusReason":"Component worker is not fully ready."}
+              ]
+            }
+            """.trimIndent(),
+        )
+        val overview = org.json.JSONObject(
+            """
+            {
+              "healthStatus":"Warning",
+              "totalNodes":1,
+              "readyNodes":0,
+              "runningPods":10,
+              "failedPods":0,
+              "pendingPods":0,
+              "nodeStatusBreakdown":{"True":1},
+              "lastUpdated":"2026-11-13T17:00:00.0000000Z"
+            }
+            """.trimIndent(),
+        )
+        val snap = K8sWidgetSnapshot.fromAppsAndOverview(apps, overview, includeSystem = false)
+        assertEquals("critical", snap.status)
+        assertEquals("2 apps offline", snap.headline)
+        assertEquals(1, snap.nodesReady)
+        assertEquals(1, snap.nodesTotal)
+        assertEquals(1, snap.appsHealthy)
+        assertEquals(2, snap.appsOffline)
+        assertEquals(2, snap.problemsCount())
+        assertTrue(snap.countsLine().contains("Nodes 1/1"))
+        assertEquals("Agrotrack", snap.highlights.first().name)
+        assertEquals("CrashLoopBackOff", snap.highlights.first().detail)
+        assertEquals("/apps/agrotrack", snap.highlights.first().panelPath)
+        assertTrue(!snap.notDeployed)
+    }
 }
 

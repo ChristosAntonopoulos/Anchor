@@ -7,7 +7,8 @@ import android.os.Looper
 import com.pos.mobile.ControlPanelClient
 
 /**
- * Developer home Cluster card — polls control-panel GET /api/widget every 30s.
+ * Developer home Cluster card — prefers GET /api/widget, falls back to
+ * /api/apps + /api/dashboard/overview when the widget route is missing.
  */
 class K8sStatusProvider(
     private val appContext: Context,
@@ -54,7 +55,7 @@ class K8sStatusProvider(
         val includeSystem = instance.settings.optBoolean("includeSystem", false)
 
         ControlPanelClient.enqueue {
-            val fetch = ControlPanelClient.fetchWidget(
+            val fetch = ControlPanelClient.fetchCluster(
                 context = appContext,
                 namespace = namespace,
                 limit = limit,
@@ -63,8 +64,8 @@ class K8sStatusProvider(
             main.post {
                 inFlight = false
                 when (fetch) {
-                    is ControlPanelClient.WidgetFetch.Ok -> {
-                        val snap = K8sWidgetSnapshot.fromJson(fetch.json)
+                    is ControlPanelClient.ClusterFetch.Ok -> {
+                        val snap = fetch.snapshot
                         lastGood = snap
                         state = WidgetUiState.Content(
                             value = snap,
@@ -74,32 +75,9 @@ class K8sStatusProvider(
                             sample = false,
                         )
                     }
-                    ControlPanelClient.WidgetFetch.NotDeployed -> {
-                        val snap = K8sWidgetSnapshot.notDeployed()
-                        // Don't clobber a prior good live snapshot with not-deployed
-                        // if we somehow lose the route temporarily — but first paint should show it.
-                        if (lastGood == null || lastGood?.notDeployed == true) {
-                            lastGood = snap
-                            state = WidgetUiState.Content(
-                                value = snap,
-                                sourceAtMs = snap.generatedAtMs,
-                                refreshing = false,
-                                refreshError = null,
-                                sample = false,
-                            )
-                        } else {
-                            state = WidgetUiState.Content(
-                                value = lastGood!!,
-                                sourceAtMs = lastGood!!.generatedAtMs,
-                                refreshing = false,
-                                refreshError = "Control panel widget route missing (404/HTML).",
-                                sample = false,
-                            )
-                        }
-                    }
-                    is ControlPanelClient.WidgetFetch.Failed -> {
+                    is ControlPanelClient.ClusterFetch.Failed -> {
                         val keep = lastGood ?: previous
-                        if (keep != null) {
+                        if (keep != null && !keep.notDeployed) {
                             state = WidgetUiState.Content(
                                 value = keep,
                                 sourceAtMs = keep.generatedAtMs,
@@ -162,16 +140,7 @@ class K8sStatusProvider(
 
     override fun rows(): List<WidgetRow> {
         val snap = (state as? WidgetUiState.Content)?.value ?: return emptyList()
-        val appRows = snap.apps.take(2).map { app ->
-            val target = ControlPanelClient.absoluteUrl(appContext, app.url)
-                ?: ControlPanelClient.absoluteUrl(appContext, app.panelPath)
-            WidgetRow(
-                label = app.name,
-                value = app.status,
-                meta = app.ready,
-                action = target?.let { WidgetAction.OpenUrl(it) },
-            )
-        }
+        // Prefer problem highlights; fill remaining slots with app rows.
         val highlightRows = snap.highlights.take(2).map { highlight ->
             val panel = ControlPanelClient.absoluteUrl(appContext, highlight.url)
                 ?: ControlPanelClient.absoluteUrl(appContext, highlight.panelPath)
@@ -193,7 +162,21 @@ class K8sStatusProvider(
                 action = action,
             )
         }
-        return (appRows + highlightRows).take(4)
+        val usedNames = highlightRows.map { it.value }.toSet()
+        val appRows = snap.apps
+            .filter { it.name !in usedNames }
+            .take(2)
+            .map { app ->
+                val target = ControlPanelClient.absoluteUrl(appContext, app.url)
+                    ?: ControlPanelClient.absoluteUrl(appContext, app.panelPath)
+                WidgetRow(
+                    label = app.name,
+                    value = app.status,
+                    meta = app.ready,
+                    action = target?.let { WidgetAction.OpenUrl(it) },
+                )
+            }
+        return (highlightRows + appRows).take(4)
     }
 
     fun stopPolling() {

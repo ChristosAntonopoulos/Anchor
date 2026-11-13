@@ -92,6 +92,215 @@ data class K8sWidgetSnapshot(
             )
         }
 
+        /**
+         * Map control-panel GET /api/apps (+ optional /api/dashboard/overview)
+         * into the same snapshot shape used by GET /api/widget.
+         */
+        fun fromAppsAndOverview(
+            appsJson: JSONObject,
+            overviewJson: JSONObject? = null,
+            namespace: String? = null,
+            limit: Int = 5,
+            includeSystem: Boolean = false,
+            generatedFallbackMs: Long = System.currentTimeMillis(),
+        ): K8sWidgetSnapshot {
+            val rawApps = appsJson.optJSONArray("apps") ?: JSONArray()
+            val filtered = (0 until rawApps.length()).mapNotNull { index ->
+                rawApps.optJSONObject(index)
+            }.filter { item ->
+                if (!includeSystem && item.optBoolean("isSystem", false)) return@filter false
+                if (!namespace.isNullOrBlank() &&
+                    !item.optString("namespace").equals(namespace, ignoreCase = true)
+                ) {
+                    return@filter false
+                }
+                true
+            }
+
+            val summary = appsJson.optJSONObject("summary")
+            val healthy = summary?.optInt("healthy")
+                ?: filtered.count { normalizeAppStatus(it) == "Healthy" }
+            val degraded = summary?.optInt("degraded")
+                ?: filtered.count { normalizeAppStatus(it) == "Degraded" }
+            val offline = summary?.optInt("offline")
+                ?: filtered.count { normalizeAppStatus(it) == "Offline" }
+            val starting = summary?.optInt("starting")
+                ?: filtered.count { normalizeAppStatus(it) == "Starting" }
+
+            // When namespace/system filters apply, recount from filtered list.
+            val (h, d, o, s) = if (!namespace.isNullOrBlank() || !includeSystem) {
+                val statuses = filtered.map { normalizeAppStatus(it) }
+                listOf(
+                    statuses.count { it == "Healthy" },
+                    statuses.count { it == "Degraded" },
+                    statuses.count { it == "Offline" },
+                    statuses.count { it == "Starting" },
+                )
+            } else {
+                listOf(healthy, degraded, offline, starting)
+            }
+
+            val problemApps = filtered
+                .filter { normalizeAppStatus(it) in setOf("Offline", "Degraded", "Starting", "Unknown") }
+                .sortedWith(
+                    compareBy<JSONObject> { statusRank(normalizeAppStatus(it)) }
+                        .thenByDescending { it.optString("statusReason").contains("CrashLoop", true) }
+                        .thenBy { it.optString("displayName").ifBlank { it.optString("appKey") } },
+                )
+
+            val hasCrashLoop = problemApps.any {
+                it.optString("statusReason").contains("CrashLoop", ignoreCase = true)
+            }
+            val status = when {
+                hasCrashLoop || o >= 3 -> "critical"
+                o > 0 || d > 0 -> "attention"
+                overviewHealth(overviewJson).equals("Warning", true) -> "attention"
+                overviewHealth(overviewJson).equals("Critical", true) ||
+                    overviewHealth(overviewJson).equals("Error", true) -> "critical"
+                h > 0 -> "healthy"
+                else -> "unknown"
+            }
+
+            val headline = when {
+                problemApps.isEmpty() -> "All apps healthy"
+                problemApps.size == 1 -> {
+                    val app = problemApps.first()
+                    val name = app.optString("displayName").ifBlank { app.optString("appKey") }
+                    val reason = shortReason(app.optString("statusReason"))
+                    if (reason.isNotBlank()) "$name · $reason" else "$name needs attention"
+                }
+                o > 0 && d == 0 -> "$o apps offline"
+                else -> "${problemApps.size} apps need attention"
+            }
+
+            val generatedAtMs = com.pos.mobile.PosApiClient.parseUtcMillis(
+                appsJson.optString("lastUpdated").ifBlank { null },
+            ) ?: com.pos.mobile.PosApiClient.parseUtcMillis(
+                overviewJson?.optString("lastUpdated")?.ifBlank { null },
+            ) ?: generatedFallbackMs
+
+            val (nodesReady, nodesTotal) = nodesFromOverview(overviewJson)
+            val podsRunning = intOrNull(overviewJson, "runningPods")
+            val failedPods = intOrNull(overviewJson, "failedPods") ?: 0
+            val pendingPods = intOrNull(overviewJson, "pendingPods") ?: 0
+            val podsWithProblems = (failedPods + pendingPods).takeIf { overviewJson != null }
+
+            val appRows = (problemApps + filtered.filter { normalizeAppStatus(it) == "Healthy" })
+                .distinctBy { it.optString("appKey") }
+                .take(8)
+                .map { item ->
+                    val key = item.optString("appKey")
+                    val readyPods = item.optInt("readyPods")
+                    val totalPods = item.optInt("totalPods")
+                    K8sAppRow(
+                        name = item.optString("displayName").ifBlank { key },
+                        namespace = item.optString("namespace"),
+                        appKey = key,
+                        status = normalizeAppStatus(item),
+                        ready = if (totalPods > 0 || readyPods > 0) "$readyPods/$totalPods" else "",
+                        url = item.optString("primaryUrl").ifBlank { null },
+                        panelPath = if (key.isNotBlank()) "/apps/$key" else "/apps",
+                    )
+                }
+
+            val highlights = problemApps.take(limit.coerceIn(1, 10)).map { item ->
+                val key = item.optString("appKey")
+                val name = item.optString("displayName").ifBlank { key }
+                val appStatus = normalizeAppStatus(item)
+                val reason = item.optString("statusReason")
+                K8sHighlight(
+                    severity = if (reason.contains("CrashLoop", true) || appStatus == "Offline") {
+                        "critical"
+                    } else {
+                        "warning"
+                    },
+                    kind = "app",
+                    name = name,
+                    namespace = item.optString("namespace"),
+                    status = appStatus,
+                    detail = shortReason(reason).ifBlank { item.optString("availabilitySummary") },
+                    url = item.optString("primaryUrl").ifBlank { null },
+                    logsPath = null,
+                    panelPath = if (key.isNotBlank()) "/apps/$key" else "/apps",
+                )
+            }
+
+            val notes = buildList {
+                if (overviewJson == null) add("Cluster overview unavailable")
+            }
+
+            return K8sWidgetSnapshot(
+                status = status,
+                headline = headline,
+                generatedAtMs = generatedAtMs,
+                partial = overviewJson == null,
+                notes = notes,
+                nodesReady = nodesReady,
+                nodesTotal = nodesTotal,
+                appsHealthy = h,
+                appsDegraded = d,
+                appsOffline = o,
+                appsStarting = s,
+                podsRunning = podsRunning,
+                podsWithProblems = podsWithProblems,
+                deploymentsReady = null,
+                deploymentsTotal = null,
+                apps = appRows,
+                highlights = highlights,
+                notDeployed = false,
+            )
+        }
+
+        private fun normalizeAppStatus(item: JSONObject): String {
+            val raw = item.optString("userStatus").ifBlank { item.optString("status") }
+            return when (raw.lowercase()) {
+                "healthy" -> "Healthy"
+                "degraded" -> "Degraded"
+                "offline" -> "Offline"
+                "starting" -> "Starting"
+                else -> "Unknown"
+            }
+        }
+
+        private fun statusRank(status: String): Int = when (status) {
+            "Offline" -> 0
+            "Degraded" -> 1
+            "Starting" -> 2
+            "Unknown" -> 3
+            else -> 4
+        }
+
+        private fun shortReason(reason: String): String {
+            if (reason.isBlank()) return ""
+            val crash = Regex("CrashLoopBackOff", RegexOption.IGNORE_CASE).find(reason)
+            if (crash != null) return "CrashLoopBackOff"
+            val first = reason.substringBefore('.').trim()
+            return first.take(72)
+        }
+
+        private fun overviewHealth(overview: JSONObject?): String =
+            overview?.optString("healthStatus").orEmpty()
+
+        private fun nodesFromOverview(overview: JSONObject?): Pair<Int?, Int?> {
+            if (overview == null) return null to null
+            val total = intOrNull(overview, "totalNodes")
+            val breakdown = overview.optJSONObject("nodeStatusBreakdown")
+            val fromBreakdown = if (breakdown != null && breakdown.has("True")) {
+                breakdown.optInt("True")
+            } else {
+                null
+            }
+            val readyField = intOrNull(overview, "readyNodes")
+            // Prefer Ready=True breakdown when readyNodes looks stale (0 with True:N).
+            val ready = when {
+                fromBreakdown != null && (readyField == null || (readyField == 0 && fromBreakdown > 0)) ->
+                    fromBreakdown
+                readyField != null -> readyField
+                else -> fromBreakdown
+            }
+            return ready to total
+        }
+
         private fun intOrNull(obj: JSONObject?, key: String): Int? {
             if (obj == null || !obj.has(key) || obj.isNull(key)) return null
             return obj.optInt(key)

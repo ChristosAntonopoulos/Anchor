@@ -60,6 +60,15 @@ object ControlPanelClient {
         data class Failed(val message: String, val httpCode: Int? = null) : WidgetFetch()
     }
 
+    /** Prefer dedicated widget payload; fall back to /api/apps + overview when route is HTML/404. */
+    sealed class ClusterFetch {
+        data class Ok(
+            val snapshot: com.pos.mobile.launcher.K8sWidgetSnapshot,
+            val source: String,
+        ) : ClusterFetch()
+        data class Failed(val message: String, val httpCode: Int? = null) : ClusterFetch()
+    }
+
     fun fetchWidget(
         context: Context,
         namespace: String? = null,
@@ -73,6 +82,63 @@ object ControlPanelClient {
             if (includeSystem) append("&includeSystem=true")
         }
         return getJson(context, "/api/widget?$query")
+    }
+
+    fun fetchApps(context: Context): WidgetFetch = getJson(context, "/api/apps")
+
+    fun fetchOverview(context: Context): WidgetFetch = getJson(context, "/api/dashboard/overview")
+
+    fun fetchCluster(
+        context: Context,
+        namespace: String? = null,
+        limit: Int = 5,
+        includeSystem: Boolean = false,
+    ): ClusterFetch {
+        when (val widget = fetchWidget(context, namespace, limit, includeSystem)) {
+            is WidgetFetch.Ok -> {
+                if (looksLikeWidgetPayload(widget.json)) {
+                    return ClusterFetch.Ok(
+                        snapshot = com.pos.mobile.launcher.K8sWidgetSnapshot.fromJson(widget.json),
+                        source = "widget",
+                    )
+                }
+                // Unexpected JSON shape — try live apps feed.
+            }
+            is WidgetFetch.Failed -> {
+                // Keep hard 500 as failure so the card can retain last-good;
+                // other failures still attempt apps fallback.
+                if (widget.httpCode == 500) {
+                    return ClusterFetch.Failed(widget.message, widget.httpCode)
+                }
+            }
+            WidgetFetch.NotDeployed -> {
+                // Fall through to /api/apps.
+            }
+        }
+        return when (val apps = fetchApps(context)) {
+            is WidgetFetch.Ok -> {
+                val overview = when (val ov = fetchOverview(context)) {
+                    is WidgetFetch.Ok -> ov.json
+                    else -> null
+                }
+                val mapped = com.pos.mobile.launcher.K8sWidgetSnapshot.fromAppsAndOverview(
+                    appsJson = apps.json,
+                    overviewJson = overview,
+                    namespace = namespace,
+                    limit = limit.coerceIn(1, 10),
+                    includeSystem = includeSystem,
+                )
+                ClusterFetch.Ok(mapped, source = "apps")
+            }
+            WidgetFetch.NotDeployed -> ClusterFetch.Failed("Control panel apps API not available")
+            is WidgetFetch.Failed -> ClusterFetch.Failed(apps.message, apps.httpCode)
+        }
+    }
+
+    private fun looksLikeWidgetPayload(json: JSONObject): Boolean {
+        return json.has("headline") ||
+            json.has("cluster") ||
+            (json.has("status") && (json.has("counts") || json.has("apps") || json.has("highlights")))
     }
 
     fun fetchLogs(context: Context, logsPath: String): String {
