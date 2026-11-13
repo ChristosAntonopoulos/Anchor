@@ -7,7 +7,7 @@ import java.io.File
 import java.util.UUID
 
 object LauncherLayoutStore {
-    const val SCHEMA = 2
+    const val SCHEMA = 3
     private const val FILE = "launcher_layout.json"
 
     fun load(context: Context): LauncherLayout {
@@ -48,7 +48,7 @@ object LauncherLayoutStore {
                 WidgetInstance("home-next", WidgetRegistry.NEXT_ACTION, WidgetPlacement.HOME, 0),
                 WidgetInstance("home-today", WidgetRegistry.TODAY, WidgetPlacement.HOME, 1),
                 WidgetInstance("dev-pipeline", WidgetRegistry.PIPELINE, WidgetPlacement.DEVELOPER, 0),
-                WidgetInstance("dev-server", WidgetRegistry.SERVER, WidgetPlacement.DEVELOPER, 1),
+                WidgetInstance("dev-cluster", WidgetRegistry.CLUSTER, WidgetPlacement.DEVELOPER, 1),
             ),
             favorites = emptyList(),
             sawFavoritesPrompt = false,
@@ -58,15 +58,19 @@ object LauncherLayoutStore {
     fun parse(raw: String): LauncherLayout {
         val json = JSONObject(raw)
         val schema = json.optInt("schema", 0)
-        if (schema != 1 && schema != SCHEMA) return defaultLayout()
+        if (schema !in 1..SCHEMA) return defaultLayout()
         val widgets = json.optJSONArray("widgets") ?: JSONArray()
         val favorites = json.optJSONArray("favorites") ?: JSONArray()
         val mapped = (0 until widgets.length()).mapNotNull { index ->
             val item = widgets.optJSONObject(index) ?: return@mapNotNull null
             val rawTypeId = item.optString("typeId")
             if (rawTypeId.isBlank()) return@mapNotNull null
-            // Migrate legacy sample trading_bot slots to the live org-wide pipeline card.
-            val typeId = if (rawTypeId == WidgetRegistry.TRADING_BOT) WidgetRegistry.PIPELINE else rawTypeId
+            // Legacy migrations: sample trading_bot → pipeline; sample server → cluster.
+            val typeId = when (rawTypeId) {
+                WidgetRegistry.TRADING_BOT -> WidgetRegistry.PIPELINE
+                WidgetRegistry.SERVER -> WidgetRegistry.CLUSTER
+                else -> rawTypeId
+            }
             WidgetInstance(
                 instanceId = item.optString("instanceId").ifBlank { UUID.randomUUID().toString() },
                 typeId = typeId,
@@ -79,10 +83,10 @@ object LauncherLayoutStore {
                 settings = item.optJSONObject("settings") ?: JSONObject(),
             )
         }.sortedBy { it.order }
-        val withPipeline = ensureDeveloperPipeline(mapped)
+        val withDefaults = ensureDeveloperDefaults(mapped)
         return LauncherLayout(
             schema = SCHEMA,
-            widgets = withPipeline,
+            widgets = withDefaults,
             favorites = (0 until favorites.length()).mapNotNull { index ->
                 val item = favorites.optJSONObject(index) ?: return@mapNotNull null
                 FavoriteApp(
@@ -96,22 +100,22 @@ object LauncherLayoutStore {
         ).capped()
     }
 
-    /** Keep Pipeline first on Developer; insert if missing. */
-    private fun ensureDeveloperPipeline(widgets: List<WidgetInstance>): List<WidgetInstance> {
+    /** Keep Pipeline then Cluster on Developer; insert if missing. */
+    private fun ensureDeveloperDefaults(widgets: List<WidgetInstance>): List<WidgetInstance> {
         val home = widgets.filter { it.placement == WidgetPlacement.HOME }
         val developer = widgets.filter { it.placement == WidgetPlacement.DEVELOPER }.toMutableList()
-        val pipeline = developer.firstOrNull { it.typeId == WidgetRegistry.PIPELINE }
-        developer.removeAll { it.typeId == WidgetRegistry.PIPELINE }
-        developer.add(
-            0,
-            pipeline ?: WidgetInstance(
-                instanceId = "dev-pipeline",
-                typeId = WidgetRegistry.PIPELINE,
-                placement = WidgetPlacement.DEVELOPER,
-                order = 0,
-            ),
-        )
-        return home + developer.mapIndexed { index, widget -> widget.copy(order = index) }
+        fun takeOrCreate(typeId: String, instanceId: String): WidgetInstance {
+            val existing = developer.firstOrNull { it.typeId == typeId }
+            developer.removeAll { it.typeId == typeId }
+            return existing ?: WidgetInstance(instanceId, typeId, WidgetPlacement.DEVELOPER, 0)
+        }
+        val pipeline = takeOrCreate(WidgetRegistry.PIPELINE, "dev-pipeline")
+        val cluster = takeOrCreate(WidgetRegistry.CLUSTER, "dev-cluster")
+        val rest = developer.filterNot {
+            it.typeId == WidgetRegistry.PIPELINE || it.typeId == WidgetRegistry.CLUSTER
+        }
+        val ordered = listOf(pipeline, cluster) + rest
+        return home + ordered.mapIndexed { index, widget -> widget.copy(order = index) }
     }
 }
 

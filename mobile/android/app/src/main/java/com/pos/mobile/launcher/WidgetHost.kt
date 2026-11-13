@@ -47,6 +47,9 @@ class WidgetHost(
     fun destroy() {
         subscriptions.forEach { it.invoke() }
         subscriptions.clear()
+        providers.values.forEach { provider ->
+            (provider as? K8sStatusProvider)?.stopPolling()
+        }
         providers.clear()
     }
 }
@@ -91,6 +94,7 @@ private class WidgetCard(context: Context) : LinearLayout(context) {
     fun render(provider: WidgetContentProvider, onAction: (WidgetAction) -> Unit) {
         val state = provider.current()
         title.text = provider.primaryLabel()?.uppercase().orEmpty()
+        title.setTextColor(provider.accentColor() ?: LauncherPalette.faint)
         contentDescription = provider.primaryLabel()
         setOnLongClickListener {
             onAction(WidgetAction.Details(provider.instance.instanceId))
@@ -119,13 +123,18 @@ private class WidgetCard(context: Context) : LinearLayout(context) {
             }
             is WidgetUiState.Content<*> -> {
                 val labeled = provider.rows()
-                if (labeled.isNotEmpty()) {
+                val bodyText = provider.body().trim()
+                // Show headline/counts even when app/highlight rows are present (Cluster).
+                if (bodyText.isNotBlank()) {
+                    body.visibility = View.VISIBLE
+                    body.text = bodyText
+                } else {
                     body.visibility = View.GONE
+                }
+                if (labeled.isNotEmpty()) {
                     rows.visibility = View.VISIBLE
                     bindRows(labeled, onAction)
                 } else {
-                    body.visibility = View.VISIBLE
-                    body.text = provider.body()
                     rows.visibility = View.GONE
                 }
                 val age = if (state.hideTimestamp) null else freshness(state.sourceAtMs)

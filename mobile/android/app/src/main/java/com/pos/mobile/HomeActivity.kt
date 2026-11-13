@@ -28,6 +28,7 @@ import com.pos.mobile.launcher.LauncherLayoutStore
 import com.pos.mobile.launcher.LauncherPalette
 import com.pos.mobile.launcher.WidgetAction
 import com.pos.mobile.launcher.WidgetHost
+import com.pos.mobile.ControlPanelClient
 import kotlin.math.abs
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -422,6 +423,14 @@ class HomeActivity : AppCompatActivity() {
     private fun dispatch(action: WidgetAction) {
         when (action) {
             is WidgetAction.OpenRoute -> LauncherIntents.openPersonalAi(this, action.url)
+            is WidgetAction.OpenUrl -> {
+                try {
+                    LauncherIntents.openExternalUrl(this, action.url)
+                } catch (_: Exception) {
+                    Toast.makeText(this, "Couldn't open link", Toast.LENGTH_SHORT).show()
+                }
+            }
+            is WidgetAction.FetchLogs -> showClusterLogs(action.title, action.path)
             is WidgetAction.Details -> {
                 val body = homeWidgets.provider(action.instanceId)?.body()
                     ?: developerWidgets.provider(action.instanceId)?.body()
@@ -431,6 +440,21 @@ class HomeActivity : AppCompatActivity() {
             is WidgetAction.Refresh -> {
                 homeWidgets.provider(action.instanceId)?.refresh()
                 developerWidgets.provider(action.instanceId)?.refresh()
+            }
+        }
+    }
+
+    private fun showClusterLogs(title: String, path: String) {
+        Toast.makeText(this, "Loading logs…", Toast.LENGTH_SHORT).show()
+        ControlPanelClient.enqueue {
+            val result = runCatching { ControlPanelClient.fetchLogs(this, path) }
+            runOnUiThread {
+                result.fold(
+                    onSuccess = { text -> ClusterLogsOverlay.show(this, title, text) },
+                    onFailure = {
+                        Toast.makeText(this, "Couldn't load logs", Toast.LENGTH_SHORT).show()
+                    },
+                )
             }
         }
     }

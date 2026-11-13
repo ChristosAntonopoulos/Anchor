@@ -6,6 +6,7 @@ object WidgetRegistry {
     const val NEXT_ACTION = "next_action"
     const val TODAY = "today_glance"
     const val PIPELINE = "pipeline"
+    const val CLUSTER = "cluster"
     const val SERVER = "server"
     const val TRADING_BOT = "trading_bot"
 
@@ -19,7 +20,10 @@ object WidgetRegistry {
         WidgetDefinition(PIPELINE, "Pipeline", WidgetPlacement.DEVELOPER) { context, instance ->
             PipelineStatusProvider(context, instance)
         },
-        // Optional sample Personal AI API card. Live org-wide CI is PIPELINE.
+        WidgetDefinition(CLUSTER, "Cluster", WidgetPlacement.DEVELOPER) { context, instance ->
+            K8sStatusProvider(context, instance)
+        },
+        // Legacy sample server slot — still available in Edit Home picker.
         WidgetDefinition(SERVER, "Server", WidgetPlacement.DEVELOPER) { _, instance ->
             SampleStatusProvider(instance, SampleCatalog.server(), "server")
         },

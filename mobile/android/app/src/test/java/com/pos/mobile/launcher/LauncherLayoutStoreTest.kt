@@ -9,11 +9,11 @@ class LauncherLayoutStoreTest {
     fun defaultHomeHasNextActionAndToday() {
         val layout = LauncherLayoutStore.defaultLayout()
         assertEquals(listOf(WidgetRegistry.NEXT_ACTION, WidgetRegistry.TODAY), layout.homeWidgets().map { it.typeId })
-        assertEquals(listOf(WidgetRegistry.PIPELINE, WidgetRegistry.SERVER), layout.developerWidgets().map { it.typeId })
+        assertEquals(listOf(WidgetRegistry.PIPELINE, WidgetRegistry.CLUSTER), layout.developerWidgets().map { it.typeId })
     }
 
     @Test
-    fun migratesTradingBotSampleSlotToLivePipeline() {
+    fun migratesTradingBotAndServerToLiveDeveloperCards() {
         val raw = """
             {"schema":1,"widgets":[
               {"instanceId":"home-next","typeId":"next_action","placement":"HOME","order":0},
@@ -24,7 +24,7 @@ class LauncherLayoutStoreTest {
         """.trimIndent()
         val layout = LauncherLayoutStore.parse(raw)
         assertEquals(LauncherLayoutStore.SCHEMA, layout.schema)
-        assertEquals(listOf(WidgetRegistry.PIPELINE, WidgetRegistry.SERVER), layout.developerWidgets().map { it.typeId })
+        assertEquals(listOf(WidgetRegistry.PIPELINE, WidgetRegistry.CLUSTER), layout.developerWidgets().map { it.typeId })
     }
 
     @Test
@@ -129,7 +129,7 @@ class WidgetRegistryTest {
             WidgetRegistry.picker(WidgetPlacement.HOME).map { it.title },
         )
         assertEquals(
-            listOf("Pipeline", "Server"),
+            listOf("Pipeline", "Cluster", "Server"),
             WidgetRegistry.picker(WidgetPlacement.DEVELOPER).map { it.title },
         )
     }
@@ -141,6 +141,44 @@ class PipelineStatusLabelTest {
         assertEquals("Succeeded", PipelineStatusProvider.statusLabel("succeeded"))
         assertEquals("Running", PipelineStatusProvider.statusLabel("running"))
         assertEquals("Failed", PipelineStatusProvider.statusLabel("failed"))
+    }
+}
+
+class K8sWidgetParseTest {
+    @Test
+    fun parsesWidgetPayload() {
+        val json = org.json.JSONObject(
+            """
+            {
+              "status":"attention",
+              "headline":"1 app needs attention",
+              "generatedAt":"2026-11-13T16:00:00.000Z",
+              "partial":false,
+              "notes":[],
+              "cluster":{"status":"healthy","nodesReady":3,"nodesTotal":3},
+              "counts":{"appsHealthy":4,"appsDegraded":1,"appsOffline":0,"appsStarting":0,"podsRunning":12,"podsWithProblems":1,"deploymentsReady":5,"deploymentsTotal":6},
+              "apps":[{"name":"pos-api","namespace":"pos","appKey":"pos-api","status":"Healthy","ready":"1/1","panelPath":"/apps/pos-api"}],
+              "highlights":[{"severity":"warning","kind":"pod","name":"botsystem-api","namespace":"botsystem","status":"CrashLoop","detail":"Restarting","logsPath":"/api/pods/x/logs","panelPath":"/pods/x"}]
+            }
+            """.trimIndent(),
+        )
+        val snap = K8sWidgetSnapshot.fromJson(json)
+        assertEquals("attention", snap.status)
+        assertEquals(3, snap.nodesReady)
+        assertEquals(4, snap.healthyCount())
+        assertEquals(1, snap.problemsCount())
+        assertEquals("pos-api", snap.apps.single().name)
+        assertEquals("/api/pods/x/logs", snap.highlights.single().logsPath)
+        assertTrue(snap.countsLine().contains("Nodes 3/3"))
+        assertEquals("Attention", K8sStatusProvider.statusLabel("attention"))
+        assertEquals("Critical", K8sStatusProvider.statusLabel("critical"))
+    }
+
+    @Test
+    fun notDeployedPlaceholder() {
+        val snap = K8sWidgetSnapshot.notDeployed()
+        assertTrue(snap.notDeployed)
+        assertEquals("unknown", snap.status)
     }
 }
 

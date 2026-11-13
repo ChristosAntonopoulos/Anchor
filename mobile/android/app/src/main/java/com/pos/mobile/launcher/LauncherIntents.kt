@@ -79,6 +79,13 @@ object LauncherIntents {
         context.startActivity(intent)
     }
 
+    fun openExternalUrl(context: Context, url: String) {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+            if (context !is Activity) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
+    }
+
     fun openCapture(context: Context) {
         openPersonalAi(context, "pos://os/capture")
     }

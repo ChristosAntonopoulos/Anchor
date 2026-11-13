@@ -37,6 +37,8 @@ sealed class WidgetAction {
     data class Refresh(val instanceId: String) : WidgetAction()
     data class Details(val instanceId: String) : WidgetAction()
     data class OpenRoute(val url: String) : WidgetAction()
+    data class OpenUrl(val url: String) : WidgetAction()
+    data class FetchLogs(val path: String, val title: String) : WidgetAction()
 }
 
 data class WidgetRow(
@@ -57,6 +59,7 @@ interface WidgetContentProvider {
     fun actionLabel(): String?
     fun primaryAction(): WidgetAction?
     fun rows(): List<WidgetRow> = emptyList()
+    fun accentColor(): Int? = null
 }
 
 data class FavoriteApp(
