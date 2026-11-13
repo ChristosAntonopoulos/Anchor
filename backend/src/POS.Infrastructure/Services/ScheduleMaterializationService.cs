@@ -154,11 +154,11 @@ public class ScheduleMaterializationService
                 Title = "Evening Routine",
                 Kind = ScheduleBlockKind.Routine,
                 Recurrence = RecurrenceType.Daily,
-                FixedStartTime = "21:00",
-                FixedEndTime = "22:00",
+                FixedStartTime = "22:00",
+                FixedEndTime = "22:30",
                 Enabled = true,
                 Priority = 4,
-                RoutineActivities = new List<string> { "Close screens", "Read a book", "Brush teeth" },
+                RoutineActivities = new List<string> { "Dim lights", "Close screens", "Cool room", "Wind down" },
                 CreatedAt = now
             }
         };

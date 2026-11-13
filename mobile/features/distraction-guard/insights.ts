@@ -120,7 +120,7 @@ export function buildInsights(params: {
     if (eveningHeavy >= 3) {
       observations.push({
         id: 'evening',
-        text: 'Οι περισσότερες χρήσεις εμφανίζονται μετά τις 21:00.',
+        text: 'Most uses show up after 21:00.',
       });
     }
   }
@@ -131,7 +131,7 @@ export function buildInsights(params: {
   if (rate != null && rate >= 0.4 && eligible >= 5) {
     observations.push({
       id: 'unlock',
-      text: 'Συχνά ανοίγεις επιλεγμένο app αμέσως μετά το ξεκλείδωμα.',
+      text: 'You often open a selected app right after unlock.',
     });
   }
 
@@ -142,7 +142,7 @@ export function buildInsights(params: {
   if (dismissRate != null && dismissRate >= 0.35 && (params.openingPresented ?? 0) >= 4) {
     observations.push({
       id: 'friction',
-      text: 'Οι σύντομες παύσεις φαίνεται να σε βοηθούν να επιστρέφεις.',
+      text: 'Short pauses seem to help you return.',
     });
   }
 
@@ -151,8 +151,8 @@ export function buildInsights(params: {
     unlockToDistractionRate: rate,
     openingPromptDismissRate: dismissRate,
     monitoringCoverageLabel: params.monitoringHealthy
-      ? 'Επαρκής παρακολούθηση (verified διαστήματα)'
-      : 'Περιορισμένη παρακολούθηση — χρειάζεται Usage Access',
+      ? 'Adequate monitoring (verified intervals)'
+      : 'Limited monitoring — Usage Access needed',
     observations: observations.slice(0, 3),
   };
 }

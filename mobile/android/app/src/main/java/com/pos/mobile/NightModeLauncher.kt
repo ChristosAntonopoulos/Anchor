@@ -1,0 +1,124 @@
+package com.pos.mobile
+
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+
+object NightModeLauncher {
+    const val URL = "pos://os/night"
+    const val EXTRA = "nightMode"
+    const val CHANNEL_ID = "os-night-priority"
+    const val NOTIFICATION_ID = 72
+
+    fun consumeUnlock(context: Context, unlockTimeMs: Long, fromUserPresent: Boolean): Boolean {
+        val app = context.applicationContext
+        val decision = NightModeLogic.onUnlock(
+            NightModeStore.gate(app),
+            unlockTimeMs,
+            fromUserPresent,
+        )
+        NightModeStore.saveGate(app, decision.gate)
+        if (!decision.takeover) {
+            return false
+        }
+        NightModeStore.markPending(app, true)
+        open(app)
+        return true
+    }
+
+    fun open(context: Context) {
+        val app = context.applicationContext
+        val launched = overlayGranted(app) && launchActivity(app)
+        if (!launched) {
+            notify(app)
+        }
+    }
+
+    fun launchActivity(context: Context): Boolean {
+        val intent = activityIntent(context)
+        return try {
+            context.startActivity(intent)
+            true
+        } catch (error: Exception) {
+            android.util.Log.w("NightModeLauncher", "Could not start Night Mode activity", error)
+            false
+        }
+    }
+
+    fun activityIntent(context: Context): Intent {
+        return Intent(Intent.ACTION_VIEW, Uri.parse(URL), context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+            putExtra(EXTRA, true)
+        }
+    }
+
+    fun notify(context: Context) {
+        ensureChannel(context)
+        val pending = PendingIntent.getActivity(
+            context,
+            NOTIFICATION_ID,
+            activityIntent(context),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_stat_anchor)
+            .setContentTitle(context.getString(R.string.night_notification_title))
+            .setContentText(context.getString(R.string.night_notification_body))
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setAutoCancel(true)
+            .setContentIntent(pending)
+            .setFullScreenIntent(pending, true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .build()
+        try {
+            NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
+        } catch (error: Exception) {
+            android.util.Log.w("NightModeLauncher", "Could not post Night Mode notification", error)
+        }
+    }
+
+    fun cancelNotification(context: Context) {
+        NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
+    }
+
+    fun overlayGranted(context: Context): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Settings.canDrawOverlays(context)
+        } else {
+            true
+        }
+    }
+
+    private fun ensureChannel(context: Context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val manager = context.getSystemService(NotificationManager::class.java) ?: return
+        // Drop the pre-bypass channel once; importance/bypassDnd freeze after first create.
+        manager.deleteNotificationChannel("os-night")
+        if (manager.getNotificationChannel(CHANNEL_ID) != null) return
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            context.getString(R.string.night_channel_name),
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply {
+            description = context.getString(R.string.night_channel_description)
+            setSound(null, null)
+            enableVibration(false)
+            setBypassDnd(true)
+            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+            setShowBadge(true)
+        }
+        manager.createNotificationChannel(channel)
+    }
+}

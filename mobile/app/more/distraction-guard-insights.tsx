@@ -26,15 +26,15 @@ export default function DistractionGuardInsightsScreen() {
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <Text style={styles.title}>Insights</Text>
-        <Text style={styles.subtitle}>Τελευταίες 7 μέρες · μόνο verified χρήση επιλεγμένων apps</Text>
+        <Text style={styles.subtitle}>Last 7 days · verified selected-app use only</Text>
 
         <View style={styles.grid}>
           <Stat
-            label="Λεπτά απόσπασης"
+            label="Distraction minutes"
             value={`${Math.round(totalMinutes)}`}
           />
           <Stat
-            label="Unlock→απόσπαση"
+            label="Unlock→distraction"
             value={
               insights?.unlockToDistractionRate == null
                 ? '—'
@@ -42,7 +42,7 @@ export default function DistractionGuardInsightsScreen() {
             }
           />
           <Stat
-            label="Επιστροφή από παύση"
+            label="Return from pause"
             value={
               insights?.openingPromptDismissRate == null
                 ? '—'
@@ -50,17 +50,17 @@ export default function DistractionGuardInsightsScreen() {
             }
           />
           <Stat
-            label="Κάλυψη"
+            label="Coverage"
             value={
-              insights?.monitoringCoverageLabel?.startsWith('Επαρκής') ? 'Επαρκής' : insights ? 'Περιορισμένη' : '—'
+              insights?.monitoringCoverageLabel?.startsWith('Adequate') ? 'Adequate' : insights ? 'Limited' : '—'
             }
           />
         </View>
 
-        <Text style={styles.section}>Ημερήσια χρήση επιλεγμένων apps</Text>
+        <Text style={styles.section}>Daily selected-app use</Text>
         <View style={styles.card}>
           {(insights?.distractingMinutesByDay ?? []).length === 0 ? (
-            <Text style={styles.muted}>Δεν υπάρχουν verified διαστήματα στο εύρος.</Text>
+            <Text style={styles.muted}>No verified intervals in this range.</Text>
           ) : (
             insights?.distractingMinutesByDay.map((d) => (
               <View key={d.date} style={{ gap: 4 }}>
