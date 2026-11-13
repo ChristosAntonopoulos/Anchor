@@ -210,7 +210,15 @@ class PipelineStatusProvider(
     override fun actionLabel() = "Refresh"
     override fun primaryAction() = WidgetAction.Refresh(instance.instanceId)
 
+    override fun tapAction(): WidgetAction {
+        val webUrl = (state as? WidgetUiState.Content)?.value?.webUrl?.takeIf { it.isNotBlank() }
+        return WidgetAction.OpenUrl(webUrl ?: DEFAULT_PIPELINES_URL)
+    }
+
     companion object {
+        /** Org-wide builds list when the latest run has no webUrl yet. */
+        const val DEFAULT_PIPELINES_URL = "https://dev.azure.com/CaptainBot/_build"
+
         fun statusLabel(status: String): String = when (status.lowercase()) {
             "running" -> "Running"
             "succeeded" -> "Succeeded"

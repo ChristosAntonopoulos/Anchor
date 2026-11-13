@@ -142,6 +142,14 @@ class PipelineStatusLabelTest {
         assertEquals("Running", PipelineStatusProvider.statusLabel("running"))
         assertEquals("Failed", PipelineStatusProvider.statusLabel("failed"))
     }
+
+    @Test
+    fun defaultPipelinesUrlIsCaptainBotOrgBuilds() {
+        assertEquals(
+            "https://dev.azure.com/CaptainBot/_build",
+            PipelineStatusProvider.DEFAULT_PIPELINES_URL,
+        )
+    }
 }
 
 class K8sWidgetParseTest {

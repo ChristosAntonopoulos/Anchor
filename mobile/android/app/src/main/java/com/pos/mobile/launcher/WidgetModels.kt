@@ -57,7 +57,10 @@ interface WidgetContentProvider {
     fun body(): String
     fun status(): String?
     fun actionLabel(): String?
+    /** Header action (e.g. Refresh). */
     fun primaryAction(): WidgetAction?
+    /** Whole-card tap; when null, card click uses [primaryAction]. */
+    fun tapAction(): WidgetAction? = null
     fun rows(): List<WidgetRow> = emptyList()
     fun accentColor(): Int? = null
 }

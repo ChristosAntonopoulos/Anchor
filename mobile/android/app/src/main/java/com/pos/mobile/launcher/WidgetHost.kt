@@ -101,8 +101,9 @@ private class WidgetCard(context: Context) : LinearLayout(context) {
             true
         }
         val primary = provider.primaryAction()
-        if (primary != null) {
-            setOnClickListener { onAction(primary) }
+        val tap = provider.tapAction() ?: primary
+        if (tap != null) {
+            setOnClickListener { onAction(tap) }
         } else {
             setOnClickListener(null)
         }

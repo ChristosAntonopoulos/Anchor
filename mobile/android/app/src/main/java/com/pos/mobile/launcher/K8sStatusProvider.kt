@@ -133,6 +133,12 @@ class K8sStatusProvider(
     override fun actionLabel() = "Refresh"
     override fun primaryAction() = WidgetAction.Refresh(instance.instanceId)
 
+    override fun tapAction(): WidgetAction {
+        val url = ControlPanelClient.absoluteUrl(appContext, "/apps")
+            ?: "${ControlPanelClient.DEFAULT_BASE_URL}/apps"
+        return WidgetAction.OpenUrl(url)
+    }
+
     override fun accentColor(): Int? {
         val status = (state as? WidgetUiState.Content)?.value?.status ?: return null
         return statusColor(status)
