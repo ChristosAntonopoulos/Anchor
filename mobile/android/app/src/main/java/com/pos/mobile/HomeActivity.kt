@@ -258,6 +258,7 @@ class HomeActivity : AppCompatActivity() {
             gravity = Gravity.CENTER
         }
         listOf(
+            InstalledApps.PHONE_APP,
             InstalledApps.WALLET_APP,
             InstalledApps.CHATGPT_APP,
             InstalledApps.CURSOR_APP,

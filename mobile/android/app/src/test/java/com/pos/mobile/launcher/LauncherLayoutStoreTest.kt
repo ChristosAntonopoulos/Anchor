@@ -85,13 +85,17 @@ class InstalledAppsSearchTest {
 
 class DockAppsTest {
     @Test
-    fun dockHasWalletChatGptCursorAndSpotify() {
+    fun dockHasPhoneWalletChatGptCursorAndSpotify() {
+        assertEquals("Phone", InstalledApps.PHONE_APP.label)
         assertEquals("Wallet", InstalledApps.WALLET_APP.label)
         assertEquals("ChatGPT", InstalledApps.CHATGPT_APP.label)
         assertEquals("Cursor", InstalledApps.CURSOR_APP.label)
         assertEquals("Spotify", InstalledApps.SPOTIFY_APP.label)
+        assertTrue(InstalledApps.PHONE_APP.packages.contains("com.google.android.dialer"))
+        assertTrue(InstalledApps.PHONE_APP.packages.contains("com.android.dialer"))
         assertTrue(InstalledApps.CURSOR_APP.packages.contains("com.anysphere.cursor"))
         assertTrue(InstalledApps.SPOTIFY_APP.packages.contains("com.spotify.music"))
+        assertEquals(DockMark.PHONE, InstalledApps.PHONE_APP.mark)
         assertEquals(DockMark.WALLET, InstalledApps.WALLET_APP.mark)
         assertEquals(DockMark.CHAT, InstalledApps.CHATGPT_APP.mark)
         assertEquals(DockMark.CURSOR, InstalledApps.CURSOR_APP.mark)

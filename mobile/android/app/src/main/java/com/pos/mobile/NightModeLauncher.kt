@@ -1,5 +1,6 @@
 package com.pos.mobile
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -14,7 +15,7 @@ import androidx.core.app.NotificationManagerCompat
 object NightModeLauncher {
     const val URL = "pos://os/night"
     const val EXTRA = "nightMode"
-    const val CHANNEL_ID = "os-night"
+    const val CHANNEL_ID = "os-night-priority"
     const val NOTIFICATION_ID = 72
 
     fun consumeUnlock(context: Context, unlockTimeMs: Long, fromUserPresent: Boolean): Boolean {
@@ -71,11 +72,11 @@ object NightModeLauncher {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_menu_day)
+            .setSmallIcon(R.drawable.ic_stat_anchor)
             .setContentTitle(context.getString(R.string.night_notification_title))
             .setContentText(context.getString(R.string.night_notification_body))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setAutoCancel(true)
             .setContentIntent(pending)
             .setFullScreenIntent(pending, true)
@@ -103,6 +104,9 @@ object NightModeLauncher {
     private fun ensureChannel(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
+        // Drop the pre-bypass channel once; importance/bypassDnd freeze after first create.
+        manager.deleteNotificationChannel("os-night")
+        if (manager.getNotificationChannel(CHANNEL_ID) != null) return
         val channel = NotificationChannel(
             CHANNEL_ID,
             context.getString(R.string.night_channel_name),
@@ -111,6 +115,9 @@ object NightModeLauncher {
             description = context.getString(R.string.night_channel_description)
             setSound(null, null)
             enableVibration(false)
+            setBypassDnd(true)
+            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+            setShowBadge(true)
         }
         manager.createNotificationChannel(channel)
     }

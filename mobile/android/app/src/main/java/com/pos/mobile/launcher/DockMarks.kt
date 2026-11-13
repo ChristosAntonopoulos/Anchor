@@ -9,7 +9,7 @@ import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import kotlin.math.min
 
-enum class DockMark { WALLET, CHAT, CURSOR, SPOTIFY }
+enum class DockMark { PHONE, WALLET, CHAT, CURSOR, SPOTIFY }
 
 object DockMarks {
     fun drawable(kind: DockMark, color: Int, strokePx: Float): Drawable {
@@ -64,6 +64,12 @@ private class MarkDrawable(
 
 private fun trace(kind: DockMark, path: Path) {
     when (kind) {
+        DockMark.PHONE -> {
+            path.addRoundRect(RectF(8.2f, 2.6f, 15.8f, 21.4f), 2.2f, 2.2f, Path.Direction.CW)
+            path.moveTo(10.4f, 4.6f)
+            path.lineTo(13.6f, 4.6f)
+            path.addRoundRect(RectF(10.8f, 18.2f, 13.2f, 19.4f), 0.7f, 0.7f, Path.Direction.CW)
+        }
         DockMark.WALLET -> {
             path.addRoundRect(RectF(3.5f, 7f, 20.5f, 19f), 2.4f, 2.4f, Path.Direction.CW)
             path.moveTo(3.5f, 11.4f)

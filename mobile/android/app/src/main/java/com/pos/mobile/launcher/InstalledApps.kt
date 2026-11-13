@@ -31,6 +31,19 @@ object InstalledApps {
     const val WALLET = "com.google.android.apps.walletnfcrel"
     const val CHATGPT = "com.openai.chatgpt"
     const val SPOTIFY = "com.spotify.music"
+    const val PHONE = "com.google.android.dialer"
+    val PHONE_APP = DockApp(
+        "Phone",
+        DockMark.PHONE,
+        listOf(
+            PHONE,
+            "com.samsung.android.dialer",
+            "com.android.dialer",
+            "com.android.phone",
+            "com.google.android.apps.dialer",
+        ),
+        listOf("Phone", "Dialer", "Call", "Telephone"),
+    )
     val WALLET_APP = DockApp("Wallet", DockMark.WALLET, listOf(WALLET, "com.google.android.apps.nbu.paisa.user", "com.samsung.android.spay", "com.samsung.android.spaylite"), listOf("Wallet", "Google Wallet", "GPay", "Samsung Pay"))
     val CHATGPT_APP = DockApp("ChatGPT", DockMark.CHAT, listOf(CHATGPT), listOf("ChatGPT"))
     val CURSOR_APP = DockApp("Cursor", DockMark.CURSOR, listOf("com.anysphere.cursor", "com.todesktop.20100701"), listOf("Cursor"))
@@ -175,8 +188,32 @@ object InstalledApps {
                 false
             }
         }
+        if (target === PHONE_APP) {
+            return openDialerFallback(context)
+        }
+        return false
+    }
+
+    private fun openDialerFallback(context: Context): Boolean {
+        val attempts = listOf(
+            Intent(Intent.ACTION_DIAL).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+            },
+            Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_DEFAULT).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+                setData(android.net.Uri.parse("tel:"))
+            },
+        )
+        for (intent in attempts) {
+            try {
+                context.startActivity(intent)
+                return true
+            } catch (_: Exception) {
+            }
+        }
         return false
     }
 
     fun openWallet(context: Context): Boolean = openDock(context, WALLET_APP)
+    fun openPhone(context: Context): Boolean = openDock(context, PHONE_APP)
 }

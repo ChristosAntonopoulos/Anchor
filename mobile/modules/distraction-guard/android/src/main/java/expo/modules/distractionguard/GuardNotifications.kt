@@ -10,10 +10,15 @@ import androidx.core.app.NotificationCompat
 
 internal object GuardNotifications {
   private const val CHANNEL_MONITOR = "distraction_guard_monitor"
-  private const val CHANNEL_ALERT = "distraction_guard_alert"
+  private const val CHANNEL_ALERT = "distraction_guard_alert_priority"
   const val MONITOR_ID = 6201
   const val WARNING_ID = 6202
   const val COOLDOWN_ID = 6203
+
+  private fun smallIcon(context: Context): Int {
+    val anchor = context.resources.getIdentifier("ic_stat_anchor", "drawable", context.packageName)
+    return if (anchor != 0) anchor else android.R.drawable.ic_dialog_info
+  }
 
   fun ensureChannels(context: Context) {
     if (Build.VERSION.SDK_INT < 26) return
@@ -21,9 +26,15 @@ internal object GuardNotifications {
     nm.createNotificationChannel(
       NotificationChannel(CHANNEL_MONITOR, "Distraction Guard monitoring", NotificationManager.IMPORTANCE_LOW)
     )
-    nm.createNotificationChannel(
-      NotificationChannel(CHANNEL_ALERT, "Distraction Guard alerts", NotificationManager.IMPORTANCE_DEFAULT)
-    )
+    nm.deleteNotificationChannel("distraction_guard_alert")
+    if (nm.getNotificationChannel(CHANNEL_ALERT) == null) {
+      nm.createNotificationChannel(
+        NotificationChannel(CHANNEL_ALERT, "Distraction Guard alerts", NotificationManager.IMPORTANCE_HIGH).apply {
+          setBypassDnd(true)
+          lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+        }
+      )
+    }
   }
 
   fun ongoing(context: Context): android.app.Notification {
@@ -31,7 +42,7 @@ internal object GuardNotifications {
     return NotificationCompat.Builder(context, CHANNEL_MONITOR)
       .setContentTitle("Distraction Guard")
       .setContentText("Monitoring selected apps")
-      .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+      .setSmallIcon(smallIcon(context))
       .setOngoing(true)
       .setSilent(true)
       .build()
@@ -43,7 +54,9 @@ internal object GuardNotifications {
     val notification = NotificationCompat.Builder(context, CHANNEL_ALERT)
       .setContentTitle("Distraction Guard")
       .setContentText("1 minute left on selected apps.")
-      .setSmallIcon(android.R.drawable.ic_dialog_info)
+      .setSmallIcon(smallIcon(context))
+      .setCategory(NotificationCompat.CATEGORY_REMINDER)
+      .setPriority(NotificationCompat.PRIORITY_HIGH)
       .setAutoCancel(true)
       .build()
     nm.notify(WARNING_ID, notification)
@@ -64,7 +77,9 @@ internal object GuardNotifications {
     val notification = NotificationCompat.Builder(context, CHANNEL_ALERT)
       .setContentTitle("Time for a break")
       .setContentText(replacement)
-      .setSmallIcon(android.R.drawable.ic_lock_lock)
+      .setSmallIcon(smallIcon(context))
+      .setCategory(NotificationCompat.CATEGORY_REMINDER)
+      .setPriority(NotificationCompat.PRIORITY_HIGH)
       .setContentIntent(pi)
       .setAutoCancel(true)
       .build()
