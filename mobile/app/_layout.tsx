@@ -17,7 +17,9 @@ import { useFocusPresence } from '../hooks/useFocusPresence';
 import { useOsWidgetSync } from '../hooks/useOsWidgetSync';
 import { useOsDeepLinks } from '../hooks/useOsDeepLinks';
 import { useMorningGate } from '../hooks/useMorningGate';
+import { useNightGate } from '../hooks/useNightGate';
 import { isMorningTakeover, useMorningModeStore } from '../store/useMorningModeStore';
+import { isNightTakeover, useNightModeStore } from '../store/useNightModeStore';
 
 export default function RootLayout() {
   const { fetchCategories } = useCategoryStore();
@@ -26,6 +28,8 @@ export default function RootLayout() {
   useOsWidgetSync();
   useOsDeepLinks();
   const morningTakeover = useMorningGate();
+  const nightTakeover = useNightGate();
+  const modeTakeover = morningTakeover || nightTakeover;
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [showOverlayPrompt, setShowOverlayPrompt] = useState(false);
   const [overlayPromptPaused, setOverlayPromptPaused] = useState(false);
@@ -151,7 +155,10 @@ export default function RootLayout() {
       if (timeSinceLastUnlock < DEBOUNCE_MS) {
         return;
       }
-      if (isMorningTakeover(useMorningModeStore.getState().session)) {
+      if (
+        isMorningTakeover(useMorningModeStore.getState().session) ||
+        isNightTakeover(useNightModeStore.getState().session)
+      ) {
         return;
       }
       if (isShowingModalRef.current) {
@@ -210,7 +217,7 @@ export default function RootLayout() {
 
   const checkPendingUnlock = useCallback(async () => {
     try {
-      if (isShowingModalRef.current || showUnlockModal || morningTakeover) {
+      if (isShowingModalRef.current || showUnlockModal || modeTakeover) {
         return;
       }
 
@@ -223,7 +230,7 @@ export default function RootLayout() {
     } catch (error) {
       console.error('[RootLayout] Error checking pending unlock:', error);
     }
-  }, [morningTakeover, showUnlockModal]);
+  }, [modeTakeover, showUnlockModal]);
 
   // Listen for app state changes to check pending unlock when app comes to foreground
   useEffect(() => {
@@ -319,19 +326,28 @@ export default function RootLayout() {
             headerShown: false,
           }}
         />
+        <Stack.Screen
+          name="night"
+          options={{
+            presentation: 'fullScreenModal',
+            animation: 'fade',
+            gestureEnabled: false,
+            headerShown: false,
+          }}
+        />
       </Stack>
       <ErrorBoundary>
-        {morningTakeover ? null : <AppUpdatePrompt />}
+        {modeTakeover ? null : <AppUpdatePrompt />}
       </ErrorBoundary>
       <ErrorBoundary>
         <PhoneUnlockReasonModal
-          visible={showUnlockModal && !morningTakeover}
+          visible={showUnlockModal && !modeTakeover}
           unlockTime={unlockTime}
           onClose={handleUnlockModalClose}
         />
       </ErrorBoundary>
       <Modal
-        visible={showOverlayPrompt && !overlayPromptPaused && !morningTakeover}
+        visible={showOverlayPrompt && !overlayPromptPaused && !modeTakeover}
         transparent
         animationType="fade"
         onRequestClose={() => undefined}

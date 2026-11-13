@@ -3,6 +3,9 @@ package com.pos.mobile
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import com.pos.mobile.launcher.LauncherIntents
+import com.pos.mobile.launcher.UnlockHomePolicy
+import java.util.concurrent.Executors
 
 object PhoneUnlockPresenter {
     private const val TAG = "PhoneUnlockPresenter"
@@ -10,6 +13,10 @@ object PhoneUnlockPresenter {
     private const val WALLET_CHECK_MS = 220L
     private const val WALLET_RETRY_MS = 380L
     private val mainHandler = Handler(Looper.getMainLooper())
+    /** UsageEvents queries stay off the main looper so unlock / gesture frames stay responsive. */
+    private val walletExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "PhoneUnlockWalletCheck").apply { isDaemon = true }
+    }
 
     @Volatile
     private var lastUnlockAt = 0L
@@ -45,6 +52,15 @@ object PhoneUnlockPresenter {
         screenWasOff = false
         android.util.Log.d(TAG, "Phone unlock detected: $unlockTime present=$fromUserPresent")
         val appContext = context.applicationContext
+        // After 22:00 prefer Night Mode so an unfinished morning waiting state cannot steal wind-down.
+        if (NightModeLogic.isAtOrAfterTrigger(unlockTime) &&
+            NightModeLauncher.consumeUnlock(appContext, unlockTime, fromUserPresent)
+        ) {
+            PhoneUnlockModule.resetPendingUnlockTime()
+            NightModeModule.emitOpened()
+            android.util.Log.d(TAG, "Night Mode consumed this unlock")
+            return
+        }
         if (MorningModeLauncher.consumeUnlock(appContext, unlockTime, fromUserPresent)) {
             PhoneUnlockModule.resetPendingUnlockTime()
             MorningModeModule.emitOpened()
@@ -55,26 +71,56 @@ object PhoneUnlockPresenter {
         PhoneUnlockModule.setPendingUnlockTime(unlockTime)
 
         if (!WalletLaunchDetector.isUsageAccessGranted(appContext)) {
+            revealHome(appContext, fromUserPresent, walletLaunch = false)
             showPrompt(appContext, unlockTime)
             return
         }
 
-        mainHandler.postDelayed({
-            if (tryRecordWallet(appContext, unlockTime)) {
-                return@postDelayed
-            }
-            mainHandler.postDelayed({
-                if (!tryRecordWallet(appContext, unlockTime)) {
-                    showPrompt(appContext, unlockTime)
-                }
-            }, WALLET_RETRY_MS)
-        }, WALLET_CHECK_MS)
+        scheduleWalletCheck(appContext, unlockTime, fromUserPresent, attempt = 0)
     }
 
-    private fun tryRecordWallet(context: Context, unlockTime: Long): Boolean {
-        if (!WalletLaunchDetector.isWalletLaunch(context, unlockTime)) {
-            return false
+    private fun scheduleWalletCheck(
+        context: Context,
+        unlockTime: Long,
+        fromUserPresent: Boolean,
+        attempt: Int,
+    ) {
+        val delay = if (attempt == 0) WALLET_CHECK_MS else WALLET_RETRY_MS
+        mainHandler.postDelayed({
+            walletExecutor.execute {
+                val isWallet = try {
+                    WalletLaunchDetector.isWalletLaunch(context, unlockTime)
+                } catch (error: Exception) {
+                    android.util.Log.e(TAG, "Wallet usage check failed", error)
+                    false
+                }
+                mainHandler.post {
+                    if (isWallet && recordWalletUnlock(context, unlockTime)) {
+                        return@post
+                    }
+                    if (attempt == 0) {
+                        scheduleWalletCheck(context, unlockTime, fromUserPresent, attempt = 1)
+                    } else {
+                        revealHome(context, fromUserPresent, walletLaunch = false)
+                        showPrompt(context, unlockTime)
+                    }
+                }
+            }
+        }, delay)
+    }
+
+    private fun revealHome(context: Context, fromUserPresent: Boolean, walletLaunch: Boolean) {
+        if (!UnlockHomePolicy.shouldRevealHome(fromUserPresent, morningTakeover = false, walletLaunch = walletLaunch)) {
+            return
         }
+        try {
+            LauncherIntents.revealHome(context)
+        } catch (error: Exception) {
+            android.util.Log.w(TAG, "Could not bring Home forward after unlock", error)
+        }
+    }
+
+    private fun recordWalletUnlock(context: Context, unlockTime: Long): Boolean {
         if (UnlockReasonOverlay.isShowing) {
             return false
         }

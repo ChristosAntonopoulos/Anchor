@@ -23,11 +23,19 @@ class PhoneUnlockReceiver : BroadcastReceiver() {
                 }
             }
             Intent.ACTION_TIMEZONE_CHANGED, Intent.ACTION_DATE_CHANGED -> {
+                val now = System.currentTimeMillis()
                 MorningModeStore.saveGate(
                     context.applicationContext,
                     MorningModeLogic.onCivilDate(
                         MorningModeStore.gate(context.applicationContext),
-                        System.currentTimeMillis(),
+                        now,
+                    ),
+                )
+                NightModeStore.saveGate(
+                    context.applicationContext,
+                    NightModeLogic.onCivilDate(
+                        NightModeStore.gate(context.applicationContext),
+                        now,
                     ),
                 )
             }

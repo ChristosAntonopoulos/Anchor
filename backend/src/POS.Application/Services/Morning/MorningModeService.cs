@@ -77,22 +77,22 @@ public class MorningModeService
             now = new NowRecommendationDto();
         }
 
-        var title = string.IsNullOrWhiteSpace(now.TaskTitle) ? "Πρώτο έργο της ημέρας" : now.TaskTitle;
-        var first = string.IsNullOrWhiteSpace(now.NextAction) ? "Άνοιξε το Cursor." : Physicalize(now.NextAction);
+        var title = string.IsNullOrWhiteSpace(now.TaskTitle) ? "First task of the day" : now.TaskTitle;
+        var first = string.IsNullOrWhiteSpace(now.NextAction) ? "Open Cursor." : Physicalize(now.NextAction);
         return new MorningFirstTaskDto
         {
             TaskId = now.TaskId,
             TaskTitle = title,
-            Reason = string.IsNullOrWhiteSpace(now.Reason) ? "Ξεκίνα με κάτι μικρό που ήδη ξέρεις." : now.Reason,
+            Reason = string.IsNullOrWhiteSpace(now.Reason) ? "Start with something small you already know." : now.Reason,
             FirstPhysicalAction = first,
             NextMicroActions = new List<string>
             {
-                "Άνοιξε το project.",
-                "Διάλεξε το πρώτο μικρό πράγμα που θα κάνεις.",
+                "Open the project.",
+                "Pick the first small thing you will do.",
             },
             EasierAlternative = now.AlternativeTitle is { Length: > 0 }
-                ? $"Άνοιξε μόνο: {now.AlternativeTitle}."
-                : "Άνοιξε μόνο το Cursor. Τίποτα άλλο.",
+                ? $"Just open: {now.AlternativeTitle}."
+                : "Just open Cursor. Nothing else.",
         };
     }
 
@@ -100,11 +100,11 @@ public class MorningModeService
     {
         var fallback = request.Step switch
         {
-            "move" => "Κάνε μόνο ό,τι είναι άνετο. Κάθισε αν χρειάζεται.",
-            "clean" => "Βάλε μόνο ένα πράγμα στη θέση του.",
-            "meditate" => "Δεν χρειάζεται να κάνεις κάτι σωστά. Κάθισε.",
-            "task" => "Κάνε μόνο την πρώτη φυσική κίνηση. Όχι σχέδιο.",
-            _ => "Άνοιξε τις κουρτίνες. Ένα ποτήρι νερό είναι αρκετό.",
+            "move" => "Only do what feels comfortable. Sit if you need to.",
+            "clean" => "Put just one thing back in its place.",
+            "meditate" => "You do not need to do it right. Just sit.",
+            "task" => "Do only the first physical move. No planning.",
+            _ => "Open the curtains. A glass of water is enough.",
         };
 
         if (!_llm.IsConfigured || string.IsNullOrWhiteSpace(request.Text))
@@ -115,7 +115,7 @@ public class MorningModeService
         try
         {
             var json = await _llm.CompleteJsonAsync(
-                "You help one adult start a quiet 30-minute indoor morning. Reply JSON {\"text\":\"...\"}. Maximum two short Greek sentences. Reduce difficulty. No pep talk.",
+                "You help one adult start a quiet 30-minute indoor morning. Reply JSON {\"text\":\"...\"}. Maximum two short English sentences. Reduce difficulty. No pep talk.",
                 "The user is stuck during a morning step. Make the next action smaller.",
                 JsonSerializer.Serialize(new { request.Step, request.Text, userId }),
                 ct);
@@ -138,11 +138,11 @@ public class MorningModeService
 
     private static string Physicalize(string action)
     {
-        if (action.Contains("Cursor", StringComparison.OrdinalIgnoreCase) || action.Contains("άνοιξε", StringComparison.OrdinalIgnoreCase))
+        if (action.Contains("Cursor", StringComparison.OrdinalIgnoreCase) || action.Contains("open", StringComparison.OrdinalIgnoreCase))
         {
             return action;
         }
-        return $"Άνοιξε το Cursor. {action}".Trim();
+        return $"Open Cursor. {action}".Trim();
     }
 
     private static string TrimHelp(string value)

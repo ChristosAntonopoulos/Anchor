@@ -9,7 +9,7 @@
   <TextView
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:text="Ώρα για ένα διάλειμμα"
+    android:text="Time for a break"
     android:textColor="#E8EDF2"
     android:textSize="20sp"
     android:textStyle="bold" />
@@ -27,7 +27,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginTop="8dp"
-    android:text="Τα επιλεγμένα apps κάνουν μια μικρή παύση."
+    android:text="Selected apps are taking a short pause."
     android:textColor="#9EAAB7"
     android:textSize="14sp" />
 
@@ -36,7 +36,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginTop="16dp"
-    android:text="Άσε το κινητό και πήγαινε στο γραφείο."
+    android:text="Put the phone down and go to your desk."
     android:textColor="#E8EDF2"
     android:textSize="16sp" />
 
@@ -45,7 +45,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginTop="20dp"
-    android:text="Επιστροφή στη δουλειά"
+    android:text="Back to work"
     android:textAllCaps="false" />
 
   <Button
@@ -53,7 +53,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginTop="8dp"
-    android:text="Χρειάζομαι πρόσβαση"
+    android:text="I need access"
     android:textAllCaps="false" />
 
   <Button
@@ -61,6 +61,6 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginTop="8dp"
-    android:text="Ρυθμίσεις"
+    android:text="Settings"
     android:textAllCaps="false" />
 </LinearLayout>

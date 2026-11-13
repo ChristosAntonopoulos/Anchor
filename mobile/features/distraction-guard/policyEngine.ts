@@ -296,24 +296,24 @@ export function formatMmSs(ms: number): string {
 
 export const DEFAULT_REPLACEMENT_ACTIONS = [
   {
-    title: 'Ξεκίνα από το γραφείο',
-    instruction: 'Πήγαινε στο γραφείο και άνοιξε το laptop.',
+    title: 'Start at your desk',
+    instruction: 'Go to your desk and open the laptop.',
     estimatedSeconds: 30,
-    easierAlternative: 'Πήγαινε απλώς στο γραφείο.',
+    easierAlternative: 'Just go to your desk.',
     category: 'physical',
   },
   {
-    title: 'Βάλε το κινητό κάτω',
-    instruction: 'Άφησε το κινητό στην άκρη για ένα λεπτό.',
+    title: 'Put the phone down',
+    instruction: 'Put the phone aside for one minute.',
     estimatedSeconds: 15,
-    easierAlternative: 'Γύρισε την οθόνη προς τα κάτω.',
+    easierAlternative: 'Turn the screen face down.',
     category: 'physical',
   },
   {
-    title: 'Ένα ποτήρι νερό',
-    instruction: 'Σήκω και πιες ένα ποτήρι νερό.',
+    title: 'A glass of water',
+    instruction: 'Stand up and drink a glass of water.',
     estimatedSeconds: 20,
-    easierAlternative: 'Σήκω από την καρέκλα.',
+    easierAlternative: 'Get up from the chair.',
     category: 'physical',
   },
 ] as const;

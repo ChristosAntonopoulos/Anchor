@@ -16,6 +16,7 @@ import { apiClient } from '../../services/api';
 import { formatMoney } from '../../utils/walletSpend';
 import { WATER_TARGET_GLASSES, findWaterGlasses } from '../../utils/waterReminders';
 import { isMorningTakeover, useMorningModeStore } from '../../store/useMorningModeStore';
+import { isNightTakeover, useNightModeStore } from '../../store/useNightModeStore';
 
 function daysUntil(dueDate: string): number {
   const due = new Date(`${dueDate}T12:00:00`);
@@ -43,6 +44,7 @@ export default function SystemsScreen() {
   const fetchWeeklyReview = useWeeklyReviewStore((s) => s.fetchWeeklyReview);
   const timers = useCookingStore((s) => s.timers);
   const morning = useMorningModeStore((s) => s.session);
+  const night = useNightModeStore((s) => s.session);
   const [unlocksToday, setUnlocksToday] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -191,25 +193,35 @@ export default function SystemsScreen() {
             onPress={() => router.replace('/morning' as never)}
           />
           <SystemTile
+            icon="sleep"
+            title="Night"
+            status={isNightTakeover(night) ? 'In progress' : 'First unlock after 22:00'}
+            attention={isNightTakeover(night)}
+            onPress={() => router.replace('/night' as never)}
+          />
+        </View>
+        <View style={styles.row}>
+          <SystemTile
             icon="focus"
             title="Unlocks"
             status={unlocksStatus}
             onPress={() => router.push('/(tabs)/unlocks')}
           />
-        </View>
-        <View style={styles.row}>
           <SystemTile
             icon="habits"
             title="Distraction Guard"
             status="Usage limit · cooldown"
             onPress={() => router.push('/more/distraction-guard' as any)}
           />
+        </View>
+        <View style={styles.row}>
           <SystemTile
             icon="notification"
             title="Inbox"
             status={inboxStatus}
             attention={unread > 0}
             onPress={() => router.push('/more/notifications' as any)}
+            wide
           />
         </View>
 

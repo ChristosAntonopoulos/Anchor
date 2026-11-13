@@ -31,10 +31,12 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "./plugins/withPersonalAiLauncher.js",
       "expo-router",
       [
         "expo-notifications",
         {
+          "icon": "./assets/notification-icon.png",
           "sounds": ["./assets/sounds/focus_chime.wav"]
         }
       ],
