@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import com.pos.mobile.launcher.LauncherIntents
 import com.pos.mobile.launcher.UnlockHomePolicy
+import java.util.concurrent.Executors
 
 object PhoneUnlockPresenter {
     private const val TAG = "PhoneUnlockPresenter"
@@ -12,6 +13,10 @@ object PhoneUnlockPresenter {
     private const val WALLET_CHECK_MS = 220L
     private const val WALLET_RETRY_MS = 380L
     private val mainHandler = Handler(Looper.getMainLooper())
+    /** UsageEvents queries stay off the main looper so unlock / gesture frames stay responsive. */
+    private val walletExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "PhoneUnlockWalletCheck").apply { isDaemon = true }
+    }
 
     @Volatile
     private var lastUnlockAt = 0L
@@ -71,17 +76,37 @@ object PhoneUnlockPresenter {
             return
         }
 
+        scheduleWalletCheck(appContext, unlockTime, fromUserPresent, attempt = 0)
+    }
+
+    private fun scheduleWalletCheck(
+        context: Context,
+        unlockTime: Long,
+        fromUserPresent: Boolean,
+        attempt: Int,
+    ) {
+        val delay = if (attempt == 0) WALLET_CHECK_MS else WALLET_RETRY_MS
         mainHandler.postDelayed({
-            if (tryRecordWallet(appContext, unlockTime)) {
-                return@postDelayed
-            }
-            mainHandler.postDelayed({
-                if (!tryRecordWallet(appContext, unlockTime)) {
-                    revealHome(appContext, fromUserPresent, walletLaunch = false)
-                    showPrompt(appContext, unlockTime)
+            walletExecutor.execute {
+                val isWallet = try {
+                    WalletLaunchDetector.isWalletLaunch(context, unlockTime)
+                } catch (error: Exception) {
+                    android.util.Log.e(TAG, "Wallet usage check failed", error)
+                    false
                 }
-            }, WALLET_RETRY_MS)
-        }, WALLET_CHECK_MS)
+                mainHandler.post {
+                    if (isWallet && recordWalletUnlock(context, unlockTime)) {
+                        return@post
+                    }
+                    if (attempt == 0) {
+                        scheduleWalletCheck(context, unlockTime, fromUserPresent, attempt = 1)
+                    } else {
+                        revealHome(context, fromUserPresent, walletLaunch = false)
+                        showPrompt(context, unlockTime)
+                    }
+                }
+            }
+        }, delay)
     }
 
     private fun revealHome(context: Context, fromUserPresent: Boolean, walletLaunch: Boolean) {
@@ -95,10 +120,7 @@ object PhoneUnlockPresenter {
         }
     }
 
-    private fun tryRecordWallet(context: Context, unlockTime: Long): Boolean {
-        if (!WalletLaunchDetector.isWalletLaunch(context, unlockTime)) {
-            return false
-        }
+    private fun recordWalletUnlock(context: Context, unlockTime: Long): Boolean {
         if (UnlockReasonOverlay.isShowing) {
             return false
         }

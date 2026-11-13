@@ -75,26 +75,31 @@ object UnlockReasonOverlay {
         PhoneLock.clearPending(windowContext)
         val prompt = PhoneUnlockStore.createPending(windowContext, unlockTime)
         val form = UnlockReasonFormView(windowContext, prompt) { hideOnMain(null) }
+        val windowManager = windowContext.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        // Leave the bottom gesture / Home swipe strip uncovered so open-apps and home
+        // still work while the unlock answer overlay is up.
+        val bottomGap = OverlayGestureInsets.bottomGapPx(windowContext, windowManager)
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.MATCH_PARENT,
+            OverlayGestureInsets.windowHeightPx(windowManager, bottomGap),
             windowType,
             WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR,
+                WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.CENTER
+            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            y = 0
             title = "POS Unlock prompt"
             softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
         }
         return try {
-            val windowManager = windowContext.getSystemService(Context.WINDOW_SERVICE) as WindowManager
             windowManager.addView(form, params)
             overlayView = form
             activePrompt = prompt
             form.requestFocus()
-            android.util.Log.d(TAG, "Unlock overlay shown ${prompt.id}")
+            android.util.Log.d(TAG, "Unlock overlay shown ${prompt.id} bottomGap=$bottomGap")
             true
         } catch (error: Exception) {
             android.util.Log.e(TAG, "Could not show unlock overlay", error)
@@ -203,8 +208,8 @@ private class UnlockReasonFormView(
         isFocusableInTouchMode = true
         descendantFocusability = FOCUS_AFTER_DESCENDANTS
         setBackgroundColor(Color.parseColor("#F2151D1B"))
-        val inset = systemBottomInset()
-        setPadding(dp(16), dp(24), dp(16), dp(16) + inset)
+        // Bottom gesture strip is left outside the overlay window; only pad for content.
+        setPadding(dp(16), dp(24), dp(16), dp(16))
         applyImeInsets()
 
         val scroll = ScrollView(context).apply {
@@ -988,28 +993,15 @@ private class UnlockReasonFormView(
 
     private fun applyImeInsets() {
         setOnApplyWindowInsetsListener { view, insets ->
-            val bottom = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                maxOf(
-                    insets.getInsets(WindowInsets.Type.ime()).bottom,
-                    insets.getInsets(WindowInsets.Type.systemBars()).bottom,
-                )
+            // Keyboard only — nav/gesture bottom is already excluded from the window height.
+            val imeBottom = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                insets.getInsets(WindowInsets.Type.ime()).bottom
             } else {
                 @Suppress("DEPRECATION")
                 insets.systemWindowInsetBottom
             }
-            view.setPadding(dp(16), dp(24), dp(16), dp(16) + bottom)
+            view.setPadding(dp(16), dp(24), dp(16), dp(16) + imeBottom)
             insets
-        }
-    }
-
-    private fun systemBottomInset(): Int {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-            windowManager.currentWindowMetrics.windowInsets
-                .getInsets(WindowInsets.Type.systemBars())
-                .bottom
-        } else {
-            dp(16)
         }
     }
 

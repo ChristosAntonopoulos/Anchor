@@ -78,10 +78,11 @@ class HomeActivity : AppCompatActivity() {
             override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
                 val start = e1 ?: return false
                 if (recents != null || allApps != null || edit != null) return false
-                val zone = root.height - LauncherPalette.dp(root, 96)
+                val zone = root.height - LauncherPalette.dp(root, RECENTS_ZONE_DP)
                 if (start.y < zone) return false
-                if (velocityY > -1100 || abs(velocityY) < abs(velocityX) * 1.15f) return false
-                if (start.y - e2.y < LauncherPalette.dp(root, 64)) return false
+                // Softer thresholds so open-apps feels immediate without stealing side swipes.
+                if (velocityY > -RECENTS_MIN_VELOCITY || abs(velocityY) < abs(velocityX) * 1.05f) return false
+                if (start.y - e2.y < LauncherPalette.dp(root, RECENTS_CLIMB_DP)) return false
                 openRecents()
                 openedRecents = true
                 return true
@@ -121,16 +122,20 @@ class HomeActivity : AppCompatActivity() {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 recentsTrack = recents == null && allApps == null && edit == null &&
-                    ::root.isInitialized && event.y >= root.height - LauncherPalette.dp(root, 96)
+                    ::root.isInitialized && event.y >= root.height - LauncherPalette.dp(root, RECENTS_ZONE_DP)
                 recentsStartX = event.x
                 recentsStartY = event.y
             }
+            MotionEvent.ACTION_MOVE -> {
+                // Open as soon as the climb clears the threshold — waiting for UP felt laggy.
+                if (recentsTrack && recents == null && ::root.isInitialized && tryOpenRecentsFromTrack(event.x, event.y)) {
+                    openedRecents = true
+                    recentsTrack = false
+                }
+            }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 if (recentsTrack && recents == null && ::root.isInitialized) {
-                    val climb = recentsStartY - event.y
-                    val sideways = abs(event.x - recentsStartX)
-                    if (climb > LauncherPalette.dp(root, 72) && climb > sideways * 1.2f) {
-                        openRecents()
+                    if (tryOpenRecentsFromTrack(event.x, event.y)) {
                         openedRecents = true
                     }
                 }
@@ -144,6 +149,16 @@ class HomeActivity : AppCompatActivity() {
             return true
         }
         return super.dispatchTouchEvent(event)
+    }
+
+    private fun tryOpenRecentsFromTrack(x: Float, y: Float): Boolean {
+        val climb = recentsStartY - y
+        val sideways = abs(x - recentsStartX)
+        if (climb <= LauncherPalette.dp(root, RECENTS_CLIMB_DP) || climb <= sideways * 1.1f) {
+            return false
+        }
+        openRecents()
+        return true
     }
 
     override fun onResume() {
@@ -446,6 +461,10 @@ class HomeActivity : AppCompatActivity() {
 
     private fun openRecents() {
         if (recents != null) return
+        // Answer (unlock) overlay sits above Home; dismiss it so open-apps is visible.
+        if (UnlockReasonOverlay.isShowing) {
+            UnlockReasonOverlay.hideForSystemDismissal()
+        }
         closeAllApps()
         closeEdit()
         val overlay = RecentsOverlay(this)
@@ -502,5 +521,11 @@ class HomeActivity : AppCompatActivity() {
     private fun closeEdit() {
         (edit?.parent as? ViewGroup)?.removeView(edit)
         edit = null
+    }
+
+    companion object {
+        private const val RECENTS_ZONE_DP = 120
+        private const val RECENTS_CLIMB_DP = 48
+        private const val RECENTS_MIN_VELOCITY = 700f
     }
 }
