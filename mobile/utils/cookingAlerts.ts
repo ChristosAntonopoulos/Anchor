@@ -42,8 +42,8 @@ export async function scheduleTimerNotification(
   try {
     const triggerType = mod.SchedulableTriggerInputTypes?.TIME_INTERVAL;
     const trigger = triggerType
-      ? { type: triggerType, seconds, repeats: false, channelId: 'cooking' }
-      : { seconds, repeats: false, channelId: 'cooking' };
+      ? { type: triggerType, seconds, repeats: false, channelId: 'cooking-priority' }
+      : { seconds, repeats: false, channelId: 'cooking-priority' };
     return await mod.scheduleNotificationAsync({
       content: { title, body, sound: true },
       trigger,

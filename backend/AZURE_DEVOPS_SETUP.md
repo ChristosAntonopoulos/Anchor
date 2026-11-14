@@ -21,7 +21,7 @@ Add these variables:
 
 ### Home launcher — latest pipeline widget
 
-The Android home widget reads the **latest org-wide** Azure DevOps run via `GET /api/pipelines/latest`.
+The Android home widget reads the **latest org-wide** Azure DevOps run via `GET /api/pipelines/latest` (includes `active[]` for every running/queued org build).
 
 Configure the API (ConfigMap / secrets / env):
 
@@ -29,6 +29,8 @@ Configure the API (ConfigMap / secrets / env):
 |--------|-----------|-------|
 | Organization | ConfigMap `pos-api-config` → `AzureDevOps__Organization` (repo value: `CaptainBot`) | Also kept in POS-Secrets for reference; live pod reads the ConfigMap |
 | PAT | POS-Secrets `AzureDevOps__PersonalAccessToken` → Deploy writes `pos-api-secrets` | Secret; scopes **Build (Read)** + **Project and Team (Read)** |
+
+Deploy verifies the PAT **key name** is present via kubectl go-template (`index .data "AzureDevOps__PersonalAccessToken"`). It never logs the value. Do not use kubectl jsonpath `range $k,$v` for this check — some agents reject the comma and false-fail the step.
 
 Without these, the widget shows a calm empty state (“No pipeline yet”).
 

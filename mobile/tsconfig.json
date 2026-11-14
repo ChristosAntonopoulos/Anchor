@@ -16,6 +16,7 @@
     "utils/checkIn.test.ts",
     "utils/execution.test.ts",
     "utils/morningMode.test.ts",
+    "utils/nightMode.test.ts",
     "utils/waterReminders.test.ts",
     "constants/contrast.test.ts"
   ]

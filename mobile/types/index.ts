@@ -726,4 +726,6 @@ export interface LatestPipelineRun {
   webUrl?: string | null;
   title: string;
   subtitle: string;
+  /** Currently active (running/queued) org-wide runs; empty when none. */
+  active?: LatestPipelineRun[];
 }
