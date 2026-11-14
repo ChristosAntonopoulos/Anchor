@@ -5,17 +5,21 @@ import android.app.KeyguardManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.Rect
 import android.graphics.Typeface
 import android.os.Build
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextClock
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import com.pos.mobile.launcher.LauncherPalette
 import com.pos.mobile.launcher.LockScreenContent
@@ -24,6 +28,7 @@ import java.lang.ref.WeakReference
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.abs
 
 /**
  * Minimal lock face shown over the keyguard.
@@ -31,6 +36,7 @@ import java.util.Locale
  * Finishes on unlock so Answer / swipe / Recents keep working.
  */
 class LockScreenActivity : AppCompatActivity() {
+    private lateinit var root: LinearLayout
     private lateinit var dateView: TextView
     private lateinit var cueEyebrow: TextView
     private lateinit var cueTitle: TextView
@@ -40,6 +46,11 @@ class LockScreenActivity : AppCompatActivity() {
     private lateinit var mediaLine: TextView
     private lateinit var mediaPlay: TextView
     private var stopMediaObserve: (() -> Unit)? = null
+    private var edgeTrack = false
+    private var edgeConsumed = false
+    private var edgeStartX = 0f
+    private var edgeStartY = 0f
+    private val touchSlop by lazy { ViewConfiguration.get(this).scaledTouchSlop }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Lock flags before first frame so the window is eligible over keyguard immediately.
@@ -49,7 +60,7 @@ class LockScreenActivity : AppCompatActivity() {
         showing = WeakReference(this)
         paintTaskDescription()
 
-        val root = LinearLayout(this).apply {
+        root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(LauncherPalette.charcoal)
             setPadding(
@@ -60,6 +71,7 @@ class LockScreenActivity : AppCompatActivity() {
             )
         }
         setContentView(root)
+        bindSystemGestureExclusion()
         WindowCompat.getInsetsController(window, root).apply {
             isAppearanceLightStatusBars = false
             isAppearanceLightNavigationBars = false
@@ -153,6 +165,33 @@ class LockScreenActivity : AppCompatActivity() {
         if (!isKeyguardLocked() && !isScreenOffLikely()) {
             finish()
         }
+    }
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        // Swipe-up on the stock keyguard peeks the old lock UI under us — eat those climbs.
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                edgeTrack = true
+                edgeConsumed = false
+                edgeStartX = event.x
+                edgeStartY = event.y
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (edgeTrack && isUpwardSwipe(event.x, event.y)) {
+                    edgeConsumed = true
+                    return true
+                }
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                val consumed = edgeConsumed || (edgeTrack && isUpwardSwipe(event.x, event.y))
+                edgeTrack = false
+                edgeConsumed = false
+                if (consumed) {
+                    return true
+                }
+            }
+        }
+        return super.dispatchTouchEvent(event)
     }
 
     override fun onStop() {
@@ -300,6 +339,29 @@ class LockScreenActivity : AppCompatActivity() {
         // Explicitly clear turn-on so arming cannot wake the panel.
         @Suppress("DEPRECATION")
         window.clearFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
+    }
+
+    /** Prefer owning edge swipes so gesture-nav cannot open the stock keyguard shade. */
+    private fun bindSystemGestureExclusion() {
+        if (Build.VERSION.SDK_INT < 29 || !::root.isInitialized) return
+        root.addOnLayoutChangeListener { view, _, _, _, _, _, _, _, _ ->
+            if (view.width <= 0 || view.height <= 0) {
+                ViewCompat.setSystemGestureExclusionRects(view, emptyList())
+                return@addOnLayoutChangeListener
+            }
+            // Full face — swipe-up on lock must stay inside Anchor, not the OEM keyguard.
+            ViewCompat.setSystemGestureExclusionRects(
+                view,
+                listOf(Rect(0, 0, view.width, view.height)),
+            )
+        }
+        root.requestLayout()
+    }
+
+    private fun isUpwardSwipe(x: Float, y: Float): Boolean {
+        val climb = edgeStartY - y
+        val sideways = abs(x - edgeStartX)
+        return climb > touchSlop * 2 && climb > sideways * 1.05f
     }
 
     private fun paintTaskDescription() {
