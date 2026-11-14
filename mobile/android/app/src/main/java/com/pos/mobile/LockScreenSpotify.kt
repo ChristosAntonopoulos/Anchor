@@ -70,7 +70,7 @@ object LockScreenSpotify {
             mgr.addOnActiveSessionsChangedListener(sessionsListener, listenerComponent, mainHandler)
             attachController(app, mgr, listenerComponent, callback)
             publish(app, onChange)
-            {
+            val unsubscribe: () -> Unit = {
                 try {
                     controller?.unregisterCallback(callback)
                 } catch (_: Exception) {
@@ -81,14 +81,17 @@ object LockScreenSpotify {
                 } catch (_: Exception) {
                 }
             }
+            unsubscribe
         } catch (error: SecurityException) {
             android.util.Log.d(TAG, "Cannot observe sessions without notification access")
             onChange(null)
-            {}
+            val noop: () -> Unit = {}
+            noop
         } catch (error: Exception) {
             android.util.Log.w(TAG, "Could not observe media sessions", error)
             onChange(null)
-            {}
+            val noop: () -> Unit = {}
+            noop
         }
     }
 
