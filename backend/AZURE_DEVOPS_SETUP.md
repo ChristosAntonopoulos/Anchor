@@ -21,7 +21,7 @@ Add these variables:
 
 ### Home launcher — latest pipeline widget
 
-The Android home widget reads the **latest org-wide** Azure DevOps run via `GET /api/pipelines/latest`.
+The Android home widget reads the **latest org-wide** Azure DevOps run via `GET /api/pipelines/latest` (includes `active[]` for every running/queued org build).
 
 Configure the API (ConfigMap / secrets / env):
 
