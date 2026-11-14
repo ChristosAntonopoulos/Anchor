@@ -25,7 +25,9 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import com.pos.mobile.launcher.LauncherIntents
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.abs
 
 object UnlockReasonOverlay {
     private const val TAG = "UnlockReasonOverlay"
@@ -75,6 +77,8 @@ object UnlockReasonOverlay {
         PhoneLock.clearPending(windowContext)
         val prompt = PhoneUnlockStore.createPending(windowContext, unlockTime)
         val form = UnlockReasonFormView(windowContext, prompt) { hideOnMain(null) }
+        // Stay full-screen so the swipe does not leak to system Recents cards.
+        // Bottom swipe is handled inside the form → dismiss + Anchor open-apps list.
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.MATCH_PARENT,
@@ -195,6 +199,9 @@ private class UnlockReasonFormView(
     private var pauseIntention: String? = null
     private var pauseRunnable: Runnable? = null
     private var pendingSubmit: (() -> Unit)? = null
+    private var edgeTrack = false
+    private var edgeStartX = 0f
+    private var edgeStartY = 0f
 
     init {
         orientation = VERTICAL
@@ -460,6 +467,55 @@ private class UnlockReasonFormView(
             return true
         }
         return super.dispatchKeyEvent(event)
+    }
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        // Capture bottom swipe here so it never falls through to system Recents cards.
+        val zoneTop = height - dp(EDGE_SWIPE_ZONE_DP)
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                edgeTrack = event.y >= zoneTop
+                edgeStartX = event.x
+                edgeStartY = event.y
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (edgeTrack && shouldOpenAppsFromEdge(event.x, event.y)) {
+                    edgeTrack = false
+                    openAnchorAppsFromSwipe()
+                    return true
+                }
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                if (edgeTrack && shouldOpenAppsFromEdge(event.x, event.y)) {
+                    edgeTrack = false
+                    openAnchorAppsFromSwipe()
+                    return true
+                }
+                edgeTrack = false
+            }
+        }
+        return super.dispatchTouchEvent(event)
+    }
+
+    private fun shouldOpenAppsFromEdge(x: Float, y: Float): Boolean {
+        val climb = edgeStartY - y
+        val sideways = abs(x - edgeStartX)
+        return climb > dp(EDGE_SWIPE_CLIMB_DP) && climb > sideways * 1.1f
+    }
+
+    private fun openAnchorAppsFromSwipe() {
+        cancelPause()
+        submit(
+            status = PhoneUnlockPrompt.STATUS_DISMISSED,
+            action = null,
+            path = null,
+            keepContext = false,
+        )
+        try {
+            LauncherIntents.openAnchorRecents(context)
+        } catch (error: Exception) {
+            android.util.Log.w("UnlockReasonOverlay", "Could not open Anchor open-apps list", error)
+        }
     }
 
     private fun expandContext() {
@@ -1019,6 +1075,8 @@ private class UnlockReasonFormView(
     private data class ChipItem(val code: String, val label: Int)
 
     companion object {
+        private const val EDGE_SWIPE_ZONE_DP = 120
+        private const val EDGE_SWIPE_CLIMB_DP = 48
         private val INTENTIONS = listOf(
             IntentionItem("specific_task", R.string.unlock_intention_specific_task, R.string.unlock_intention_specific_task_support, "✓"),
             IntentionItem("connection", R.string.unlock_intention_connection, R.string.unlock_intention_connection_support, "◎"),

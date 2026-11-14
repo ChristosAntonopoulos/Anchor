@@ -8,6 +8,7 @@ import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.Handler
+import android.os.HandlerThread
 import android.os.IBinder
 import android.os.Looper
 import androidx.core.content.ContextCompat
@@ -16,9 +17,13 @@ import androidx.core.content.ContextCompat
  * Optional specialUse FGS for periodic UsageEvents reconciliation while Guard is enabled.
  * Also records USER_PRESENT for unlock→distraction associations without depending on
  * the unlock-prompt feature being enabled (same Android signal, Guard-owned log).
+ *
+ * Reconcile (UsageEvents scan) runs on a background looper so it does not jank
+ * Home swipe / open-apps gestures on the main thread.
  */
 class GuardMonitorService : Service() {
-  private val handler = Handler(Looper.getMainLooper())
+  private var workerThread: HandlerThread? = null
+  private var workerHandler: Handler? = null
   private var receiverRegistered = false
 
   private val unlockReceiver = object : BroadcastReceiver() {
@@ -35,13 +40,16 @@ class GuardMonitorService : Service() {
         GuardController.reconcile(applicationContext)
       } catch (_: Exception) {
       }
-      handler.postDelayed(this, 20_000L)
+      workerHandler?.postDelayed(this, 20_000L)
     }
   }
 
   override fun onCreate() {
     super.onCreate()
     GuardNotifications.ensureChannels(this)
+    val thread = HandlerThread("GuardMonitorReconcile").also { it.start() }
+    workerThread = thread
+    workerHandler = Handler(thread.looper)
     val filter = IntentFilter(Intent.ACTION_USER_PRESENT)
     if (Build.VERSION.SDK_INT >= 33) {
       registerReceiver(unlockReceiver, filter, RECEIVER_NOT_EXPORTED)
@@ -63,8 +71,9 @@ class GuardMonitorService : Service() {
       } else {
         startForeground(GuardNotifications.MONITOR_ID, notification)
       }
-      handler.removeCallbacks(tick)
-      handler.post(tick)
+      val worker = workerHandler ?: Handler(Looper.getMainLooper()).also { workerHandler = it }
+      worker.removeCallbacks(tick)
+      worker.post(tick)
       START_STICKY
     } catch (_: Exception) {
       stopSelf()
@@ -73,7 +82,10 @@ class GuardMonitorService : Service() {
   }
 
   override fun onDestroy() {
-    handler.removeCallbacks(tick)
+    workerHandler?.removeCallbacks(tick)
+    workerHandler = null
+    workerThread?.quitSafely()
+    workerThread = null
     if (receiverRegistered) {
       unregisterReceiver(unlockReceiver)
       receiverRegistered = false

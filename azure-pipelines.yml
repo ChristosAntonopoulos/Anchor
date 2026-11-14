@@ -385,8 +385,11 @@ stages:
                 if kubectl get secret pos-api-secrets -n $(kubernetesNamespace) > /dev/null 2>&1; then
                   echo "Secret created successfully."
                   echo "Keys present:"
+                  # go-template lists key names only (never values). Avoid kubectl jsonpath
+                  # range/$k,$v — that comma is rejected by some kubectl builds.
                   kubectl get secret pos-api-secrets -n $(kubernetesNamespace) -o go-template='{{range $k, $v := .data}}  - {{$k}}{{"\n"}}{{end}}'
-                  if ! kubectl get secret pos-api-secrets -n $(kubernetesNamespace) -o jsonpath='{range $k,$v := .data}{$k}{"\n"}{end}' | grep -qx 'AzureDevOps__PersonalAccessToken'; then
+                  ADO_PAT_PRESENT=$(kubectl get secret pos-api-secrets -n $(kubernetesNamespace) -o go-template='{{if index .data "AzureDevOps__PersonalAccessToken"}}yes{{end}}')
+                  if [ "${ADO_PAT_PRESENT}" != "yes" ]; then
                     echo "ERROR: AzureDevOps__PersonalAccessToken key missing from secret"
                     exit 1
                   fi
