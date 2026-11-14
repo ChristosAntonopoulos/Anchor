@@ -14,6 +14,8 @@ import com.pos.mobile.MorningModeLauncher
 object LauncherIntents {
     const val EXTRA_PREVIEW = "previewHome"
     const val EXTRA_FROM_UNLOCK = "fromUnlock"
+    /** Open Anchor’s simple open-apps list (not system Recents cards). */
+    const val EXTRA_OPEN_RECENTS = "openRecents"
     const val REQUEST_HOME_ROLE = 7101
 
     fun preview(context: Context) {
@@ -29,6 +31,18 @@ object LauncherIntents {
         context.startActivity(
             Intent(context, HomeActivity::class.java).apply {
                 putExtra(EXTRA_FROM_UNLOCK, true)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
+                    Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
+            }
+        )
+    }
+
+    fun openAnchorRecents(context: Context) {
+        context.startActivity(
+            Intent(context, HomeActivity::class.java).apply {
+                putExtra(EXTRA_OPEN_RECENTS, true)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_SINGLE_TOP or
                     Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or

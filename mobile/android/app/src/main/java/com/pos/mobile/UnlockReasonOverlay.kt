@@ -25,7 +25,9 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import com.pos.mobile.launcher.LauncherIntents
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.abs
 
 object UnlockReasonOverlay {
     private const val TAG = "UnlockReasonOverlay"
@@ -75,31 +77,28 @@ object UnlockReasonOverlay {
         PhoneLock.clearPending(windowContext)
         val prompt = PhoneUnlockStore.createPending(windowContext, unlockTime)
         val form = UnlockReasonFormView(windowContext, prompt) { hideOnMain(null) }
-        val windowManager = windowContext.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        // Leave the bottom gesture / Home swipe strip uncovered so open-apps and home
-        // still work while the unlock answer overlay is up.
-        val bottomGap = OverlayGestureInsets.bottomGapPx(windowContext, windowManager)
+        // Stay full-screen so the swipe does not leak to system Recents cards.
+        // Bottom swipe is handled inside the form → dismiss + Anchor open-apps list.
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
-            OverlayGestureInsets.windowHeightPx(windowManager, bottomGap),
+            WindowManager.LayoutParams.MATCH_PARENT,
             windowType,
             WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            y = 0
+            gravity = Gravity.CENTER
             title = "POS Unlock prompt"
             softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
         }
         return try {
+            val windowManager = windowContext.getSystemService(Context.WINDOW_SERVICE) as WindowManager
             windowManager.addView(form, params)
             overlayView = form
             activePrompt = prompt
             form.requestFocus()
-            android.util.Log.d(TAG, "Unlock overlay shown ${prompt.id} bottomGap=$bottomGap")
+            android.util.Log.d(TAG, "Unlock overlay shown ${prompt.id}")
             true
         } catch (error: Exception) {
             android.util.Log.e(TAG, "Could not show unlock overlay", error)
@@ -200,6 +199,9 @@ private class UnlockReasonFormView(
     private var pauseIntention: String? = null
     private var pauseRunnable: Runnable? = null
     private var pendingSubmit: (() -> Unit)? = null
+    private var edgeTrack = false
+    private var edgeStartX = 0f
+    private var edgeStartY = 0f
 
     init {
         orientation = VERTICAL
@@ -208,8 +210,8 @@ private class UnlockReasonFormView(
         isFocusableInTouchMode = true
         descendantFocusability = FOCUS_AFTER_DESCENDANTS
         setBackgroundColor(Color.parseColor("#F2151D1B"))
-        // Bottom gesture strip is left outside the overlay window; only pad for content.
-        setPadding(dp(16), dp(24), dp(16), dp(16))
+        val inset = systemBottomInset()
+        setPadding(dp(16), dp(24), dp(16), dp(16) + inset)
         applyImeInsets()
 
         val scroll = ScrollView(context).apply {
@@ -465,6 +467,55 @@ private class UnlockReasonFormView(
             return true
         }
         return super.dispatchKeyEvent(event)
+    }
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        // Capture bottom swipe here so it never falls through to system Recents cards.
+        val zoneTop = height - dp(EDGE_SWIPE_ZONE_DP)
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                edgeTrack = event.y >= zoneTop
+                edgeStartX = event.x
+                edgeStartY = event.y
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (edgeTrack && shouldOpenAppsFromEdge(event.x, event.y)) {
+                    edgeTrack = false
+                    openAnchorAppsFromSwipe()
+                    return true
+                }
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                if (edgeTrack && shouldOpenAppsFromEdge(event.x, event.y)) {
+                    edgeTrack = false
+                    openAnchorAppsFromSwipe()
+                    return true
+                }
+                edgeTrack = false
+            }
+        }
+        return super.dispatchTouchEvent(event)
+    }
+
+    private fun shouldOpenAppsFromEdge(x: Float, y: Float): Boolean {
+        val climb = edgeStartY - y
+        val sideways = abs(x - edgeStartX)
+        return climb > dp(EDGE_SWIPE_CLIMB_DP) && climb > sideways * 1.1f
+    }
+
+    private fun openAnchorAppsFromSwipe() {
+        cancelPause()
+        submit(
+            status = PhoneUnlockPrompt.STATUS_DISMISSED,
+            action = null,
+            path = null,
+            keepContext = false,
+        )
+        try {
+            LauncherIntents.openAnchorRecents(context)
+        } catch (error: Exception) {
+            android.util.Log.w("UnlockReasonOverlay", "Could not open Anchor open-apps list", error)
+        }
     }
 
     private fun expandContext() {
@@ -993,15 +1044,28 @@ private class UnlockReasonFormView(
 
     private fun applyImeInsets() {
         setOnApplyWindowInsetsListener { view, insets ->
-            // Keyboard only — nav/gesture bottom is already excluded from the window height.
-            val imeBottom = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                insets.getInsets(WindowInsets.Type.ime()).bottom
+            val bottom = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                maxOf(
+                    insets.getInsets(WindowInsets.Type.ime()).bottom,
+                    insets.getInsets(WindowInsets.Type.systemBars()).bottom,
+                )
             } else {
                 @Suppress("DEPRECATION")
                 insets.systemWindowInsetBottom
             }
-            view.setPadding(dp(16), dp(24), dp(16), dp(16) + imeBottom)
+            view.setPadding(dp(16), dp(24), dp(16), dp(16) + bottom)
             insets
+        }
+    }
+
+    private fun systemBottomInset(): Int {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            windowManager.currentWindowMetrics.windowInsets
+                .getInsets(WindowInsets.Type.systemBars())
+                .bottom
+        } else {
+            dp(16)
         }
     }
 
@@ -1011,6 +1075,8 @@ private class UnlockReasonFormView(
     private data class ChipItem(val code: String, val label: Int)
 
     companion object {
+        private const val EDGE_SWIPE_ZONE_DP = 120
+        private const val EDGE_SWIPE_CLIMB_DP = 48
         private val INTENTIONS = listOf(
             IntentionItem("specific_task", R.string.unlock_intention_specific_task, R.string.unlock_intention_specific_task_support, "✓"),
             IntentionItem("connection", R.string.unlock_intention_connection, R.string.unlock_intention_connection_support, "◎"),

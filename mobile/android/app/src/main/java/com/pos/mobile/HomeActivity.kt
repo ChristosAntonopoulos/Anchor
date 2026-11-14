@@ -1,6 +1,7 @@
 package com.pos.mobile
 
 import android.graphics.Color
+import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
 import android.graphics.Typeface
 import android.os.Build
@@ -18,6 +19,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import com.pos.mobile.launcher.DockApp
 import com.pos.mobile.launcher.InstalledApps
@@ -75,6 +77,7 @@ class HomeActivity : AppCompatActivity() {
             isAppearanceLightNavigationBars = false
         }
         LauncherEdges.bind(root)
+        bindOpenAppsGestureExclusion()
         recentsDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
                 val start = e1 ?: return false
@@ -104,8 +107,12 @@ class HomeActivity : AppCompatActivity() {
             }
         })
         val fromUnlock = intent?.getBooleanExtra(LauncherIntents.EXTRA_FROM_UNLOCK, false) == true
-        if (!layout.sawFavoritesPrompt && !fromUnlock) {
+        val openRecentsExtra = intent?.getBooleanExtra(LauncherIntents.EXTRA_OPEN_RECENTS, false) == true
+        if (!layout.sawFavoritesPrompt && !fromUnlock && !openRecentsExtra) {
             openAllApps(pickingFavorites = true)
+        }
+        if (openRecentsExtra) {
+            openRecents()
         }
     }
 
@@ -114,8 +121,12 @@ class HomeActivity : AppCompatActivity() {
         setIntent(intent)
         closeAllApps()
         closeEdit()
+        val openRecentsExtra = intent.getBooleanExtra(LauncherIntents.EXTRA_OPEN_RECENTS, false)
         closeRecents()
         showHome()
+        if (openRecentsExtra) {
+            openRecents()
+        }
     }
 
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
@@ -162,9 +173,27 @@ class HomeActivity : AppCompatActivity() {
         return true
     }
 
+    /** Prefer Anchor’s open-apps list over system Overview where Android allows. */
+    private fun bindOpenAppsGestureExclusion() {
+        if (Build.VERSION.SDK_INT < 29) return
+        root.addOnLayoutChangeListener { view, _, _, _, _, _, _, _, _ ->
+            val zone = LauncherPalette.dp(view, RECENTS_ZONE_DP)
+            if (view.height <= zone) {
+                ViewCompat.setSystemGestureExclusionRects(view, emptyList())
+                return@addOnLayoutChangeListener
+            }
+            val rect = Rect(0, view.height - zone, view.width, view.height)
+            ViewCompat.setSystemGestureExclusionRects(view, listOf(rect))
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         refreshVisible()
+        if (intent?.getBooleanExtra(LauncherIntents.EXTRA_OPEN_RECENTS, false) == true) {
+            intent?.removeExtra(LauncherIntents.EXTRA_OPEN_RECENTS)
+            if (recents == null) openRecents()
+        }
     }
 
     private fun buildChrome() {
