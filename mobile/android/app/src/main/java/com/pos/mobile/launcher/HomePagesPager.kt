@@ -18,7 +18,9 @@ import kotlin.math.abs
  *
  * Spatial order: Developer | Home (start on Home).
  * Finger swipe right → Developer; finger swipe left → Home.
- * Content follows the finger — Developer sits to the left of Home.
+ *
+ * Intercepts horizontal drags itself (do not rely on HSV OnTouchListener —
+ * child ScrollViews would steal those events and never page-switch).
  */
 class HomePagesPager(
     context: Context,
@@ -29,35 +31,38 @@ class HomePagesPager(
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
     private val strip = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
     private val scroller = object : HorizontalScrollView(context) {
+        // Pager parent owns paging; never intercept here.
         override fun onInterceptTouchEvent(ev: MotionEvent): Boolean = false
+        override fun onTouchEvent(ev: MotionEvent): Boolean = false
     }.apply {
         isFillViewport = true
         isHorizontalScrollBarEnabled = false
         overScrollMode = OVER_SCROLL_NEVER
         isSmoothScrollingEnabled = false
-        addView(
-            strip,
-            LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT),
-        )
+        addView(strip, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT))
     }
 
     private var pageWidth = 0
-    private var tracking = false
     private var downX = 0f
     private var downY = 0f
     private var downScroll = 0
+    private var draggingPage = false
+    private var decided = false
     private var animator: ValueAnimator? = null
     private var developer = false
 
     val showingDeveloper: Boolean
         get() = developer
 
+    /** True while a horizontal page drag is in progress — Home must not open Recents. */
+    val isPaging: Boolean
+        get() = draggingPage
+
     init {
         addView(scroller, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
         // Developer first so a rightward finger swipe reveals it from Home.
         strip.addView(sizedPage(developerPage))
         strip.addView(sizedPage(homePage))
-        scroller.setOnTouchListener { _, event -> handleTouch(event) }
     }
 
     fun showHome(animated: Boolean = true) = settleTo(developer = false, animated)
@@ -74,9 +79,81 @@ class HomePagesPager(
         developerPage.requestLayout()
         homePage.requestLayout()
         strip.requestLayout()
-        post {
-            scroller.scrollTo(if (developer) 0 else w, 0)
+        post { scroller.scrollTo(if (developer) 0 else w, 0) }
+    }
+
+    override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
+        when (ev.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                animator?.cancel()
+                downX = ev.x
+                downY = ev.y
+                downScroll = scroller.scrollX
+                draggingPage = false
+                decided = false
+                return false
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (decided) return draggingPage
+                val dx = ev.x - downX
+                val dy = ev.y - downY
+                if (abs(dx) <= touchSlop && abs(dy) <= touchSlop) return false
+                decided = true
+                if (abs(dx) > abs(dy)) {
+                    draggingPage = true
+                    parent?.requestDisallowInterceptTouchEvent(true)
+                    return true
+                }
+                draggingPage = false
+                return false
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                draggingPage = false
+                decided = false
+                return false
+            }
         }
+        return false
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                animator?.cancel()
+                downX = event.x
+                downY = event.y
+                downScroll = scroller.scrollX
+                draggingPage = true
+                decided = true
+                parent?.requestDisallowInterceptTouchEvent(true)
+                return true
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (!draggingPage) return false
+                val dx = event.x - downX
+                val width = pageWidth.coerceAtLeast(1)
+                val target = (downScroll - dx).toInt().coerceIn(0, width)
+                scroller.scrollTo(target, 0)
+                return true
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                if (!draggingPage) return false
+                draggingPage = false
+                decided = false
+                parent?.requestDisallowInterceptTouchEvent(false)
+                val dx = event.x - downX
+                val width = pageWidth.coerceAtLeast(1)
+                val moved = abs(dx) > touchSlop
+                val goDeveloper = when {
+                    moved && dx > 0 -> true   // finger right → Developer
+                    moved && dx < 0 -> false  // finger left → Home
+                    else -> scroller.scrollX < width / 2
+                }
+                settleTo(goDeveloper, animated = true)
+                return true
+            }
+        }
+        return super.onTouchEvent(event)
     }
 
     private fun sizedPage(page: View): View {
@@ -85,55 +162,6 @@ class HomePagesPager(
             LayoutParams.MATCH_PARENT,
         )
         return page
-    }
-
-    private fun handleTouch(event: MotionEvent): Boolean {
-        when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN -> {
-                animator?.cancel()
-                tracking = true
-                downX = event.x
-                downY = event.y
-                downScroll = scroller.scrollX
-                parent?.requestDisallowInterceptTouchEvent(false)
-                return false
-            }
-            MotionEvent.ACTION_MOVE -> {
-                if (!tracking) return false
-                val dx = event.x - downX
-                val dy = event.y - downY
-                if (abs(dy) > touchSlop && abs(dy) > abs(dx)) {
-                    tracking = false
-                    parent?.requestDisallowInterceptTouchEvent(false)
-                    return false
-                }
-                if (abs(dx) > touchSlop && abs(dx) > abs(dy)) {
-                    parent?.requestDisallowInterceptTouchEvent(true)
-                    val width = pageWidth.coerceAtLeast(1)
-                    val target = (downScroll - dx).toInt().coerceIn(0, width)
-                    scroller.scrollTo(target, 0)
-                    return true
-                }
-                return false
-            }
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                if (!tracking) return false
-                tracking = false
-                parent?.requestDisallowInterceptTouchEvent(false)
-                val dx = event.x - downX
-                val width = pageWidth.coerceAtLeast(1)
-                val moved = abs(dx) > touchSlop && abs(dx) > abs(event.y - downY)
-                // Finger right (dx > 0) → Developer; finger left → Home.
-                val goDeveloper = when {
-                    moved && dx > 0 -> true
-                    moved && dx < 0 -> false
-                    else -> scroller.scrollX < width / 2
-                }
-                settleTo(goDeveloper, animated = true)
-                return moved
-            }
-        }
-        return false
     }
 
     private fun settleTo(developer: Boolean, animated: Boolean) {
@@ -171,7 +199,7 @@ class HomePagesPager(
     }
 }
 
-/** Vertical scroll that yields clear horizontal drags to the page strip. */
+/** Vertical scroll that yields clear horizontal drags to [HomePagesPager]. */
 class PageScrollView(context: Context) : android.widget.ScrollView(context) {
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
     private var downX = 0f

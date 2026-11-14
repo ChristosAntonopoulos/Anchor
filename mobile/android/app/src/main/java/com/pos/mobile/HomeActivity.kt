@@ -86,9 +86,10 @@ class HomeActivity : AppCompatActivity() {
                 if (recents != null || allApps != null || edit != null) return false
                 val zone = root.height - LauncherPalette.dp(root, RECENTS_ZONE_DP)
                 if (start.y < zone) return false
-                // Softer thresholds so open-apps feels immediate without stealing side swipes.
-                if (velocityY > -RECENTS_MIN_VELOCITY || abs(velocityY) < abs(velocityX) * 1.05f) return false
+                // Open-apps is upward-only; horizontal velocity means Home↔Developer paging.
+                if (velocityY > -RECENTS_MIN_VELOCITY || abs(velocityY) < abs(velocityX) * 1.6f) return false
                 if (start.y - e2.y < LauncherPalette.dp(root, RECENTS_CLIMB_DP)) return false
+                if (::pagesPager.isInitialized && pagesPager.isPaging) return false
                 openRecents()
                 openedRecents = true
                 return true
@@ -132,6 +133,11 @@ class HomeActivity : AppCompatActivity() {
     }
 
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        // While Home↔Developer is paging, never treat the gesture as open-apps.
+        if (::pagesPager.isInitialized && pagesPager.isPaging) {
+            recentsTrack = false
+            return super.dispatchTouchEvent(event)
+        }
         if (::recentsDetector.isInitialized) recentsDetector.onTouchEvent(event)
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
@@ -141,10 +147,16 @@ class HomeActivity : AppCompatActivity() {
                 recentsStartY = event.y
             }
             MotionEvent.ACTION_MOVE -> {
-                // Open as soon as the climb clears the threshold — waiting for UP felt laggy.
-                if (recentsTrack && recents == null && ::root.isInitialized && tryOpenRecentsFromTrack(event.x, event.y)) {
-                    openedRecents = true
-                    recentsTrack = false
+                if (recentsTrack) {
+                    val sideways = abs(event.x - recentsStartX)
+                    val climb = recentsStartY - event.y
+                    // Side swipes belong to the page strip — drop the open-apps track.
+                    if (sideways > climb * 1.05f && sideways > LauncherPalette.dp(root, 24)) {
+                        recentsTrack = false
+                    } else if (recents == null && ::root.isInitialized && tryOpenRecentsFromTrack(event.x, event.y)) {
+                        openedRecents = true
+                        recentsTrack = false
+                    }
                 }
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
@@ -168,7 +180,8 @@ class HomeActivity : AppCompatActivity() {
     private fun tryOpenRecentsFromTrack(x: Float, y: Float): Boolean {
         val climb = recentsStartY - y
         val sideways = abs(x - recentsStartX)
-        if (climb <= LauncherPalette.dp(root, RECENTS_CLIMB_DP) || climb <= sideways * 1.1f) {
+        // Must be clearly upward — horizontal page swipes must never win this race.
+        if (climb <= LauncherPalette.dp(root, RECENTS_CLIMB_DP) || climb <= sideways * 1.6f) {
             return false
         }
         openRecents()
