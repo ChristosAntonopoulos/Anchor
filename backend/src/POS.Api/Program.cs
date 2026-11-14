@@ -137,6 +137,7 @@ builder.Services.Configure<OpenAiOptions>(options =>
 builder.Services.AddHttpClient<ILanguageModelClient, OpenAiCompatibleClient>();
 builder.Services.AddScoped<ExecutionService>();
 builder.Services.AddScoped<POS.Application.Services.Morning.MorningModeService>();
+builder.Services.AddScoped<POS.Application.Services.Night.NightModeService>();
 builder.Services.AddSingleton<POS.Api.Services.AppReleaseService>();
 
 // Register database seeder

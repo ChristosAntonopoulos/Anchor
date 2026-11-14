@@ -9,16 +9,16 @@ type Props = {
 };
 
 const purposes = [
-  { id: 'work', label: 'Δουλειά / έρευνα' },
-  { id: 'learning', label: 'Μάθηση' },
-  { id: 'communication', label: 'Επικοινωνία' },
-  { id: 'entertainment', label: 'Ψυχαγωγία' },
-  { id: 'other', label: 'Άλλο' },
+  { id: 'work', label: 'Work / research' },
+  { id: 'learning', label: 'Learning' },
+  { id: 'communication', label: 'Communication' },
+  { id: 'entertainment', label: 'Entertainment' },
+  { id: 'other', label: 'Other' },
 ];
 const durations = [
-  { label: '2 λεπτά', seconds: 120 },
-  { label: '5 λεπτά', seconds: 300 },
-  { label: '10 λεπτά', seconds: 600 },
+  { label: '2 minutes', seconds: 120 },
+  { label: '5 minutes', seconds: 300 },
+  { label: '10 minutes', seconds: 600 },
 ];
 
 export function IntentionalUseSheet({ visible, onClose, onSave }: Props) {
@@ -30,8 +30,8 @@ export function IntentionalUseSheet({ visible, onClose, onSave }: Props) {
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-          <Text style={styles.title}>Το χρειάζομαι για κάτι συγκεκριμένο</Text>
-          <Text style={styles.label}>Σκοπός</Text>
+          <Text style={styles.title}>I need it for something specific</Text>
+          <Text style={styles.label}>Purpose</Text>
           <View style={styles.row}>
             {purposes.map((p) => (
               <TouchableOpacity
@@ -43,7 +43,7 @@ export function IntentionalUseSheet({ visible, onClose, onSave }: Props) {
               </TouchableOpacity>
             ))}
           </View>
-          <Text style={styles.label}>Προγραμματισμένη διάρκεια</Text>
+          <Text style={styles.label}>Planned duration</Text>
           <View style={styles.row}>
             {durations.map((d) => (
               <TouchableOpacity
@@ -55,12 +55,12 @@ export function IntentionalUseSheet({ visible, onClose, onSave }: Props) {
               </TouchableOpacity>
             ))}
           </View>
-          <Text style={styles.label}>Τι θέλεις να κάνεις; (προαιρετικό)</Text>
+          <Text style={styles.label}>What do you want to do? (optional)</Text>
           <TextInput
             style={styles.input}
             value={note}
             onChangeText={setNote}
-            placeholder="Σύντομη σημείωση"
+            placeholder="Short note"
             placeholderTextColor={guardTokens.textSecondary}
           />
           <TouchableOpacity
@@ -71,7 +71,7 @@ export function IntentionalUseSheet({ visible, onClose, onSave }: Props) {
               onClose();
             }}
           >
-            <Text style={styles.saveText}>Αποθήκευση πρόθεσης</Text>
+            <Text style={styles.saveText}>Save intention</Text>
           </TouchableOpacity>
         </Pressable>
       </Pressable>

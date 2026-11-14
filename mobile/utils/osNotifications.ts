@@ -8,11 +8,12 @@ import { buildWaterReminders } from './waterReminders';
 type NotifMod = {
   setNotificationHandler: (handler: unknown) => void;
   setNotificationChannelAsync?: (id: string, channel: unknown) => Promise<unknown>;
+  deleteNotificationChannelAsync?: (id: string) => Promise<unknown>;
   scheduleNotificationAsync: (req: unknown) => Promise<string>;
   cancelScheduledNotificationAsync: (id: string) => Promise<unknown>;
   getAllScheduledNotificationsAsync?: () => Promise<Array<{ identifier?: string }>>;
   requestPermissionsAsync: () => Promise<{ granted?: boolean; status?: string }>;
-  AndroidImportance?: { HIGH: number; DEFAULT: number; LOW: number };
+  AndroidImportance?: { HIGH: number; DEFAULT: number; LOW: number; MAX?: number };
   SchedulableTriggerInputTypes?: { DATE: string; TIME_INTERVAL: string };
 };
 
@@ -52,32 +53,43 @@ export async function ensureOsNotifications(): Promise<NotifMod | null> {
     if (Platform.OS === 'android' && mod.setNotificationChannelAsync) {
       const importance = mod.AndroidImportance?.HIGH ?? 4;
       const low = mod.AndroidImportance?.LOW ?? 2;
+      // Priority Anchor cues: heads-up when muted; bypass DND when policy access allows.
+      // Leave focus-pulse / water quieter so DND is not abused for ambient noise.
+      // New channel ids so bypassDnd lands on upgrades (Android freezes channel props).
+      const stale = ['cooking', 'os-tasks', 'os-meals', 'os-review', 'os-focus-start'];
+      if (mod.deleteNotificationChannelAsync) {
+        await Promise.all(stale.map((id) => mod.deleteNotificationChannelAsync?.(id).catch(() => undefined)));
+      }
+      const priority = {
+        importance,
+        bypassDnd: true,
+        lockscreenVisibility: 1, // PUBLIC
+        sound: 'default' as const,
+      };
       await Promise.all([
-        mod.setNotificationChannelAsync('cooking', {
+        mod.setNotificationChannelAsync('cooking-priority', {
           name: 'Cooking timers',
-          importance,
-          sound: 'default',
+          ...priority,
           vibrationPattern: [0, 400, 200, 400],
           enableVibrate: true,
         }),
-        mod.setNotificationChannelAsync('os-tasks', {
+        mod.setNotificationChannelAsync('os-tasks-priority', {
           name: 'Tasks',
-          importance,
-          sound: 'default',
+          ...priority,
         }),
-        mod.setNotificationChannelAsync('os-meals', {
+        mod.setNotificationChannelAsync('os-meals-priority', {
           name: 'Meals',
-          importance,
-          sound: 'default',
+          ...priority,
         }),
-        mod.setNotificationChannelAsync('os-review', {
+        mod.setNotificationChannelAsync('os-review-priority', {
           name: 'Weekly review',
-          importance,
-          sound: 'default',
+          ...priority,
         }),
-        mod.setNotificationChannelAsync('os-focus-start', {
+        mod.setNotificationChannelAsync('os-focus-start-priority', {
           name: 'Focus block start',
           importance,
+          bypassDnd: true,
+          lockscreenVisibility: 1,
           sound: FOCUS_CHIME,
           enableVibrate: false,
         }),
@@ -202,7 +214,7 @@ export async function syncLifeReminders(input: {
       when,
       task.title,
       'Time to move this.',
-      'os-tasks',
+      'os-tasks-priority',
       'pos://os/tasks'
     );
   }
@@ -220,7 +232,7 @@ export async function syncLifeReminders(input: {
         when,
         nextMeal.recipeName || nextMeal.slot,
         `${nextMeal.slot} is in 15 minutes.`,
-        'os-meals',
+        'os-meals-priority',
         'pos://os/meals'
       );
     }
@@ -233,7 +245,7 @@ export async function syncLifeReminders(input: {
       nextSundayEighteen(),
       'Weekly review',
       'Look back on the week. Four short answers.',
-      'os-review',
+      'os-review-priority',
       'pos://os/review'
     );
   }
@@ -262,7 +274,7 @@ async function scheduleFocusCue(
   url: string
 ): Promise<void> {
   if (when.getTime() <= Date.now() + 1_000) return;
-  const channelId = kind === 'start' ? 'os-focus-start' : 'os-focus-pulse';
+  const channelId = kind === 'start' ? 'os-focus-start-priority' : 'os-focus-pulse';
   const type = mod.SchedulableTriggerInputTypes?.DATE;
   const trigger = type ? { type, date: when, channelId } : { date: when, channelId };
   try {
@@ -286,8 +298,8 @@ export async function announceFocusStart(title: string, body?: string): Promise<
   if (!mod) return;
   const interval = mod.SchedulableTriggerInputTypes?.TIME_INTERVAL;
   const trigger = interval
-    ? { type: interval, seconds: 1, repeats: false, channelId: 'os-focus-start' }
-    : { seconds: 1, repeats: false, channelId: 'os-focus-start' };
+    ? { type: interval, seconds: 1, repeats: false, channelId: 'os-focus-start-priority' }
+    : { seconds: 1, repeats: false, channelId: 'os-focus-start-priority' };
   try {
     await mod.scheduleNotificationAsync({
       identifier: `${FOCUS_PREFIX}live:${Date.now()}`,

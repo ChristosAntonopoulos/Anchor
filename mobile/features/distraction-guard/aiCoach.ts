@@ -46,7 +46,7 @@ export async function getReplacementAction(_ctx?: {
 
 /** AI Call B — I'm stuck */
 export async function getStuckHelp(): Promise<StuckHelp> {
-  const options = ['Βάλε το κινητό κάτω.', 'Σήκω από την καρέκλα.', 'Άνοιξε μόνο το project.'];
+  const options = ['Put the phone down.', 'Get up from the chair.', 'Open only the project.'];
   return { action: options[Date.now() % options.length], source: 'predefined' };
 }
 
@@ -59,7 +59,7 @@ export async function getWeeklyReflection(input: {
   const observations: string[] = [];
   if (input.verifiedDistractingMinutes > 0) {
     observations.push(
-      `Μετρημένα λεπτά σε επιλεγμένα apps: ${Math.round(input.verifiedDistractingMinutes)}.`
+      `Verified minutes in selected apps: ${Math.round(input.verifiedDistractingMinutes)}.`
     );
   }
   if (input.unlockToDistractionRate != null) {

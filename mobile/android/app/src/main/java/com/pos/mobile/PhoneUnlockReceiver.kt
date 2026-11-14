@@ -11,23 +11,39 @@ class PhoneUnlockReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         when (intent?.action) {
             Intent.ACTION_SCREEN_OFF -> {
+                // Pre-arm so the next wake already has Anchor over the keyguard
+                // (avoids system lock → app-icon → Anchor flash).
+                LockScreenHost.arm(context)
                 PhoneUnlockPresenter.onScreenOff(context)
             }
             Intent.ACTION_USER_PRESENT -> {
+                // Drop the lock face before Answer / Home / Morning take over.
+                LockScreenHost.dismiss()
                 PhoneUnlockPresenter.onPhoneUnlocked(context, System.currentTimeMillis(), fromUserPresent = true)
             }
             Intent.ACTION_SCREEN_ON -> {
                 val keyguard = context.getSystemService(KeyguardManager::class.java)
-                if (keyguard?.isKeyguardLocked != true) {
+                if (keyguard?.isKeyguardLocked == true) {
+                    LockScreenHost.show(context)
+                } else {
+                    LockScreenHost.dismiss()
                     PhoneUnlockPresenter.onScreenOnWhileUnlocked(context)
                 }
             }
             Intent.ACTION_TIMEZONE_CHANGED, Intent.ACTION_DATE_CHANGED -> {
+                val now = System.currentTimeMillis()
                 MorningModeStore.saveGate(
                     context.applicationContext,
                     MorningModeLogic.onCivilDate(
                         MorningModeStore.gate(context.applicationContext),
-                        System.currentTimeMillis(),
+                        now,
+                    ),
+                )
+                NightModeStore.saveGate(
+                    context.applicationContext,
+                    NightModeLogic.onCivilDate(
+                        NightModeStore.gate(context.applicationContext),
+                        now,
                     ),
                 )
             }

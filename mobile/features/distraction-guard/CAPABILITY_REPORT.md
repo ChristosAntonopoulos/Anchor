@@ -15,11 +15,11 @@ Fixed after review:
 - Friction/cooldown presentation success tracked; rate caps only on presented prompts
 - Cycle transitions use `SharedPreferences.commit()`
 - Honest capabilities (notifications permission, no fake “live” observation)
-- Sections G/H, Greek copy, custom durations, reset-settings-without-wiping-history
+- Sections G/H, English copy, custom durations, reset-settings-without-wiping-history
 - Whole-browser counting wires browser packages when explicitly enabled
 - Intentional use (separate exception) starts temporary bypass for planned duration
 - Live 1s UI countdown derived from last native snapshot (native remains authoritative)
-- StatusChip honors temporary-access / Greek labels
+- StatusChip honors temporary-access / English labels
 
 ## Files added / changed (high level)
 
@@ -33,7 +33,7 @@ Fixed after review:
 
 ## Components implemented
 
-- Settings / onboarding master screen (Greek + English labels per spec)
+- Settings / onboarding master screen (English labels)
 - Current protection card (allowance / cooldown remaining)
 - Target apps (Instagram / YouTube discovery)
 - Websites section with honest “cannot verify” status

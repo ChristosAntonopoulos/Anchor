@@ -151,6 +151,9 @@ export interface APIClient {
   syncMorningSession(session: import('../utils/morningMode').MorningSession): Promise<void>;
   getMorningFirstTask(): Promise<import('../utils/morningMode').MorningFirstTask>;
   helpMorning(request: { step: string; text: string }): Promise<string | null>;
+  syncNightSession(session: import('../utils/nightMode').NightSession): Promise<void>;
+  getNightTomorrowPlan(): Promise<import('../utils/nightMode').NightTomorrowPlan>;
+  helpNight(request: { step: string; text: string }): Promise<string | null>;
   getTodayFocus(): Promise<Task[]>;
   getInbox(limit?: number): Promise<TaskInboxResponse>;
   promoteTask(id: string): Promise<Task>;
@@ -1237,6 +1240,20 @@ class HTTPAPIClient implements APIClient {
   async getLatestPipeline(): Promise<import('../types').LatestPipelineRun> {
     const response = await this.axiosInstance.get<ApiResponse<import('../types').LatestPipelineRun>>('/pipelines/latest');
     return unwrapResponse(response.data);
+  }
+
+  async syncNightSession(session: import('../utils/nightMode').NightSession): Promise<void> {
+    await this.axiosInstance.put('/night/session', session);
+  }
+
+  async getNightTomorrowPlan(): Promise<import('../utils/nightMode').NightTomorrowPlan> {
+    const response = await this.axiosInstance.get<ApiResponse<import('../utils/nightMode').NightTomorrowPlan>>('/night/tomorrow-plan');
+    return unwrapResponse(response.data);
+  }
+
+  async helpNight(request: { step: string; text: string }): Promise<string | null> {
+    const response = await this.axiosInstance.post<ApiResponse<{ text?: string }>>('/night/help', request);
+    return unwrapResponse(response.data)?.text ?? null;
   }
 
   private handleError(error: unknown, defaultMessage: string): Error {

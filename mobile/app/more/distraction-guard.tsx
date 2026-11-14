@@ -93,7 +93,7 @@ export default function DistractionGuardScreen() {
   const explanation = useMemo(() => {
     const a = Math.round((settings?.allowanceSeconds ?? 300) / 60);
     const c = Math.round((settings?.cooldownSeconds ?? 900) / 60);
-    return `Μετά από ${a} συνολικά λεπτά στα επιλεγμένα apps, ενεργοποιείται διάλειμμα ${c} λεπτών.`;
+    return `After ${a} total minutes in selected apps, a ${c}-minute break starts.`;
   }, [settings?.allowanceSeconds, settings?.cooldownSeconds]);
 
   const staleMinutes = useMemo(() => {
@@ -131,11 +131,11 @@ export default function DistractionGuardScreen() {
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
           <Text style={styles.title}>Distraction Guard</Text>
-          <Text style={styles.subtitle}>Λιγότερο αυτόματο scrolling. Περισσότερος έλεγχος.</Text>
+          <Text style={styles.subtitle}>Less automatic scrolling. More control.</Text>
 
           <View style={styles.card}>
             <View style={styles.rowBetween}>
-              <Text style={styles.cardTitle}>Ενεργό</Text>
+              <Text style={styles.cardTitle}>Active</Text>
               <Switch
                 value={enabled}
                 onValueChange={(v) => {
@@ -156,43 +156,43 @@ export default function DistractionGuardScreen() {
             />
             {bypassActive ? (
               <Text style={styles.warnText}>
-                Προσωρινή πρόσβαση ενεργή
+                Temporary access active
                 {cycleStatus === 'COOLDOWN_ACTIVE'
-                  ? ` — το διάλειμμα συνεχίζει στο παρασκήνιο (${formatMmSs(displayCooldownMs)}).`
+                  ? ` — the break continues in the background (${formatMmSs(displayCooldownMs)}).`
                   : '.'}
               </Text>
             ) : null}
             {!settings?.setupComplete ? (
               <TouchableOpacity style={styles.primaryBtn} onPress={completeSetup}>
-                <Text style={styles.primaryBtnText}>Ολοκλήρωση setup</Text>
+                <Text style={styles.primaryBtnText}>Finish setup</Text>
               </TouchableOpacity>
             ) : null}
           </View>
 
           {/* Section A — Current protection */}
-          <Text style={styles.section}>Τρέχουσα προστασία</Text>
+          <Text style={styles.section}>Current protection</Text>
           <View style={styles.card}>
             {bypassActive && cycleStatus === 'COOLDOWN_ACTIVE' ? (
               <>
                 <Text style={styles.bigTime}>{formatMmSs(displayCooldownMs)}</Text>
-                <Text style={styles.muted}>Υπόλοιπο διαλείμματος (τρέχει στο παρασκήνιο)</Text>
+                <Text style={styles.muted}>Break remaining (running in background)</Text>
               </>
             ) : inCooldown ? (
               <>
                 <Text style={styles.bigTime}>{formatMmSs(displayCooldownMs)}</Text>
-                <Text style={styles.muted}>Διάλειμμα σε εξέλιξη</Text>
+                <Text style={styles.muted}>Break in progress</Text>
               </>
             ) : (
               <>
                 <Text style={styles.bigTime}>{formatMmSs(displayAllowanceMs)}</Text>
                 <Text style={styles.muted}>
                   {bypassActive
-                    ? 'Προσωρινή πρόσβαση — το όριο χρήσης παγώνει'
-                    : `Από τα ${Math.round((settings?.allowanceSeconds ?? 300) / 60)} λεπτά χρήσης`}
+                    ? 'Temporary access — usage limit is frozen'
+                    : `Of ${Math.round((settings?.allowanceSeconds ?? 300) / 60)} minutes of use`}
                 </Text>
                 {!bypassActive && displayProvisionalMs > 0 ? (
                   <Text style={styles.warnText}>
-                    Σε εξέλιξη τώρα (~{formatMmSs(displayProvisionalMs)}) — μετράει όταν κλείσει το session.
+                    In progress now (~{formatMmSs(displayProvisionalMs)}) — counts when the session ends.
                   </Text>
                 ) : null}
               </>
@@ -236,23 +236,23 @@ export default function DistractionGuardScreen() {
               Apps: {(settings?.targetPackages ?? []).map(shortPkg).join(', ') || '—'}
             </Text>
             <Text style={styles.muted}>
-              Πρόγραμμα: {formatHour(settings?.scheduleStartMinutes ?? 420)}–
-              {formatHour(settings?.scheduleEndMinutes ?? 1380)} · Διάλειμμα{' '}
-              {Math.round((settings?.cooldownSeconds ?? 900) / 60)} λεπτά
+              Schedule: {formatHour(settings?.scheduleStartMinutes ?? 420)}–
+              {formatHour(settings?.scheduleEndMinutes ?? 1380)} · Break{' '}
+              {Math.round((settings?.cooldownSeconds ?? 900) / 60)} minutes
             </Text>
             {staleMinutes != null && staleMinutes > 2 ? (
-              <Text style={styles.warnText}>Τελευταία ενημέρωση πριν από {staleMinutes} λεπτά.</Text>
+              <Text style={styles.warnText}>Last update {staleMinutes} minutes ago.</Text>
             ) : (
               <Text style={styles.muted}>
-                Παρακολούθηση:{' '}
+                Monitoring:{' '}
                 {status?.capabilities.usageAccessGranted
                   ? 'Usage Access OK (reconciled)'
-                  : 'Χρειάζεται Usage Access'}
+                  : 'Usage Access needed'}
               </Text>
             )}
             {!status?.capabilities.canRestrictNativeApps ? (
               <Text style={styles.warnText}>
-                Δεν γίνεται hard block εφαρμογών. Παρατηρεί, ειδοποιεί και δείχνει διάλειμμα.
+                Apps are not hard-blocked. It observes, notifies, and shows a break.
               </Text>
             ) : null}
             {settings?.showNextAction !== false ? (
@@ -260,28 +260,28 @@ export default function DistractionGuardScreen() {
             ) : null}
             <View style={styles.row}>
               <TouchableOpacity style={styles.secondaryBtn} onPress={() => setBypassOpen(true)}>
-                <Text style={styles.secondaryBtnText}>Χρειάζομαι πρόσβαση</Text>
+                <Text style={styles.secondaryBtnText}>I need access</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.secondaryBtn}
                 onPress={async () => setStuck((await getStuckHelp()).action)}
               >
-                <Text style={styles.secondaryBtnText}>Κόλλησα</Text>
+                <Text style={styles.secondaryBtnText}>I'm stuck</Text>
               </TouchableOpacity>
             </View>
             {stuck ? <Text style={styles.stuck}>{stuck}</Text> : null}
           </View>
 
           {/* Section B — My rules */}
-          <Text style={styles.section}>Οι κανόνες μου</Text>
+          <Text style={styles.section}>My rules</Text>
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Χρόνος χρήσης</Text>
+            <Text style={styles.cardTitle}>Usage time</Text>
             <PresetChips
               options={[
-                { label: '2 λεπτά', value: 120 },
-                { label: '5 λεπτά', value: 300 },
-                { label: '10 λεπτά', value: 600 },
-                { label: '15 λεπτά', value: 900 },
+                { label: '2 minutes', value: 120 },
+                { label: '5 minutes', value: 300 },
+                { label: '10 minutes', value: 600 },
+                { label: '15 minutes', value: 900 },
               ]}
               value={settings?.allowanceSeconds ?? 300}
               onChange={(v) => updateSettings({ allowanceSeconds: v })}
@@ -290,7 +290,7 @@ export default function DistractionGuardScreen() {
               <TextInput
                 style={styles.customInput}
                 keyboardType="number-pad"
-                placeholder="Custom λεπτά"
+                placeholder="Custom minutes"
                 placeholderTextColor={guardTokens.textSecondary}
                 value={customAllowance}
                 onChangeText={setCustomAllowance}
@@ -304,16 +304,16 @@ export default function DistractionGuardScreen() {
                   }
                 }}
               >
-                <Text style={styles.secondaryBtnText}>ΟΚ</Text>
+                <Text style={styles.secondaryBtnText}>OK</Text>
               </TouchableOpacity>
             </View>
-            <Text style={[styles.cardTitle, { marginTop: 16 }]}>Χρόνος διαλείμματος</Text>
+            <Text style={[styles.cardTitle, { marginTop: 16 }]}>Break length</Text>
             <PresetChips
               options={[
-                { label: '5 λεπτά', value: 300 },
-                { label: '10 λεπτά', value: 600 },
-                { label: '15 λεπτά', value: 900 },
-                { label: '30 λεπτά', value: 1800 },
+                { label: '5 minutes', value: 300 },
+                { label: '10 minutes', value: 600 },
+                { label: '15 minutes', value: 900 },
+                { label: '30 minutes', value: 1800 },
               ]}
               value={settings?.cooldownSeconds ?? 900}
               onChange={(v) => updateSettings({ cooldownSeconds: v })}
@@ -322,7 +322,7 @@ export default function DistractionGuardScreen() {
               <TextInput
                 style={styles.customInput}
                 keyboardType="number-pad"
-                placeholder="Custom λεπτά"
+                placeholder="Custom minutes"
                 placeholderTextColor={guardTokens.textSecondary}
                 value={customCooldown}
                 onChangeText={setCustomCooldown}
@@ -336,14 +336,14 @@ export default function DistractionGuardScreen() {
                   }
                 }}
               >
-                <Text style={styles.secondaryBtnText}>ΟΚ</Text>
+                <Text style={styles.secondaryBtnText}>OK</Text>
               </TouchableOpacity>
             </View>
             <Text style={styles.explain}>{explanation}</Text>
           </View>
 
           {/* Section C — Apps */}
-          <Text style={styles.section}>Εφαρμογές που με αποσπούν</Text>
+          <Text style={styles.section}>Apps that distract me</Text>
           <View style={styles.card}>
             {targets.map((t) => {
               const selected = settings?.targetPackages?.includes(t.packageName) ?? false;
@@ -377,7 +377,7 @@ export default function DistractionGuardScreen() {
           </View>
 
           {/* Section D — Websites */}
-          <Text style={styles.section}>Ιστοσελίδες</Text>
+          <Text style={styles.section}>Websites</Text>
           <View style={styles.card}>
             {(settings?.targetHosts ?? []).map((host) => (
               <View key={host} style={styles.targetRow}>
@@ -403,17 +403,17 @@ export default function DistractionGuardScreen() {
           </View>
 
           {/* Section E — Schedule */}
-          <Text style={styles.section}>Πότε λειτουργεί</Text>
+          <Text style={styles.section}>When it runs</Text>
           <View style={styles.card}>
             <Text style={styles.muted}>
-              Κάθε μέρα {formatHour(settings?.scheduleStartMinutes ?? 420)}–
+              Every day {formatHour(settings?.scheduleStartMinutes ?? 420)}–
               {formatHour(settings?.scheduleEndMinutes ?? 1380)}
             </Text>
             <View style={styles.row}>
               {[
-                { label: 'Όλη μέρα', start: 0, end: 24 * 60 },
-                { label: 'Εργασία', start: 9 * 60, end: 18 * 60 },
-                { label: 'Βράδυ', start: 18 * 60, end: 23 * 60 },
+                { label: 'All day', start: 0, end: 24 * 60 },
+                { label: 'Work', start: 9 * 60, end: 18 * 60 },
+                { label: 'Evening', start: 18 * 60, end: 23 * 60 },
               ].map((p) => (
                 <TouchableOpacity
                   key={p.label}
@@ -437,20 +437,20 @@ export default function DistractionGuardScreen() {
                 updateSettings({ pausedUntilMs: until });
               }}
             >
-              <Text style={styles.secondaryBtnText}>Παύση 1 ώρα</Text>
+              <Text style={styles.secondaryBtnText}>Pause 1 hour</Text>
             </TouchableOpacity>
             {(settings?.pausedUntilMs ?? 0) > Date.now() ? (
               <Text style={styles.warnText}>
-                Σε παύση μέχρι {new Date(settings?.pausedUntilMs ?? 0).toLocaleTimeString()}
+                Paused until {new Date(settings?.pausedUntilMs ?? 0).toLocaleTimeString()}
               </Text>
             ) : null}
           </View>
 
           {/* Section F — Opening */}
-          <Text style={styles.section}>Πριν ανοίξω ένα app</Text>
+          <Text style={styles.section}>Before I open an app</Text>
           <View style={styles.card}>
             <View style={styles.rowBetween}>
-              <Text style={styles.cardTitle}>Μικρή παύση</Text>
+              <Text style={styles.cardTitle}>Short pause</Text>
               <Switch
                 value={settings?.openingFrictionEnabled ?? true}
                 onValueChange={(v) => updateSettings({ openingFrictionEnabled: v })}
@@ -473,89 +473,89 @@ export default function DistractionGuardScreen() {
               }
             />
             <Text style={styles.muted}>
-              Max {settings?.maxFrictionPerHour ?? 4}/ώρα · debounce{' '}
+              Max {settings?.maxFrictionPerHour ?? 4}/hour · debounce{' '}
               {settings?.sessionDebounceSeconds ?? 30}s
             </Text>
             <TouchableOpacity style={styles.secondaryBtn} onPress={() => setIntentionalOpen(true)}>
-              <Text style={styles.secondaryBtnText}>Δήλωση πρόθεσης</Text>
+              <Text style={styles.secondaryBtnText}>Declare intention</Text>
             </TouchableOpacity>
           </View>
 
           {/* Section G — Cooldown behavior */}
-          <Text style={styles.section}>Όταν φτάνω το όριο</Text>
+          <Text style={styles.section}>When I hit the limit</Text>
           <View style={styles.card}>
             <ToggleRow
-              label="Δείξε μία επόμενη ενέργεια"
+              label="Show one next action"
               value={settings?.showNextAction !== false}
               onChange={(v) => updateSettings({ showNextAction: v })}
             />
             <ToggleRow
-              label="Ήσυχες ειδοποιήσεις"
+              label="Quiet notifications"
               value={!!settings?.quietNotifications}
               onChange={(v) => updateSettings({ quietNotifications: v })}
             />
             <ToggleRow
-              label="Η πρόθεση μετράει στο κοινό όριο"
+              label="Intention counts toward the shared limit"
               value={settings?.intentionalUsesSharedAllowance !== false}
               onChange={(v) => updateSettings({ intentionalUsesSharedAllowance: v })}
             />
           </View>
 
           {/* Section H — Memory */}
-          <Text style={styles.section}>Τι θέλω να μάθει η εφαρμογή</Text>
+          <Text style={styles.section}>What I want the app to learn</Text>
           <View style={styles.card}>
             <ToggleRow
-              label="Θυμήσου χρήσιμες παρεμβάσεις"
+              label="Remember helpful interventions"
               value={settings?.rememberInterventions !== false}
               onChange={(v) => updateSettings({ rememberInterventions: v })}
             />
             <ToggleRow
-              label="Ανάλυση unlock→distraction"
+              label="Analyze unlock→distraction"
               value={settings?.analyzeUnlockPatterns !== false}
               onChange={(v) => updateSettings({ analyzeUnlockPatterns: v })}
             />
             <ToggleRow
-              label="Καταγραφή intentional sessions"
+              label="Log intentional sessions"
               value={settings?.trackIntentionalSessions !== false}
               onChange={(v) => updateSettings({ trackIntentionalSessions: v })}
             />
             <ToggleRow
-              label="Πρόταση εβδομαδιαίας βελτίωσης"
+              label="Suggest a weekly improvement"
               value={settings?.suggestWeeklyImprovement !== false}
               onChange={(v) => updateSettings({ suggestWeeklyImprovement: v })}
             />
             <Text style={styles.muted}>
-              Τοπικά aggregates μόνο. Όχι ιστορικό browsing, όχι περιεχόμενο posts.
+              Local aggregates only. No browsing history, no post content.
             </Text>
           </View>
 
           {/* Section I — Permissions */}
-          <Text style={styles.section}>Κατάσταση προστασίας</Text>
+          <Text style={styles.section}>Protection status</Text>
           <View style={styles.card}>
             <CapabilityRow
               label="Usage Access"
               ok={!!status?.capabilities.usageAccessGranted}
-              actionLabel="Άδειες"
+              actionLabel="Permissions"
               onAction={requestUsageAccess}
             />
             <CapabilityRow
-              label="Ειδοποιήσεις"
+              label="Notifications"
               ok={!!status?.capabilities.notificationsAllowed}
-              actionLabel="Ζήτα"
+              actionLabel="Ask"
               onAction={requestNotifications}
             />
             <CapabilityRow
-              label="Παρατήρηση native apps"
+              label="Observe native apps"
               ok={!!status?.capabilities.canObserveNativeApps}
             />
             <CapabilityRow
-              label="Άμεση παρέμβαση (overlay)"
+              label="Immediate intervention (overlay)"
               ok={!!status?.capabilities.canPresentImmediateIntervention}
-              actionLabel="Άδειες"
+              actionLabel="Permissions"
               onAction={requestOverlay}
             />
             <CapabilityRow
-              label="Περιορισμός native apps"
+              label="Limit native apps"
               ok={!!status?.capabilities.canRestrictNativeApps}
             />
             <CapabilityRow
@@ -570,7 +570,7 @@ export default function DistractionGuardScreen() {
           </View>
 
           {/* Section J — Data */}
-          <Text style={styles.section}>Δεδομένα</Text>
+          <Text style={styles.section}>Data</Text>
           <View style={styles.card}>
             <TouchableOpacity
               style={styles.secondaryBtn}
@@ -582,42 +582,42 @@ export default function DistractionGuardScreen() {
               style={styles.secondaryBtn}
               onPress={() =>
                 Alert.alert(
-                  'Καθαρισμός ιστορικού;',
-                  'Οι ρυθμίσεις μένουν. Διαγράφεται μόνο το τοπικό ιστορικό χρήσης.',
+                  'Clear history?',
+                  'Settings stay. Only local usage history is deleted.',
                   [
-                    { text: 'Άκυρο', style: 'cancel' },
-                    { text: 'Καθαρισμός', style: 'destructive', onPress: clearHistoryOnly },
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Clear', style: 'destructive', onPress: clearHistoryOnly },
                   ]
                 )
               }
             >
-              <Text style={styles.secondaryBtnText}>Καθαρισμός ιστορικού</Text>
+              <Text style={styles.secondaryBtnText}>Clear history</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.secondaryBtn}
               onPress={() =>
                 Alert.alert(
-                  'Επαναφορά ρυθμίσεων;',
-                  'Το ιστορικό δεν διαγράφεται. Μόνο οι ρυθμίσεις επιστρέφουν στις προεπιλογές.',
+                  'Reset settings?',
+                  'History is not deleted. Only settings return to defaults.',
                   [
-                    { text: 'Άκυρο', style: 'cancel' },
-                    { text: 'Επαναφορά', onPress: resetSettingsOnly },
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Reset', onPress: resetSettingsOnly },
                   ]
                 )
               }
             >
-              <Text style={styles.secondaryBtnText}>Επαναφορά ρυθμίσεων</Text>
+              <Text style={styles.secondaryBtnText}>Reset settings</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.secondaryBtn, styles.dangerBtn]}
               onPress={() =>
-                Alert.alert('Απενεργοποίηση;', 'Σταματά αμέσως η παρακολούθηση.', [
-                  { text: 'Άκυρο', style: 'cancel' },
-                  { text: 'Απενεργοποίηση', style: 'destructive', onPress: disableAll },
+                Alert.alert('Turn off?', 'Monitoring stops immediately.', [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Turn off', style: 'destructive', onPress: disableAll },
                 ])
               }
             >
-              <Text style={styles.secondaryBtnText}>Απενεργοποίηση όλων</Text>
+              <Text style={styles.secondaryBtnText}>Turn everything off</Text>
             </TouchableOpacity>
           </View>
         </View>

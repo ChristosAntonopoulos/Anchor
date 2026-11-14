@@ -19,12 +19,14 @@ public static class ScheduleChecklistBuilder
         ["morning walk"] = 20,
         ["move"] = 15,
         ["plan the day"] = 10,
+        ["dim lights"] = 2,
         ["close screens"] = 5,
+        ["cool room"] = 3,
         ["read a book"] = 25,
         ["read"] = 25,
-        ["wind down"] = 10,
+        ["wind down"] = 15,
         ["reflect"] = 10,
-        ["prepare tomorrow"] = 10,
+        ["prepare tomorrow"] = 5,
         ["set intention"] = 5,
         ["deep work"] = 90,
         ["focus"] = 45,
@@ -45,10 +47,11 @@ public static class ScheduleChecklistBuilder
         ],
         ["evening routine"] =
         [
+            new("Dim lights", 2),
             new("Close screens", 5),
-            new("Read a book", 25),
-            new("Brush teeth", 3),
-            new("Prepare tomorrow", 10),
+            new("Cool room", 3),
+            new("Wind down", 15),
+            new("Prepare tomorrow", 5),
         ],
         ["deep work"] =
         [

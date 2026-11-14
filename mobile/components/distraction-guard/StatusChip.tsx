@@ -2,13 +2,13 @@ import { View, Text, StyleSheet } from 'react-native';
 import { guardTokens } from '../../features/distraction-guard/guardTokens';
 
 const labels: Record<string, string> = {
-  ACTIVE: 'Ενεργό',
-  OUTSIDE_SCHEDULE: 'Εκτός προγράμματος',
-  COOLDOWN_ACTIVE: 'Διάλειμμα',
-  PAUSED: 'Προσωρινή πρόσβαση',
-  DISABLED: 'Ανενεργό',
-  DEGRADED: 'Χρειάζεται άδεια',
-  LIMITED: 'Περιορισμένη παρακολούθηση',
+  ACTIVE: 'Active',
+  OUTSIDE_SCHEDULE: 'Outside schedule',
+  COOLDOWN_ACTIVE: 'Break',
+  PAUSED: 'Temporary access',
+  DISABLED: 'Off',
+  DEGRADED: 'Permission needed',
+  LIMITED: 'Limited monitoring',
 };
 
 export function StatusChip({

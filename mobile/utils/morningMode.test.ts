@@ -78,9 +78,9 @@ test('wake ready then movement commands stay one at a time', () => {
   let session = reduceMorning(emptyWaiting(morning(7)), { type: 'unlock', fromUserPresent: true }, morning(7));
   session = reduceMorning(session, { type: 'ready' }, morning(7, 0, 20));
   assert.equal(session.currentStep, 'move');
-  assert.equal(currentCommand(session), 'Περπάτα επιτόπου.');
+  assert.equal(currentCommand(session), 'March in place.');
   session = reduceMorning(session, { type: 'easier' }, morning(7, 0, 21));
-  assert.equal(currentCommand(session), 'Κούνα τα πόδια καθιστός.');
+  assert.equal(currentCommand(session), 'Move your feet while seated.');
 });
 
 test('skipping cleaning does not invent extra chores', () => {
