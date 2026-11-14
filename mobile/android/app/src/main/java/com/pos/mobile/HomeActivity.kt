@@ -138,7 +138,6 @@ class HomeActivity : AppCompatActivity() {
             recentsTrack = false
             return super.dispatchTouchEvent(event)
         }
-        if (::recentsDetector.isInitialized) recentsDetector.onTouchEvent(event)
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 recentsTrack = recents == null && allApps == null && edit == null &&
@@ -159,6 +158,14 @@ class HomeActivity : AppCompatActivity() {
                     }
                 }
             }
+        }
+        // Feed fling detector only while this gesture is still an upward open-apps candidate.
+        // Skip after a sideways cancel so horizontal page swipes cannot fire onFling.
+        val feedRecentsFling = recentsTrack && ::recentsDetector.isInitialized
+        if (feedRecentsFling) {
+            recentsDetector.onTouchEvent(event)
+        }
+        when (event.actionMasked) {
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 if (recentsTrack && recents == null && ::root.isInitialized) {
                     if (tryOpenRecentsFromTrack(event.x, event.y)) {
