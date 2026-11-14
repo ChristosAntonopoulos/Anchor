@@ -36,6 +36,10 @@ class LockScreenActivity : AppCompatActivity() {
     private lateinit var cueTitle: TextView
     private lateinit var cueDetail: TextView
     private lateinit var statusLine: TextView
+    private lateinit var mediaPanel: LinearLayout
+    private lateinit var mediaLine: TextView
+    private lateinit var mediaPlay: TextView
+    private var stopMediaObserve: (() -> Unit)? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Lock flags before first frame so the window is eligible over keyguard immediately.
@@ -89,6 +93,7 @@ class LockScreenActivity : AppCompatActivity() {
             setPadding(0, LauncherPalette.dp(root, 18), 0, 0)
             letterSpacing = 0.02f
         }
+        mediaPanel = buildMediaPanel(root)
         val hint = LauncherPalette.text(root, 12f, LauncherPalette.faint).apply {
             text = "Unlock to continue"
             gravity = Gravity.CENTER_HORIZONTAL
@@ -111,6 +116,10 @@ class LockScreenActivity : AppCompatActivity() {
         root.addView(cueDetail)
         root.addView(statusLine)
         root.addView(View(this), LinearLayout.LayoutParams(0, 0, 1f))
+        root.addView(mediaPanel, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+        ).apply { bottomMargin = LauncherPalette.dp(root, 18) })
         root.addView(hint)
 
         root.isClickable = true
@@ -118,6 +127,7 @@ class LockScreenActivity : AppCompatActivity() {
         root.setOnClickListener { requestUnlock() }
 
         bindCopy()
+        startMediaObserve()
         // Only bail if we clearly woke into an unlocked phone (not while arming for lock).
         if (!isKeyguardLocked() && !isScreenOffLikely()) {
             finish()
@@ -139,6 +149,7 @@ class LockScreenActivity : AppCompatActivity() {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
         bindCopy()
+        startMediaObserve()
         if (!isKeyguardLocked() && !isScreenOffLikely()) {
             finish()
         }
@@ -150,15 +161,115 @@ class LockScreenActivity : AppCompatActivity() {
     }
 
     override fun finish() {
+        stopMediaObserve()
         super.finish()
         overridePendingTransition(0, 0)
     }
 
     override fun onDestroy() {
+        stopMediaObserve()
         if (showing?.get() === this) {
             showing = null
         }
         super.onDestroy()
+    }
+
+    private fun buildMediaPanel(host: View): LinearLayout {
+        mediaLine = LauncherPalette.text(host, 14f, LauncherPalette.text, true).apply {
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
+            isClickable = true
+            isFocusable = true
+            contentDescription = "Open Spotify"
+            setOnClickListener { openSpotifyFromLock() }
+        }
+        val prev = transportButton(host, "‹‹", "Previous") {
+            LockScreenSpotify.skipPrevious()
+        }
+        mediaPlay = transportButton(host, "▶", "Play or pause") {
+            LockScreenSpotify.playPause()
+        }
+        val next = transportButton(host, "››", "Next") {
+            LockScreenSpotify.skipNext()
+        }
+        val transport = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            addView(prev, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            addView(mediaPlay, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            addView(next, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        }
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            visibility = View.GONE
+            isClickable = true
+            isFocusable = true
+            // Absorb taps on the strip so they don't request unlock.
+            setOnClickListener { /* no-op */ }
+            addView(View(context).apply { setBackgroundColor(LauncherPalette.hairline) },
+                LinearLayout.LayoutParams(LauncherPalette.dp(host, 40), 1).apply {
+                    bottomMargin = LauncherPalette.dp(host, 14)
+                })
+            addView(LauncherPalette.eyebrow(host, "Spotify"))
+            addView(mediaLine, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply { topMargin = LauncherPalette.dp(host, 6) })
+            addView(transport, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply { topMargin = LauncherPalette.dp(host, 10) })
+        }
+    }
+
+    private fun transportButton(host: View, glyph: String, label: String, onClick: () -> Unit): TextView {
+        return LauncherPalette.text(host, 22f, LauncherPalette.accent, true).apply {
+            text = glyph
+            gravity = Gravity.CENTER
+            minHeight = LauncherPalette.dp(host, 48)
+            isClickable = true
+            isFocusable = true
+            contentDescription = label
+            setOnClickListener { onClick() }
+        }
+    }
+
+    private fun startMediaObserve() {
+        if (stopMediaObserve != null) return
+        stopMediaObserve = LockScreenSpotify.observe(this) { snap ->
+            if (!::mediaPanel.isInitialized) return@observe
+            bindMedia(snap)
+        }
+    }
+
+    private fun stopMediaObserve() {
+        stopMediaObserve?.invoke()
+        stopMediaObserve = null
+    }
+
+    private fun bindMedia(snap: SpotifyLockSnapshot?) {
+        if (snap == null) {
+            mediaPanel.visibility = View.GONE
+            return
+        }
+        mediaPanel.visibility = View.VISIBLE
+        mediaLine.text = snap.line
+        mediaLine.contentDescription = "Open Spotify. ${snap.line}"
+        mediaPlay.text = if (snap.playing) "Ⅱ" else "▶"
+        mediaPlay.contentDescription = if (snap.playing) "Pause" else "Play"
+    }
+
+    private fun openSpotifyFromLock() {
+        val keyguard = getSystemService(KeyguardManager::class.java)
+        if (keyguard?.isKeyguardLocked == true && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            keyguard.requestDismissKeyguard(this, object : KeyguardManager.KeyguardDismissCallback() {
+                override fun onDismissSucceeded() {
+                    LockScreenSpotify.openSpotify(this@LockScreenActivity)
+                }
+            })
+        } else {
+            LockScreenSpotify.openSpotify(this)
+        }
     }
 
     private fun applyLockWindowBeforeContent() {
