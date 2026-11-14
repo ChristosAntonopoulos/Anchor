@@ -11,14 +11,19 @@ class PhoneUnlockReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         when (intent?.action) {
             Intent.ACTION_SCREEN_OFF -> {
+                LockScreenHost.dismiss()
                 PhoneUnlockPresenter.onScreenOff(context)
             }
             Intent.ACTION_USER_PRESENT -> {
+                // Drop the lock face before Answer / Home / Morning take over.
+                LockScreenHost.dismiss()
                 PhoneUnlockPresenter.onPhoneUnlocked(context, System.currentTimeMillis(), fromUserPresent = true)
             }
             Intent.ACTION_SCREEN_ON -> {
                 val keyguard = context.getSystemService(KeyguardManager::class.java)
-                if (keyguard?.isKeyguardLocked != true) {
+                if (keyguard?.isKeyguardLocked == true) {
+                    LockScreenHost.show(context)
+                } else {
                     PhoneUnlockPresenter.onScreenOnWhileUnlocked(context)
                 }
             }

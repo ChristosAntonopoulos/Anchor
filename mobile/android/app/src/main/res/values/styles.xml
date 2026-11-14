@@ -17,4 +17,9 @@
     <item name="android:enforceNavigationBarContrast" tools:targetApi="29">false</item>
     <item name="android:colorPrimary">#A4CDBB</item>
   </style>
+  <style name="LockScreenTheme" parent="LauncherTheme">
+    <item name="android:windowFullscreen">true</item>
+    <item name="android:windowIsTranslucent">false</item>
+    <item name="android:windowAnimationStyle">@null</item>
+  </style>
 </resources>
