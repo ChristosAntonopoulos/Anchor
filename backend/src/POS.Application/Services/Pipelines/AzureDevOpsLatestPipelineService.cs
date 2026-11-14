@@ -10,10 +10,14 @@ using POS.Application.DTOs.Pipelines;
 namespace POS.Application.Services.Pipelines;
 
 /// <summary>
-/// Fetches the most recent Azure DevOps pipeline run across every project in the org.
+/// Fetches the most recent Azure DevOps pipeline run across every project in the org,
+/// plus every currently active (running / queued) run.
 /// </summary>
 public class AzureDevOpsLatestPipelineService
 {
+    private const int BuildsPerProject = 15;
+    private const int MaxActiveRuns = 8;
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -81,13 +85,18 @@ public class AzureDevOpsLatestPipelineService
             var builds = new List<AdoBuild>();
             var tasks = projects.Select(async project =>
             {
-                var latest = await GetLatestBuildAsync(organization, project.Name, authorize, ct);
-                if (latest != null)
+                var recent = await ListRecentBuildsAsync(organization, project.Name, authorize, ct);
+                if (recent.Count == 0)
                 {
-                    latest.ProjectName = project.Name;
-                    lock (builds)
+                    return;
+                }
+
+                lock (builds)
+                {
+                    foreach (var build in recent)
                     {
-                        builds.Add(latest);
+                        build.ProjectName = project.Name;
+                        builds.Add(build);
                     }
                 }
             });
@@ -102,7 +111,31 @@ public class AzureDevOpsLatestPipelineService
                 .OrderByDescending(b => b.SortTime())
                 .First();
 
-            return Map(newest, organization);
+            var activeBuilds = builds
+                .Where(b =>
+                {
+                    var status = NormalizeStatus(b.Status, b.Result);
+                    return status is "running" or "queued";
+                })
+                .GroupBy(b => b.Id)
+                .Select(g => g.First())
+                .OrderByDescending(b => b.SortTime())
+                .Take(MaxActiveRuns)
+                .ToList();
+
+            // Prefer an active run as the primary glance when any are in flight.
+            var primaryBuild = activeBuilds.FirstOrDefault() ?? newest;
+            var mapped = Map(primaryBuild, organization);
+            mapped.Active = activeBuilds
+                .Select(b =>
+                {
+                    var item = Map(b, organization);
+                    item.Active = new List<LatestPipelineRunDto>();
+                    return item;
+                })
+                .ToList();
+
+            return mapped;
         }
         catch (OperationCanceledException)
         {
@@ -157,7 +190,7 @@ public class AzureDevOpsLatestPipelineService
         return parsed?.Value ?? new List<AdoProject>();
     }
 
-    private async Task<AdoBuild?> GetLatestBuildAsync(
+    private async Task<List<AdoBuild>> ListRecentBuildsAsync(
         string organization,
         string project,
         Action<HttpRequestMessage> authorize,
@@ -165,7 +198,7 @@ public class AzureDevOpsLatestPipelineService
     {
         var url =
             $"https://dev.azure.com/{Uri.EscapeDataString(organization)}/{Uri.EscapeDataString(project)}"
-            + "/_apis/build/builds?api-version=7.1&$top=1&queryOrder=queueTimeDescending";
+            + $"/_apis/build/builds?api-version=7.1&$top={BuildsPerProject}&queryOrder=queueTimeDescending";
 
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         authorize(request);
@@ -178,11 +211,11 @@ public class AzureDevOpsLatestPipelineService
                 "ADO builds list failed for {Project}: {Status}",
                 project,
                 (int)response.StatusCode);
-            return null;
+            return new List<AdoBuild>();
         }
 
         var parsed = JsonSerializer.Deserialize<AdoListResponse<AdoBuild>>(body, JsonOptions);
-        return parsed?.Value?.FirstOrDefault();
+        return parsed?.Value ?? new List<AdoBuild>();
     }
 
     private static LatestPipelineRunDto Map(AdoBuild build, string organization)
@@ -231,6 +264,7 @@ public class AzureDevOpsLatestPipelineService
             WebUrl = webUrl,
             Title = $"{StatusLabel(status)} · {name}",
             Subtitle = string.Join(" · ", subtitleParts),
+            Active = new List<LatestPipelineRunDto>(),
         };
     }
 
@@ -242,6 +276,7 @@ public class AzureDevOpsLatestPipelineService
         Title = "No pipeline yet",
         Subtitle = message,
         Timezone = "Europe/Athens",
+        Active = new List<LatestPipelineRunDto>(),
     };
 
     internal static string NormalizeStatus(string? status, string? result)

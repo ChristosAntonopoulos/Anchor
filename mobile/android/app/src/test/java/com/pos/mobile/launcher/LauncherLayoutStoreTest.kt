@@ -150,6 +150,32 @@ class PipelineStatusLabelTest {
             PipelineStatusProvider.DEFAULT_PIPELINES_URL,
         )
     }
+
+    @Test
+    fun mapsMultipleActiveRuns() {
+        val json = org.json.JSONObject(
+            """
+            {
+              "available":true,
+              "status":"running",
+              "name":"Anchor",
+              "title":"Running · Anchor",
+              "subtitle":"main · 12:00",
+              "webUrl":"https://dev.azure.com/CaptainBot/Anchor/_build/results?buildId=1",
+              "active":[
+                {"status":"running","name":"Anchor","title":"Running · Anchor","subtitle":"main","webUrl":"https://dev.azure.com/CaptainBot/Anchor/_build/results?buildId=1"},
+                {"status":"queued","name":"BotSystem","title":"Queued · BotSystem","subtitle":"master","webUrl":"https://dev.azure.com/CaptainBot/BotSystem/_build/results?buildId=2"}
+              ]
+            }
+            """.trimIndent(),
+        )
+        val content = PipelineStatusProvider.fromApiJson(json)
+        assertEquals(2, content.active.size)
+        assertEquals("1 running · 1 queued", content.headline)
+        assertEquals(null, content.webUrl)
+        assertEquals("Anchor", content.active[0].name)
+        assertEquals("BotSystem", content.active[1].name)
+    }
 }
 
 class K8sWidgetParseTest {

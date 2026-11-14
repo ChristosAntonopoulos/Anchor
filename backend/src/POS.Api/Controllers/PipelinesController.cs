@@ -19,7 +19,8 @@ public class PipelinesController : BaseController
     }
 
     /// <summary>
-    /// Latest pipeline run across the entire Azure DevOps organization.
+    /// Latest pipeline run across the entire Azure DevOps organization,
+    /// including every currently active (running / queued) run in <c>active</c>.
     /// </summary>
     [HttpGet("latest")]
     public async Task<IActionResult> GetLatest(CancellationToken cancellationToken)

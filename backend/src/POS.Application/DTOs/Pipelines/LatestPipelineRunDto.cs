@@ -43,4 +43,10 @@ public class LatestPipelineRunDto
 
     /// <summary>Preformatted subtitle (project · branch · local time).</summary>
     public string Subtitle { get; set; } = string.Empty;
+
+    /// <summary>
+    /// All currently active (running / queued) org-wide builds.
+    /// Empty when none are in progress. Nested items leave this empty.
+    /// </summary>
+    public List<LatestPipelineRunDto> Active { get; set; } = new();
 }
