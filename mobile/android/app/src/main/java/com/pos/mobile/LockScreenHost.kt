@@ -23,7 +23,7 @@ object LockScreenHost {
         }
         lastShowAt = now
         val app = context.applicationContext
-        val launch = {
+        val launch = Runnable {
             try {
                 app.startActivity(LockScreenActivity.intent(app))
             } catch (error: Exception) {
@@ -31,18 +31,18 @@ object LockScreenHost {
             }
         }
         if (Looper.myLooper() == Looper.getMainLooper()) {
-            launch()
+            launch.run()
         } else {
             mainHandler.post(launch)
         }
     }
 
     fun dismiss() {
-        val finish = {
+        val finish = Runnable {
             LockScreenActivity.finishIfShowing()
         }
         if (Looper.myLooper() == Looper.getMainLooper()) {
-            finish()
+            finish.run()
         } else {
             mainHandler.post(finish)
         }
