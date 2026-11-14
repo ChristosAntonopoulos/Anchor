@@ -134,10 +134,11 @@
         android:taskAffinity="com.pos.mobile.lock"
         android:theme="@style/LockScreenTheme"
         android:showWhenLocked="true"
-        android:turnScreenOn="true"
+        android:turnScreenOn="false"
         android:screenOrientation="portrait"
         android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode"
-        android:stateNotNeeded="true"/>
+        android:stateNotNeeded="true"
+        android:noHistory="false"/>
     <activity android:name=".MainActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode" android:launchMode="singleTask" android:windowSoftInputMode="adjustResize" android:theme="@style/Theme.App.SplashScreen" android:exported="true" android:screenOrientation="portrait" android:showWhenLocked="true" android:turnScreenOn="true">
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>

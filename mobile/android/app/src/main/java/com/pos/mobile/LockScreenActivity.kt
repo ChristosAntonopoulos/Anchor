@@ -1,5 +1,6 @@
 package com.pos.mobile
 
+import android.app.ActivityManager
 import android.app.KeyguardManager
 import android.content.Context
 import android.content.Intent
@@ -25,8 +26,8 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Minimal lock face shown over the keyguard while the screen is on.
- * Matches Home chrome (thin middle-dot clock, faint date, sparse cue + pipeline line).
+ * Minimal lock face shown over the keyguard.
+ * Armed on screen-off so wake paints Anchor immediately (no system lock / icon flash).
  * Finishes on unlock so Answer / swipe / Recents keep working.
  */
 class LockScreenActivity : AppCompatActivity() {
@@ -37,9 +38,13 @@ class LockScreenActivity : AppCompatActivity() {
     private lateinit var statusLine: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Lock flags before first frame so the window is eligible over keyguard immediately.
+        applyLockWindowBeforeContent()
         super.onCreate(savedInstanceState)
+        overridePendingTransition(0, 0)
         showing = WeakReference(this)
-        applyLockWindow()
+        paintTaskDescription()
+
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(LauncherPalette.charcoal)
@@ -113,7 +118,8 @@ class LockScreenActivity : AppCompatActivity() {
         root.setOnClickListener { requestUnlock() }
 
         bindCopy()
-        if (!isKeyguardLocked()) {
+        // Only bail if we clearly woke into an unlocked phone (not while arming for lock).
+        if (!isKeyguardLocked() && !isScreenOffLikely()) {
             finish()
         }
     }
@@ -121,19 +127,31 @@ class LockScreenActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        overridePendingTransition(0, 0)
         bindCopy()
-        if (!isKeyguardLocked()) {
-            finish()
-        }
     }
 
     override fun onResume() {
         super.onResume()
         showing = WeakReference(this)
+        overridePendingTransition(0, 0)
+        if (!isScreenOffLikely()) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
         bindCopy()
-        if (!isKeyguardLocked()) {
+        if (!isKeyguardLocked() && !isScreenOffLikely()) {
             finish()
         }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Stay armed while the display is off; do not finish here.
+    }
+
+    override fun finish() {
+        super.finish()
+        overridePendingTransition(0, 0)
     }
 
     override fun onDestroy() {
@@ -143,24 +161,50 @@ class LockScreenActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
-    private fun applyLockWindow() {
+    private fun applyLockWindowBeforeContent() {
+        // Never turn the screen on from this activity — arming on SCREEN_OFF must not wake.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(false)
+        }
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.statusBarColor = Color.TRANSPARENT
         window.navigationBarColor = Color.TRANSPARENT
         if (Build.VERSION.SDK_INT >= 29) {
             window.isNavigationBarContrastEnforced = false
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-            setShowWhenLocked(true)
-            setTurnScreenOn(true)
+        @Suppress("DEPRECATION")
+        window.addFlags(
+            WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+        )
+        // Keep-awake only while the panel is already interactive — never while arming on SCREEN_OFF.
+        if (isScreenOffLikely()) {
+            @Suppress("DEPRECATION")
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        // Explicitly clear turn-on so arming cannot wake the panel.
+        @Suppress("DEPRECATION")
+        window.clearFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
+    }
+
+    private fun paintTaskDescription() {
+        val color = LauncherPalette.charcoal
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            setTaskDescription(
+                ActivityManager.TaskDescription.Builder()
+                    .setLabel("Anchor")
+                    .setPrimaryColor(color)
+                    .setBackgroundColor(color)
+                    .build(),
+            )
         } else {
             @Suppress("DEPRECATION")
-            window.addFlags(
-                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                    WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON,
-            )
+            setTaskDescription(ActivityManager.TaskDescription("Anchor", null as android.graphics.Bitmap?, color))
         }
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 
     private fun bindCopy() {
@@ -212,9 +256,20 @@ class LockScreenActivity : AppCompatActivity() {
         return keyguard?.isKeyguardLocked == true
     }
 
+    /** Power manager screen-off while we are arming for the next wake. */
+    private fun isScreenOffLikely(): Boolean {
+        val pm = applicationContext.getSystemService(android.os.PowerManager::class.java) ?: return false
+        return !pm.isInteractive
+    }
+
     companion object {
         @Volatile
         private var showing: WeakReference<LockScreenActivity>? = null
+
+        fun isShowing(): Boolean {
+            val activity = showing?.get()
+            return activity != null && !activity.isFinishing && !activity.isDestroyed
+        }
 
         fun intent(context: Context): Intent {
             return Intent(context, LockScreenActivity::class.java).apply {

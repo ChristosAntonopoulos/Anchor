@@ -11,7 +11,9 @@ class PhoneUnlockReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         when (intent?.action) {
             Intent.ACTION_SCREEN_OFF -> {
-                LockScreenHost.dismiss()
+                // Pre-arm so the next wake already has Anchor over the keyguard
+                // (avoids system lock → app-icon → Anchor flash).
+                LockScreenHost.arm(context)
                 PhoneUnlockPresenter.onScreenOff(context)
             }
             Intent.ACTION_USER_PRESENT -> {
@@ -24,6 +26,7 @@ class PhoneUnlockReceiver : BroadcastReceiver() {
                 if (keyguard?.isKeyguardLocked == true) {
                     LockScreenHost.show(context)
                 } else {
+                    LockScreenHost.dismiss()
                     PhoneUnlockPresenter.onScreenOnWhileUnlocked(context)
                 }
             }
