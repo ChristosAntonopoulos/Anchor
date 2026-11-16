@@ -33,6 +33,7 @@ class POSNotificationListenerService : NotificationListenerService() {
             
             // Send event to React Native
             sendEventToReactNative("onNotificationPosted", data)
+            notifyCallObservers()
             
             Log.d(TAG, "Notification received: $packageName ($appName) - ${data.getString("title")}: ${data.getString("text")}")
         } catch (e: Exception) {
@@ -149,6 +150,18 @@ class POSNotificationListenerService : NotificationListenerService() {
         }
         
         sendEventToReactNative("onNotificationRemoved", data)
+        notifyCallObservers()
+    }
+
+    private fun notifyCallObservers() {
+        val snapshot = synchronized(callObservers) { callObservers.toList() }
+        for (observer in snapshot) {
+            try {
+                observer.onCallNotificationsChanged()
+            } catch (error: Exception) {
+                Log.w(TAG, "Call observer failed", error)
+            }
+        }
     }
 
     private fun sendEventToReactNative(eventName: String, data: WritableMap) {
@@ -250,14 +263,33 @@ class POSNotificationListenerService : NotificationListenerService() {
         }
     }
 
+    interface CallObserver {
+        fun onCallNotificationsChanged()
+    }
+
     companion object {
         private const val TAG = "POSNotificationListener"
         private var instance: POSNotificationListenerService? = null
+        private val callObservers = mutableListOf<CallObserver>()
 
         fun getInstance(): POSNotificationListenerService? = instance
 
         fun setInstance(service: POSNotificationListenerService?) {
             instance = service
+        }
+
+        fun addCallObserver(observer: CallObserver) {
+            synchronized(callObservers) {
+                if (!callObservers.contains(observer)) {
+                    callObservers.add(observer)
+                }
+            }
+        }
+
+        fun removeCallObserver(observer: CallObserver) {
+            synchronized(callObservers) {
+                callObservers.remove(observer)
+            }
         }
     }
 
