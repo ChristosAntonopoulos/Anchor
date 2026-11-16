@@ -10,7 +10,7 @@ export type NightStatus =
   | 'COMPLETED'
   | 'ENDED_EARLY';
 
-export type NightStepId = 'dim' | 'screens' | 'prepare' | 'settle' | 'close';
+export type NightStepId = 'dim' | 'screens' | 'prepare' | 'settle' | 'breathe' | 'close';
 
 export type NightEvent =
   | { type: 'unlock'; fromUserPresent: boolean }
@@ -83,32 +83,40 @@ export interface NightSession {
 }
 
 export const SCREEN_SUBSTEPS: NightSubstep[] = [
-  { id: 'feeds', seconds: 60, command: 'Close the feeds.', seated: 'Just close the feeds.' },
-  { id: 'chats', seconds: 60, command: 'Leave the chats alone.', seated: 'Leave the chats alone while seated.' },
-  { id: 'brightness', seconds: 60, command: 'Lower the brightness.', seated: 'Lower the brightness.' },
-  { id: 'aside', seconds: 60, command: 'Put the phone aside.', seated: 'Put the phone beside you.' },
+  { id: 'feeds', seconds: 60, command: 'Close feeds and social.', seated: 'Close just the feeds.' },
+  { id: 'chats', seconds: 60, command: 'Leave chats unread.', seated: 'Leave chats alone.' },
+  { id: 'brightness', seconds: 60, command: 'Lower brightness. Warm tone if you can.', seated: 'Lower brightness.' },
+  { id: 'aside', seconds: 60, command: 'Set the phone face-down aside.', seated: 'Set the phone face-down beside you.' },
 ];
 
 export const DEFAULT_PREPARE: NightSubstep[] = [
-  { id: 'cool', seconds: 120, command: 'Make the room a little cooler.' },
-  { id: 'wash', seconds: 180, command: 'Wash up gently / brush teeth.' },
-  { id: 'bed', seconds: 180, command: 'Prepare the bed.' },
+  { id: 'cool', seconds: 120, command: 'Cool the room a little.' },
+  { id: 'wash', seconds: 120, command: 'Wash up / brush teeth gently.' },
+  { id: 'bed', seconds: 120, command: 'Make the bed inviting. Soft light only.' },
+];
+
+/** Short post-meditation breathing close: soft inhale 4, longer exhale 6. */
+export const BREATHE_SUBSTEPS: NightSubstep[] = [
+  { id: 'inhale', seconds: 60, command: 'Inhale gently through your nose. Count four.', seated: 'Soft nose inhale. Count four.' },
+  { id: 'exhale', seconds: 60, command: 'Exhale a little longer. Count six.', seated: 'Longer quiet exhale. Count six.' },
+  { id: 'rounds', seconds: 60, command: 'Two quiet rounds. Then stay still.', seated: 'Two quiet rounds. Then still.' },
 ];
 
 export const STEP_SECONDS: Record<NightStepId, number> = {
   dim: 60,
   screens: 240,
-  prepare: 480,
-  settle: 780,
-  close: 240,
+  prepare: 360,
+  settle: 660,
+  breathe: 180,
+  close: 300,
 };
 
-export const STEP_ORDER: NightStepId[] = ['dim', 'screens', 'prepare', 'settle', 'close'];
+export const STEP_ORDER: NightStepId[] = ['dim', 'screens', 'prepare', 'settle', 'breathe', 'close'];
 
 export const COPY = {
   title: 'NIGHT MODE',
-  dim: 'Dim the lights. Let\'s close out the day.',
-  dimSub: 'Warm light only. Close the curtains if you need to.',
+  dim: 'Dim the lights. Warm light only.',
+  dimSub: 'Tell your body evening has started. Close curtains if you need.',
   ready: 'Ready',
   done: 'Done',
   pause: 'Pause',
@@ -125,24 +133,27 @@ export const COPY = {
   endNo: 'Continue',
   settleTitle: 'Quiet',
   settleGuide:
-    'Sit or lie down comfortably. Notice your breath. When your mind wanders, gently come back.',
-  settleStopped: 'You stopped early. Stay quiet for a minute, or go to close-out.',
+    'Sit or lie down. Soft attention on the breath. When the mind wanders, return without fuss.',
+  settleStopped: 'You stopped early. Stay quiet a minute, or go to the breathing close.',
   sitQuietly: 'Stay quiet',
-  goToClose: 'Close-out',
+  goToClose: 'Breathing',
+  breatheTitle: 'Breathing close',
+  breatheSub: 'Soft inhale four. Longer exhale six. No force.',
   hideBreath: 'No motion',
   showBreath: 'Breath',
   fallbackPlanTitle: 'First step for tomorrow',
   fallbackFirstAction: 'Write one small first step for tomorrow.',
   fallbackNext: 'Put the phone on charge away from the bed.',
-  fallbackChoose: 'Pick just one thing for tomorrow morning.',
-  fallbackEasier: 'Write only one word for tomorrow. Nothing else.',
-  fallbackReason: 'Close the loop with one small, concrete step.',
+  fallbackChoose: 'Leave screens out of reach. Lights down.',
+  fallbackEasier: 'Write one word for tomorrow. Then phone away.',
+  fallbackReason: 'Park tomorrow in one concrete step, then stop.',
   noPlan: 'No saved plan. Write one small first step for tomorrow.',
-  helpDim: 'Dim one light. Warm light is enough.',
-  helpScreens: 'Close just one screen. Leave the rest.',
-  helpPrepare: 'Do only one thing: cool the room, wash up, or make the bed.',
-  helpSettle: 'You do not need to do it right. Stay quiet.',
-  helpClose: 'Write one small step. Then put the phone away.',
+  helpDim: 'One warmer, dimmer light is enough.',
+  helpScreens: 'Close one app. Leave the rest for morning.',
+  helpPrepare: 'Pick one: cooler air, wash up, or tidy the bed.',
+  helpSettle: 'Nothing to get right. Quiet is enough.',
+  helpBreathe: 'Inhale four through the nose. Exhale six, softer. Skip if it feels forced.',
+  helpClose: 'One tomorrow step. Then charge the phone away from bed.',
 } as const;
 
 export function localDateKey(now: Date): string {
@@ -250,6 +261,7 @@ function elapsedNow(session: NightSession, now: Date): { step: number; sessionEl
 function substepsOf(session: NightSession, step: NightStepId): NightSubstep[] {
   if (step === 'screens') return SCREEN_SUBSTEPS;
   if (step === 'prepare') return session.prepare;
+  if (step === 'breathe') return BREATHE_SUBSTEPS;
   return [];
 }
 
@@ -457,7 +469,9 @@ export function reduceNight(
             ? COPY.helpPrepare
             : session.currentStep === 'settle'
               ? COPY.helpSettle
-              : COPY.helpClose;
+              : session.currentStep === 'breathe'
+                ? COPY.helpBreathe
+                : COPY.helpClose;
     return stamp(session, now, { helpText: help });
   }
 
@@ -467,6 +481,11 @@ export function reduceNight(
     }
     if (session.currentStep === 'prepare') {
       return stamp(session, now, { helpText: COPY.helpPrepare });
+    }
+    if (session.currentStep === 'breathe') {
+      return stamp(session, now, {
+        helpText: BREATHE_SUBSTEPS[session.currentSubstep]?.seated ?? COPY.helpBreathe,
+      });
     }
     if (session.currentStep === 'close') {
       const plan = session.selectedTomorrowPlan ?? fallbackTomorrowPlan();
@@ -547,13 +566,16 @@ export function currentCommand(session: NightSession): string {
   const subs = substepsOf(session, session.currentStep);
   const item = subs[session.currentSubstep];
   if (!item) return '';
-  if (session.currentStep === 'screens' && session.seatedScreens) return item.seated ?? item.command;
+  if ((session.currentStep === 'screens' || session.currentStep === 'breathe') && session.seatedScreens) {
+    return item.seated ?? item.command;
+  }
   return item.command;
 }
 
 export function currentSubtext(session: NightSession): string | null {
   if (session.helpText) return session.helpText;
   if (session.currentStep === 'dim') return COPY.dimSub;
+  if (session.currentStep === 'breathe') return COPY.breatheSub;
   if (session.currentStep === 'close') return session.selectedTomorrowPlan?.taskTitle ?? COPY.fallbackPlanTitle;
   return null;
 }
@@ -601,5 +623,13 @@ export function isNightTakeover(session: NightSession | null): boolean {
 }
 
 export function timeBudgetOk(): boolean {
-  return STEP_SECONDS.dim + STEP_SECONDS.screens + STEP_SECONDS.prepare + STEP_SECONDS.settle + STEP_SECONDS.close === NIGHT_TOTAL_SECONDS;
+  return (
+    STEP_SECONDS.dim +
+      STEP_SECONDS.screens +
+      STEP_SECONDS.prepare +
+      STEP_SECONDS.settle +
+      STEP_SECONDS.breathe +
+      STEP_SECONDS.close ===
+    NIGHT_TOTAL_SECONDS
+  );
 }

@@ -82,6 +82,7 @@ export default function NightScreen() {
   const command = currentCommand(session);
   const sub = currentSubtext(session);
   const settle = session.currentStep === 'settle' && session.helpText !== COPY.settleStopped;
+  const breathe = session.currentStep === 'breathe';
   const primary = primaryLabel(session);
   const waiting = session.status === 'NOT_DUE' || session.status === 'WAITING_FOR_FIRST_UNLOCK';
 
@@ -144,6 +145,14 @@ export default function NightScreen() {
               <Text style={styles.ghost}>{session.status === 'PAUSED' ? COPY.resume : COPY.pause}</Text>
             </Pressable>
           </View>
+        ) : breathe ? (
+          <View style={styles.center}>
+            <Text style={styles.medTitle}>{COPY.breatheTitle}</Text>
+            <Text style={styles.stepClock}>{formatClock(remaining)}</Text>
+            <NightBreath enabled={session.breathingEnabled} />
+            <Text style={styles.command}>{command}</Text>
+            {sub ? <Text style={styles.sub}>{sub}</Text> : null}
+          </View>
         ) : (
           <View style={styles.center}>
             <Text style={styles.stepClock}>{formatClock(remaining)}</Text>
@@ -175,7 +184,10 @@ export default function NightScreen() {
             <Pressable onPress={() => void askHelp()}>
               <Text style={styles.ghost}>{COPY.help}</Text>
             </Pressable>
-            {session.currentStep === 'close' || session.currentStep === 'screens' || session.currentStep === 'prepare' ? (
+            {session.currentStep === 'close' ||
+            session.currentStep === 'screens' ||
+            session.currentStep === 'prepare' ||
+            session.currentStep === 'breathe' ? (
               <Pressable onPress={() => dispatch({ type: session.currentStep === 'close' ? 'otherPlan' : 'easier' })}>
                 <Text style={styles.ghost}>{session.currentStep === 'close' ? COPY.other : COPY.easier}</Text>
               </Pressable>
@@ -185,7 +197,7 @@ export default function NightScreen() {
                 <Text style={styles.ghost}>{COPY.extend}</Text>
               </Pressable>
             ) : null}
-            {settle ? (
+            {settle || breathe ? (
               <Pressable onPress={() => dispatch({ type: 'toggleBreathing' })}>
                 <Text style={styles.ghost}>{session.breathingEnabled ? COPY.hideBreath : COPY.showBreath}</Text>
               </Pressable>

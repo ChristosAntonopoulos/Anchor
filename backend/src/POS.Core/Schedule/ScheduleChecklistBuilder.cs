@@ -22,6 +22,8 @@ public static class ScheduleChecklistBuilder
         ["dim lights"] = 2,
         ["close screens"] = 5,
         ["cool room"] = 3,
+        ["quiet settle"] = 10,
+        ["breathing close"] = 3,
         ["read a book"] = 25,
         ["read"] = 25,
         ["wind down"] = 15,
@@ -50,7 +52,8 @@ public static class ScheduleChecklistBuilder
             new("Dim lights", 2),
             new("Close screens", 5),
             new("Cool room", 3),
-            new("Wind down", 15),
+            new("Quiet settle", 10),
+            new("Breathing close", 3),
             new("Prepare tomorrow", 5),
         ],
         ["deep work"] =

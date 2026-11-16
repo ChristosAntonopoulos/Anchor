@@ -158,7 +158,7 @@ public class ScheduleMaterializationService
                 FixedEndTime = "22:30",
                 Enabled = true,
                 Priority = 4,
-                RoutineActivities = new List<string> { "Dim lights", "Close screens", "Cool room", "Wind down" },
+                RoutineActivities = new List<string> { "Dim lights", "Close screens", "Cool room", "Quiet settle", "Breathing close" },
                 CreatedAt = now
             }
         };

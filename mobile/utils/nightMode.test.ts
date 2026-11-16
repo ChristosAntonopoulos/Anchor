@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  BREATHE_SUBSTEPS,
   COPY,
   NIGHT_TOTAL_SECONDS,
+  STEP_ORDER,
   STEP_SECONDS,
   currentCommand,
   emptyWaiting,
@@ -17,13 +19,20 @@ import {
 
 const night = (h: number, m = 0, s = 0) => new Date(2026, 10, 12, h, m, s, 0);
 
-test('planned durations total exactly 30 minutes', () => {
+test('planned durations total exactly 30 minutes including breathe close', () => {
   assert.equal(
-    STEP_SECONDS.dim + STEP_SECONDS.screens + STEP_SECONDS.prepare + STEP_SECONDS.settle + STEP_SECONDS.close,
+    STEP_SECONDS.dim +
+      STEP_SECONDS.screens +
+      STEP_SECONDS.prepare +
+      STEP_SECONDS.settle +
+      STEP_SECONDS.breathe +
+      STEP_SECONDS.close,
     NIGHT_TOTAL_SECONDS
   );
   assert.equal(timeBudgetOk(), true);
-  assert.equal(STEP_SECONDS.settle, 780);
+  assert.equal(STEP_SECONDS.breathe, 180);
+  assert.equal(BREATHE_SUBSTEPS.reduce((sum, step) => sum + step.seconds, 0), STEP_SECONDS.breathe);
+  assert.deepEqual(STEP_ORDER, ['dim', 'screens', 'prepare', 'settle', 'breathe', 'close']);
 });
 
 test('unlock before 22:00 does not activate', () => {
@@ -78,17 +87,32 @@ test('dim ready then screen commands stay one at a time', () => {
   let session = reduceNight(emptyWaiting(night(22)), { type: 'unlock', fromUserPresent: true }, night(22));
   session = reduceNight(session, { type: 'ready' }, night(22, 0, 20));
   assert.equal(session.currentStep, 'screens');
-  assert.equal(currentCommand(session), 'Close the feeds.');
+  assert.equal(currentCommand(session), 'Close feeds and social.');
   session = reduceNight(session, { type: 'easier' }, night(22, 0, 21));
-  assert.equal(currentCommand(session), 'Just close the feeds.');
+  assert.equal(currentCommand(session), 'Close just the feeds.');
 });
 
-test('skipping prepare does not invent extra chores', () => {
+test('settle then breathe then close', () => {
   let session = reduceNight(emptyWaiting(night(22)), { type: 'unlock', fromUserPresent: true }, night(22));
-  session = { ...session, currentStep: 'prepare', currentSubstep: 0 };
-  session = reduceNight(session, { type: 'skip' }, night(22, 10));
+  session = {
+    ...session,
+    currentStep: 'settle',
+    status: 'ACTIVE',
+    chimePlayed: true,
+    stepElapsedAtAnchor: STEP_SECONDS.settle,
+    stepAnchorMs: night(23).getTime(),
+    sessionAnchorMs: night(23).getTime(),
+  };
+  session = reduceNight(session, { type: 'ready' }, night(23, 0, 1));
+  assert.equal(session.currentStep, 'breathe');
+  assert.equal(currentCommand(session), BREATHE_SUBSTEPS[0].command);
+  session = reduceNight(session, { type: 'ready' }, night(23, 0, 2));
   assert.equal(session.currentSubstep, 1);
-  assert.ok(!session.prepare.some((item) => item.seconds > 180));
+  assert.equal(currentCommand(session), BREATHE_SUBSTEPS[1].command);
+  session = reduceNight(session, { type: 'ready' }, night(23, 0, 3));
+  assert.equal(session.currentSubstep, 2);
+  session = reduceNight(session, { type: 'ready' }, night(23, 0, 4));
+  assert.equal(session.currentStep, 'close');
 });
 
 test('settle stays silent after the opening line and keeps remaining time across pause', () => {
