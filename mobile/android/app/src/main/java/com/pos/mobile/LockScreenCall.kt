@@ -1,5 +1,6 @@
 package com.pos.mobile
 
+import android.app.ActivityOptions
 import android.app.Notification
 import android.app.PendingIntent
 import android.content.Context
@@ -66,16 +67,29 @@ object LockScreenCall {
         }
     }
 
-    fun answer(snap: CallLockSnapshot?): Boolean = send(snap?.answer)
+    fun answer(context: Context, snap: CallLockSnapshot?): Boolean = send(context, snap?.answer)
 
-    fun declineOrHangUp(snap: CallLockSnapshot?): Boolean = send(snap?.declineOrHangUp)
+    fun declineOrHangUp(context: Context, snap: CallLockSnapshot?): Boolean =
+        send(context, snap?.declineOrHangUp)
 
-    fun openCallUi(snap: CallLockSnapshot?): Boolean = send(snap?.contentIntent)
+    fun openCallUi(context: Context, snap: CallLockSnapshot?): Boolean =
+        send(context, snap?.contentIntent)
 
-    private fun send(intent: PendingIntent?): Boolean {
+    private fun send(context: Context, intent: PendingIntent?): Boolean {
         if (intent == null) return false
         return try {
-            intent.send()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                val options = ActivityOptions.makeBasic().apply {
+                    setPendingIntentBackgroundActivityStartMode(
+                        ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED,
+                    )
+                }
+                intent.send(context, 0, null, null, null, null, options.toBundle())
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+                intent.send(context, 0, null, null, null, null, null)
+            } else {
+                intent.send()
+            }
             true
         } catch (error: PendingIntent.CanceledException) {
             android.util.Log.w(TAG, "Call PendingIntent canceled", error)
