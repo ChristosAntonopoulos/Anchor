@@ -22,6 +22,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import com.pos.mobile.launcher.LauncherPalette
+import com.pos.mobile.launcher.LockScreenCallLogic
 import com.pos.mobile.launcher.LockScreenContent
 import com.pos.mobile.launcher.NextActionResolver
 import java.lang.ref.WeakReference
@@ -45,7 +46,14 @@ class LockScreenActivity : AppCompatActivity() {
     private lateinit var mediaPanel: LinearLayout
     private lateinit var mediaLine: TextView
     private lateinit var mediaPlay: TextView
+    private lateinit var callPanel: LinearLayout
+    private lateinit var callEyebrow: TextView
+    private lateinit var callLine: TextView
+    private lateinit var callAnswer: TextView
+    private lateinit var callDecline: TextView
     private var stopMediaObserve: (() -> Unit)? = null
+    private var stopCallObserve: (() -> Unit)? = null
+    private var activeCall: CallLockSnapshot? = null
     private var edgeTrack = false
     private var edgeConsumed = false
     private var edgeStartX = 0f
@@ -106,6 +114,7 @@ class LockScreenActivity : AppCompatActivity() {
             letterSpacing = 0.02f
         }
         mediaPanel = buildMediaPanel(root)
+        callPanel = buildCallPanel(root)
         val hint = LauncherPalette.text(root, 12f, LauncherPalette.faint).apply {
             text = "Unlock to continue"
             gravity = Gravity.CENTER_HORIZONTAL
@@ -128,6 +137,10 @@ class LockScreenActivity : AppCompatActivity() {
         root.addView(cueDetail)
         root.addView(statusLine)
         root.addView(View(this), LinearLayout.LayoutParams(0, 0, 1f))
+        root.addView(callPanel, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+        ).apply { bottomMargin = LauncherPalette.dp(root, 18) })
         root.addView(mediaPanel, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -139,6 +152,7 @@ class LockScreenActivity : AppCompatActivity() {
         root.setOnClickListener { requestUnlock() }
 
         bindCopy()
+        startCallObserve()
         startMediaObserve()
         // Only bail if we clearly woke into an unlocked phone (not while arming for lock).
         if (!isKeyguardLocked() && !isScreenOffLikely()) {
@@ -161,6 +175,7 @@ class LockScreenActivity : AppCompatActivity() {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
         bindCopy()
+        startCallObserve()
         startMediaObserve()
         if (!isKeyguardLocked() && !isScreenOffLikely()) {
             finish()
@@ -200,17 +215,69 @@ class LockScreenActivity : AppCompatActivity() {
     }
 
     override fun finish() {
+        stopCallObserve()
         stopMediaObserve()
         super.finish()
         overridePendingTransition(0, 0)
     }
 
     override fun onDestroy() {
+        stopCallObserve()
         stopMediaObserve()
         if (showing?.get() === this) {
             showing = null
         }
         super.onDestroy()
+    }
+
+    private fun buildCallPanel(host: View): LinearLayout {
+        callEyebrow = LauncherPalette.eyebrow(host, "Incoming")
+        callLine = LauncherPalette.text(host, 18f, LauncherPalette.text, true).apply {
+            maxLines = 2
+            ellipsize = android.text.TextUtils.TruncateAt.END
+            isClickable = true
+            isFocusable = true
+            contentDescription = "Open call"
+            setOnClickListener { openCallFromLock() }
+        }
+        callAnswer = transportButton(host, "Answer", "Answer call") {
+            LockScreenCall.answer(activeCall)
+        }.apply {
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+            setTextColor(LauncherPalette.accent)
+        }
+        callDecline = transportButton(host, "Decline", "Decline or hang up") {
+            LockScreenCall.declineOrHangUp(activeCall)
+        }.apply {
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+            setTextColor(LauncherPalette.danger)
+        }
+        val actions = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            addView(callDecline, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            addView(callAnswer, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        }
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            visibility = View.GONE
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { /* absorb — don't unlock */ }
+            addView(View(context).apply { setBackgroundColor(LauncherPalette.hairline) },
+                LinearLayout.LayoutParams(LauncherPalette.dp(host, 40), 1).apply {
+                    bottomMargin = LauncherPalette.dp(host, 14)
+                })
+            addView(callEyebrow)
+            addView(callLine, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply { topMargin = LauncherPalette.dp(host, 6) })
+            addView(actions, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply { topMargin = LauncherPalette.dp(host, 12) })
+        }
     }
 
     private fun buildMediaPanel(host: View): LinearLayout {
@@ -273,6 +340,20 @@ class LockScreenActivity : AppCompatActivity() {
         }
     }
 
+    private fun startCallObserve() {
+        if (stopCallObserve != null) return
+        stopCallObserve = LockScreenCall.observe(this) { snap ->
+            if (!::callPanel.isInitialized) return@observe
+            bindCall(snap)
+        }
+    }
+
+    private fun stopCallObserve() {
+        stopCallObserve?.invoke()
+        stopCallObserve = null
+        activeCall = null
+    }
+
     private fun startMediaObserve() {
         if (stopMediaObserve != null) return
         stopMediaObserve = LockScreenSpotify.observe(this) { snap ->
@@ -286,7 +367,41 @@ class LockScreenActivity : AppCompatActivity() {
         stopMediaObserve = null
     }
 
+    private fun bindCall(snap: CallLockSnapshot?) {
+        activeCall = snap
+        if (snap == null) {
+            callPanel.visibility = View.GONE
+            // Restore Spotify strip if a session is still active.
+            bindMedia(LockScreenSpotify.snapshot(this))
+            return
+        }
+        callPanel.visibility = View.VISIBLE
+        mediaPanel.visibility = View.GONE
+        callEyebrow.text = LockScreenCallLogic.eyebrow(snap.phase).uppercase()
+        callLine.text = snap.caller
+        callLine.contentDescription = "Open call. ${snap.caller}"
+        when (snap.phase) {
+            LockScreenCallLogic.Phase.Incoming -> {
+                callAnswer.visibility = if (snap.answer != null) View.VISIBLE else View.GONE
+                callDecline.text = "Decline"
+                callDecline.contentDescription = "Decline call"
+                callDecline.visibility = if (snap.declineOrHangUp != null) View.VISIBLE else View.GONE
+            }
+            LockScreenCallLogic.Phase.Active -> {
+                callAnswer.visibility = View.GONE
+                callDecline.text = "Hang up"
+                callDecline.contentDescription = "Hang up"
+                callDecline.visibility = if (snap.declineOrHangUp != null) View.VISIBLE else View.GONE
+            }
+        }
+    }
+
     private fun bindMedia(snap: SpotifyLockSnapshot?) {
+        // Call strip wins — keep Spotify hidden while a call is showing.
+        if (activeCall != null) {
+            mediaPanel.visibility = View.GONE
+            return
+        }
         if (snap == null) {
             mediaPanel.visibility = View.GONE
             return
@@ -296,6 +411,20 @@ class LockScreenActivity : AppCompatActivity() {
         mediaLine.contentDescription = "Open Spotify. ${snap.line}"
         mediaPlay.text = if (snap.playing) "Ⅱ" else "▶"
         mediaPlay.contentDescription = if (snap.playing) "Pause" else "Play"
+    }
+
+    private fun openCallFromLock() {
+        val snap = activeCall ?: return
+        val keyguard = getSystemService(KeyguardManager::class.java)
+        if (keyguard?.isKeyguardLocked == true && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            keyguard.requestDismissKeyguard(this, object : KeyguardManager.KeyguardDismissCallback() {
+                override fun onDismissSucceeded() {
+                    LockScreenCall.openCallUi(snap)
+                }
+            })
+        } else {
+            LockScreenCall.openCallUi(snap)
+        }
     }
 
     private fun openSpotifyFromLock() {
