@@ -21,9 +21,9 @@ class LockScreenCallLogicTest {
     }
 
     @Test
-    fun dialerWithAnswerActionCounts() {
+    fun dialerWithAnswerAndDeclineCounts() {
         val actions = listOf(
-            LockScreenCallLogic.ActionHint("Answer", LockScreenCallLogic.SEMANTIC_ANSWER),
+            LockScreenCallLogic.ActionHint("Answer", null),
             LockScreenCallLogic.ActionHint("Decline", null),
         )
         assertTrue(
@@ -40,8 +40,60 @@ class LockScreenCallLogicTest {
     }
 
     @Test
+    fun replySemanticIsNotACall() {
+        // SEMANTIC_ACTION_REPLY = 1 — messaging apps. Must not look like Answer.
+        val actions = listOf(
+            LockScreenCallLogic.ActionHint("Reply", 1),
+            LockScreenCallLogic.ActionHint("Mark as read", 2),
+        )
+        assertFalse(
+            LockScreenCallLogic.isLikelyCallNotification(
+                category = "msg",
+                packageName = "com.google.android.apps.messaging",
+                actions = actions,
+                isOngoing = false,
+            ),
+        )
+        assertNull(LockScreenCallLogic.findAnswer(actions))
+    }
+
+    @Test
+    fun sendActionIsNotHangUp() {
+        val actions = listOf(LockScreenCallLogic.ActionHint("Send", null))
+        assertNull(LockScreenCallLogic.findHangUp(actions))
+        assertFalse(
+            LockScreenCallLogic.isLikelyCallNotification(
+                category = null,
+                packageName = "com.google.android.dialer",
+                actions = actions,
+                isOngoing = true,
+            ),
+        )
+    }
+
+    @Test
+    fun dialerOngoingWithoutCallActionsHidden() {
+        assertFalse(
+            LockScreenCallLogic.isLikelyCallNotification(
+                category = null,
+                packageName = "com.google.android.dialer",
+                actions = listOf(LockScreenCallLogic.ActionHint("Settings", null)),
+                isOngoing = true,
+            ),
+        )
+    }
+
+    @Test
     fun activeCallPrefersHangUp() {
         val actions = listOf(LockScreenCallLogic.ActionHint("Hang up", null))
+        assertTrue(
+            LockScreenCallLogic.isLikelyCallNotification(
+                category = "call",
+                packageName = "com.google.android.dialer",
+                actions = actions,
+                isOngoing = true,
+            ),
+        )
         assertEquals(LockScreenCallLogic.Phase.Active, LockScreenCallLogic.phase(actions, true))
         assertEquals("Hang up", LockScreenCallLogic.findHangUp(actions)?.title)
         assertNull(LockScreenCallLogic.findAnswer(actions))
@@ -53,7 +105,10 @@ class LockScreenCallLogicTest {
             LockScreenCallLogic.isLikelyCallNotification(
                 category = "msg",
                 packageName = "com.whatsapp",
-                actions = listOf(LockScreenCallLogic.ActionHint("Reply", null)),
+                actions = listOf(
+                    LockScreenCallLogic.ActionHint("Reply", 1),
+                    LockScreenCallLogic.ActionHint("Mark as read", null),
+                ),
                 isOngoing = false,
             ),
         )

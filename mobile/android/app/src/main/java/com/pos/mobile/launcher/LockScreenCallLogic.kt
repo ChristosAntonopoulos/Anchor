@@ -3,6 +3,9 @@ package com.pos.mobile.launcher
 /**
  * Pure rules for the lock-face call strip.
  * Incoming → Answer / Decline; active → Hang up.
+ *
+ * Important: Android has no SEMANTIC_ACTION_ANSWER. Value 1 is
+ * [android.app.Notification.Action.SEMANTIC_ACTION_REPLY] — never treat it as a call.
  */
 object LockScreenCallLogic {
     enum class Phase {
@@ -27,8 +30,11 @@ object LockScreenCallLogic {
         "com.google.android.apps.tachyon",
     )
 
-    /** [android.app.Notification.Action.SEMANTIC_ACTION_ANSWER] */
-    const val SEMANTIC_ANSWER = 1
+    /** [android.app.Notification.Action.SEMANTIC_ACTION_CALL] — dial/call, not Reply. */
+    const val SEMANTIC_CALL = 10
+
+    /** [android.app.Notification.CATEGORY_CALL] */
+    const val CATEGORY_CALL = "call"
 
     fun isLikelyCallNotification(
         category: String?,
@@ -36,12 +42,18 @@ object LockScreenCallLogic {
         actions: List<ActionHint>,
         isOngoing: Boolean,
     ): Boolean {
-        if (category.equals("call", ignoreCase = true)) return true
-        if (actions.any { it.semanticAction == SEMANTIC_ANSWER }) return true
+        if (category.equals(CATEGORY_CALL, ignoreCase = true)) return true
+
+        val answer = findAnswer(actions)
+        val decline = findDecline(actions)
+        val hangUp = findHangUp(actions)
+        // Real call chrome usually exposes answer+decline, or hang up while connected.
+        if (answer != null && (decline != null || hangUp != null)) return true
+        if (hangUp != null && (isOngoing || isDialerPackage(packageName))) return true
+
         if (!isDialerPackage(packageName)) return false
-        return findAnswer(actions) != null ||
-            findDeclineOrHangUp(actions) != null ||
-            (isOngoing && actions.isNotEmpty())
+        // Dialer-only: need an explicit answer or hang-up affordance — never "any ongoing action".
+        return answer != null || hangUp != null
     }
 
     fun isDialerPackage(packageName: String?): Boolean {
@@ -79,16 +91,16 @@ object LockScreenCallLogic {
     }
 
     fun findAnswer(actions: List<ActionHint>): ActionHint? {
-        actions.firstOrNull { it.semanticAction == SEMANTIC_ANSWER }?.let { return it }
-        return actions.firstOrNull { titleMatches(it.title, ANSWER_WORDS) }
+        // Prefer title match — SEMANTIC_ACTION_CALL (10) is "place a call", not answer.
+        return actions.firstOrNull { titleMatches(it.title, ANSWER_PHRASES) }
     }
 
     fun findDecline(actions: List<ActionHint>): ActionHint? {
-        return actions.firstOrNull { titleMatches(it.title, DECLINE_WORDS) }
+        return actions.firstOrNull { titleMatches(it.title, DECLINE_PHRASES) }
     }
 
     fun findHangUp(actions: List<ActionHint>): ActionHint? {
-        return actions.firstOrNull { titleMatches(it.title, HANGUP_WORDS) }
+        return actions.firstOrNull { titleMatches(it.title, HANGUP_PHRASES) }
     }
 
     /** Decline while ringing; hang up once connected. */
@@ -100,25 +112,37 @@ object LockScreenCallLogic {
         if (value.length > 64) return false
         val lower = value.lowercase()
         return !lower.contains("missed") &&
-            !ANSWER_WORDS.contains(lower) &&
-            !DECLINE_WORDS.contains(lower) &&
-            !HANGUP_WORDS.contains(lower)
+            !titleMatches(lower, ANSWER_PHRASES) &&
+            !titleMatches(lower, DECLINE_PHRASES) &&
+            !titleMatches(lower, HANGUP_PHRASES)
     }
 
-    private fun titleMatches(title: String, words: Set<String>): Boolean {
-        val normalized = title.trim().lowercase()
+    /**
+     * Phrase match with word boundaries so "end" does not hit "Send",
+     * and "dismiss" alone is not enough unless the whole title is that control.
+     */
+    private fun titleMatches(title: String, phrases: Set<String>): Boolean {
+        val normalized = title.trim().lowercase().replace(Regex("\\s+"), " ")
         if (normalized.isEmpty()) return false
-        return words.any { word -> normalized == word || normalized.contains(word) }
+        return phrases.any { phrase ->
+            if (normalized == phrase) return@any true
+            // Multi-word phrases may appear inside longer labels ("End the call").
+            if (phrase.contains(' ')) return@any normalized.contains(phrase)
+            // Single tokens: whole-word only.
+            Regex("\\b${Regex.escape(phrase)}\\b").containsMatchIn(normalized)
+        }
     }
 
-    private val ANSWER_WORDS = setOf(
+    private val ANSWER_PHRASES = setOf(
         "answer", "accept", "pick up", "pickup", "απάντηση", "απαντηση", "λήψη", "ληψη",
     )
-    private val DECLINE_WORDS = setOf(
-        "decline", "reject", "dismiss", "ignore", "απόρριψη", "απορριψη", "άρνηση", "αρνηση",
+    private val DECLINE_PHRASES = setOf(
+        "decline", "reject", "ignore", "απόρριψη", "απορριψη", "άρνηση", "αρνηση",
+        // "dismiss" is too common on non-call notifs — only exact title.
     )
-    private val HANGUP_WORDS = setOf(
-        "hang up", "hangup", "end call", "end", "disconnect",
+    private val HANGUP_PHRASES = setOf(
+        "hang up", "hangup", "end call", "end the call", "disconnect",
         "κλείσιμο", "κλεισιμο", "τερματισμός", "τερματισμος",
+        // bare "end" omitted — it matches "Send".
     )
 }

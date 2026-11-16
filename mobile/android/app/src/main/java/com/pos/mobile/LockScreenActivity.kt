@@ -182,6 +182,14 @@ class LockScreenActivity : AppCompatActivity() {
         }
     }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        // If unlock raced past USER_PRESENT, drop the overlay as soon as we regain focus unlocked.
+        if (hasFocus && !isKeyguardLocked() && !isScreenOffLikely()) {
+            finish()
+        }
+    }
+
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
         // Swipe-up on the stock keyguard peeks the old lock UI under us — eat those climbs.
         when (event.actionMasked) {
@@ -241,13 +249,18 @@ class LockScreenActivity : AppCompatActivity() {
             setOnClickListener { openCallFromLock() }
         }
         callAnswer = transportButton(host, "Answer", "Answer call") {
-            LockScreenCall.answer(activeCall)
+            runCallAction(dismissLock = true) { LockScreenCall.answer(this, activeCall) }
         }.apply {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
             setTextColor(LauncherPalette.accent)
         }
         callDecline = transportButton(host, "Decline", "Decline or hang up") {
-            LockScreenCall.declineOrHangUp(activeCall)
+            // Decline / hang up should clear the strip even if the dialer is slow to remove the notif.
+            val snap = activeCall
+            val ok = LockScreenCall.declineOrHangUp(this, snap)
+            if (ok) {
+                bindCall(null)
+            }
         }.apply {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
             setTextColor(LauncherPalette.danger)
@@ -414,16 +427,27 @@ class LockScreenActivity : AppCompatActivity() {
     }
 
     private fun openCallFromLock() {
-        val snap = activeCall ?: return
+        runCallAction(dismissLock = true) { LockScreenCall.openCallUi(this, activeCall) }
+    }
+
+    /**
+     * Fire a dialer PendingIntent. Real answer / open-call UI usually needs the keyguard
+     * down first; background-activity starts are allowed inside [LockScreenCall.send].
+     */
+    private fun runCallAction(dismissLock: Boolean, action: () -> Boolean) {
         val keyguard = getSystemService(KeyguardManager::class.java)
-        if (keyguard?.isKeyguardLocked == true && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (dismissLock && keyguard?.isKeyguardLocked == true && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             keyguard.requestDismissKeyguard(this, object : KeyguardManager.KeyguardDismissCallback() {
                 override fun onDismissSucceeded() {
-                    LockScreenCall.openCallUi(snap)
+                    action()
+                    LockScreenHost.dismiss()
                 }
             })
         } else {
-            LockScreenCall.openCallUi(snap)
+            action()
+            if (dismissLock) {
+                LockScreenHost.dismiss()
+            }
         }
     }
 
