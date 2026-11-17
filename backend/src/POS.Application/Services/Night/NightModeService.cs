@@ -16,17 +16,20 @@ public class NightModeService
 {
     private readonly MongoDbContext _context;
     private readonly ExecutionService _execution;
+    private readonly RoutineDefinitionService _routines;
     private readonly ILanguageModelClient _llm;
     private readonly ILogger<NightModeService> _logger;
 
     public NightModeService(
         MongoDbContext context,
         ExecutionService execution,
+        RoutineDefinitionService routines,
         ILanguageModelClient llm,
         ILogger<NightModeService> logger)
     {
         _context = context;
         _execution = execution;
+        _routines = routines;
         _llm = llm;
         _logger = logger;
     }
@@ -37,7 +40,7 @@ public class NightModeService
         string? timezone,
         CancellationToken ct = default)
     {
-        var routine = RoutineDtoMapper.FromCatalog(RoutineCatalog.Night);
+        var routine = await _routines.GetAsync(userId, "night", ct);
         var date = string.IsNullOrWhiteSpace(localDate)
             ? DateTime.UtcNow.ToString("yyyy-MM-dd")
             : localDate.Trim();
@@ -64,8 +67,8 @@ public class NightModeService
                 "night",
                 date,
                 timezone,
-                RoutineCatalog.Night.TriggerHour,
-                RoutineCatalog.Night.TriggerMinute),
+                routine.TriggerHour,
+                routine.TriggerMinute),
             Routine = routine,
             HasStoredSession = false,
         };

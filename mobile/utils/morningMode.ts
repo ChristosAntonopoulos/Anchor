@@ -3,10 +3,16 @@ import {
   stepOrder,
   stepSecondsMap,
 } from './routineCatalog';
+import { getRuntimeTrigger } from './routineRuntime';
 
 export const MORNING_TOTAL_SECONDS = MORNING_ROUTINE.totalSeconds;
+/** Catalog fallback; prefer getMorningTrigger() after hydrate. */
 export const MORNING_TRIGGER_HOUR = MORNING_ROUTINE.triggerHour;
 export const MORNING_TRIGGER_MINUTE = MORNING_ROUTINE.triggerMinute;
+
+export function getMorningTrigger(): { hour: number; minute: number } {
+  return getRuntimeTrigger('morning');
+}
 
 export type MorningStatus =
   | 'NOT_DUE'
@@ -165,8 +171,9 @@ export function timezoneName(now = new Date()): string {
 }
 
 export function isAtOrAfterTrigger(now: Date): boolean {
+  const trigger = getMorningTrigger();
   const minutes = now.getHours() * 60 + now.getMinutes();
-  return minutes >= MORNING_TRIGGER_HOUR * 60 + MORNING_TRIGGER_MINUTE;
+  return minutes >= trigger.hour * 60 + trigger.minute;
 }
 
 export function sessionIdFor(localDate: string): string {

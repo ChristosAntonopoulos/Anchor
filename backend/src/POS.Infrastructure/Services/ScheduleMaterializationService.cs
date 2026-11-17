@@ -8,6 +8,7 @@ namespace POS.Infrastructure.Services;
 
 /// <summary>
 /// Ensures schedule block definitions exist and materializes daily instances from templates.
+/// Seeds named defaults only when missing — never overwrites user-saved times.
 /// </summary>
 public class ScheduleMaterializationService
 {
@@ -22,15 +23,28 @@ public class ScheduleMaterializationService
 
     public async Task EnsureDefaultDefinitionsAsync(string userId, CancellationToken ct = default)
     {
-        var filter = Builders<ScheduleBlockDefinition>.Filter.Eq(d => d.UserId, userId);
-        var count = await _context.ScheduleBlockDefinitions.CountDocumentsAsync(filter, cancellationToken: ct);
-        if (count > 0)
+        var existing = await _context.ScheduleBlockDefinitions
+            .Find(d => d.UserId == userId)
+            .ToListAsync(ct);
+
+        var existingTitles = existing
+            .Select(d => d.Title)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var now = DateTime.UtcNow;
+        var missing = DefaultDefinitions(userId, now)
+            .Where(d => !existingTitles.Contains(d.Title))
+            .ToList();
+
+        if (missing.Count == 0)
             return;
 
-        _logger.LogInformation("Seeding default schedule definitions for user {UserId}", userId);
-        var now = DateTime.UtcNow;
-        var definitions = DefaultDefinitions(userId, now);
-        await _context.ScheduleBlockDefinitions.InsertManyAsync(definitions, cancellationToken: ct);
+        _logger.LogInformation(
+            "Seeding {Count} missing schedule definitions for user {UserId}: {Titles}",
+            missing.Count,
+            userId,
+            string.Join(", ", missing.Select(m => m.Title)));
+        await _context.ScheduleBlockDefinitions.InsertManyAsync(missing, cancellationToken: ct);
     }
 
     public async Task MaterializeForDateAsync(string userId, DateTime date, CancellationToken ct = default)
@@ -106,37 +120,54 @@ public class ScheduleMaterializationService
         return instance;
     }
 
+    /// <summary>
+    /// Catalog/default schedule titles. Values are seed defaults only — never forced onto saved rows.
+    /// Extra titles (Wake, Shutdown, Workout, Weekly Review) are available for assistant control
+    /// and appear only when missing for the user.
+    /// </summary>
     internal static List<ScheduleBlockDefinition> DefaultDefinitions(string userId, DateTime now) =>
         new()
         {
+            Fixed(userId, now, "Wake", "07:15", "07:20", priority: 0, EnergyLevel.Medium, "morning"),
             FromCatalog(userId, now, RoutineCatalog.Morning, priority: 1),
-            new ScheduleBlockDefinition
-            {
-                UserId = userId,
-                Title = "Deep Work",
-                Kind = ScheduleBlockKind.Fixed,
-                Recurrence = RecurrenceType.Daily,
-                FixedStartTime = "09:00",
-                FixedEndTime = "11:00",
-                Enabled = true,
-                Priority = 2,
-                Energy = EnergyLevel.High,
-                CreatedAt = now
-            },
-            new ScheduleBlockDefinition
-            {
-                UserId = userId,
-                Title = "Focused Work",
-                Kind = ScheduleBlockKind.Fixed,
-                Recurrence = RecurrenceType.Daily,
-                FixedStartTime = "14:00",
-                FixedEndTime = "16:00",
-                Enabled = true,
-                Priority = 3,
-                Energy = EnergyLevel.Medium,
-                CreatedAt = now
-            },
+            Fixed(userId, now, "Deep Work", "09:00", "11:00", priority: 2, EnergyLevel.High, "morning"),
+            Fixed(userId, now, "Focused Work", "14:00", "16:00", priority: 3, EnergyLevel.Medium, "afternoon"),
             FromCatalog(userId, now, RoutineCatalog.Night, priority: 4),
+            Fixed(userId, now, "Shutdown", "22:00", "22:15", priority: 5, EnergyLevel.Low, "evening"),
+            new ScheduleBlockDefinition
+            {
+                UserId = userId,
+                Title = "Workout",
+                Kind = ScheduleBlockKind.Fixed,
+                Recurrence = RecurrenceType.Weekly,
+                DaysOfWeek = [1, 3, 5],
+                FixedStartTime = "18:00",
+                FixedEndTime = "18:45",
+                DurationMinutes = 45,
+                Enabled = true,
+                Priority = 6,
+                Energy = EnergyLevel.High,
+                PreferredTimeTag = "evening",
+                Tags = ["workout"],
+                CreatedAt = now
+            },
+            new ScheduleBlockDefinition
+            {
+                UserId = userId,
+                Title = "Weekly Review",
+                Kind = ScheduleBlockKind.Fixed,
+                Recurrence = RecurrenceType.Weekly,
+                DaysOfWeek = [0],
+                FixedStartTime = "10:00",
+                FixedEndTime = "11:00",
+                DurationMinutes = 60,
+                Enabled = true,
+                Priority = 7,
+                Energy = EnergyLevel.Medium,
+                PreferredTimeTag = "morning",
+                Tags = ["review"],
+                CreatedAt = now
+            },
         };
 
     internal static ScheduleBlockDefinition FromCatalog(
@@ -159,6 +190,31 @@ public class ScheduleMaterializationService
             Tags = new[] { "routine", routine.Key, RoutineCatalog.CatalogVersion },
             RoutineActivities = routine.ActivityTitles.ToList(),
             ShorterRoutineActivities = routine.ShorterActivityTitles.ToList(),
+            CreatedAt = now
+        };
+
+    private static ScheduleBlockDefinition Fixed(
+        string userId,
+        DateTime now,
+        string title,
+        string start,
+        string end,
+        int priority,
+        EnergyLevel energy,
+        string preferred) =>
+        new()
+        {
+            UserId = userId,
+            Title = title,
+            Kind = ScheduleBlockKind.Fixed,
+            Recurrence = RecurrenceType.Daily,
+            FixedStartTime = start,
+            FixedEndTime = end,
+            DurationMinutes = ScheduleChecklistBuilder.GetBlockDurationMinutes(start, end),
+            Enabled = true,
+            Priority = priority,
+            Energy = energy,
+            PreferredTimeTag = preferred,
             CreatedAt = now
         };
 }

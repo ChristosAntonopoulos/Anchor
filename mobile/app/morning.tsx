@@ -114,7 +114,7 @@ export default function MorningScreen() {
           <Text style={styles.kicker}>{COPY.title}</Text>
           <View style={styles.center}>
             <Text style={styles.command}>After 07:00, on the first unlock.</Text>
-            <Text style={styles.sub}>Same morning routine as your schedule block (until 07:45). One unlock. Once a day.</Text>
+            <Text style={styles.sub}>Same morning routine as your schedule block. One unlock. Once a day.</Text>
           </View>
           <Pressable onPress={() => router.replace('/(tabs)')} style={styles.primary}>
             <Text style={styles.primaryText}>Back</Text>

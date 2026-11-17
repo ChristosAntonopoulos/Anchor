@@ -113,8 +113,8 @@ export default function NightScreen() {
         <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
           <Text style={styles.kicker}>{COPY.title}</Text>
           <View style={styles.center}>
-            <Text style={styles.command}>After 21:30, on the first unlock.</Text>
-            <Text style={styles.sub}>Same evening routine as your schedule block (until 22:15). One unlock. Once a day.</Text>
+            <Text style={styles.command}>After the night gate, on the first unlock.</Text>
+            <Text style={styles.sub}>Same evening routine as your schedule block. One unlock. Once a day.</Text>
           </View>
           <Pressable onPress={() => router.replace('/(tabs)')} style={styles.primary}>
             <Text style={styles.primaryText}>Back</Text>

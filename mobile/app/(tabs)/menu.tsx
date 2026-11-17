@@ -195,7 +195,7 @@ export default function SystemsScreen() {
           <SystemTile
             icon="sleep"
             title="Night"
-            status={isNightTakeover(night) ? 'In progress' : 'First unlock after 21:30'}
+            status={isNightTakeover(night) ? 'In progress' : 'First unlock after night gate'}
             attention={isNightTakeover(night)}
             onPress={() => router.replace('/night' as never)}
           />

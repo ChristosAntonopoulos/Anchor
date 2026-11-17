@@ -48,6 +48,8 @@ public class MongoDbContext
         _database.GetCollection<ScheduleBlockInstance>("scheduleBlockInstances");
     public IMongoCollection<ScheduleBlockHistory> ScheduleBlockHistories =>
         _database.GetCollection<ScheduleBlockHistory>("scheduleBlockHistories");
+    public IMongoCollection<RoutineDefinition> RoutineDefinitions =>
+        _database.GetCollection<RoutineDefinition>("routineDefinitions");
 
     // Better Today collections
     public IMongoCollection<BetterItem> BetterItems =>

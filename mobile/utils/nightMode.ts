@@ -3,10 +3,16 @@ import {
   stepOrder,
   stepSecondsMap,
 } from './routineCatalog';
+import { getRuntimeTrigger } from './routineRuntime';
 
 export const NIGHT_TOTAL_SECONDS = NIGHT_ROUTINE.totalSeconds;
+/** Catalog fallback; prefer getNightTrigger() after hydrate. */
 export const NIGHT_TRIGGER_HOUR = NIGHT_ROUTINE.triggerHour;
 export const NIGHT_TRIGGER_MINUTE = NIGHT_ROUTINE.triggerMinute;
+
+export function getNightTrigger(): { hour: number; minute: number } {
+  return getRuntimeTrigger('night');
+}
 
 export type NightStatus =
   | 'NOT_DUE'
@@ -165,8 +171,9 @@ export function timezoneName(now = new Date()): string {
 }
 
 export function isAtOrAfterTrigger(now: Date): boolean {
+  const trigger = getNightTrigger();
   const minutes = now.getHours() * 60 + now.getMinutes();
-  return minutes >= NIGHT_TRIGGER_HOUR * 60 + NIGHT_TRIGGER_MINUTE;
+  return minutes >= trigger.hour * 60 + trigger.minute;
 }
 
 export function sessionIdFor(localDate: string): string {
