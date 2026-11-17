@@ -256,7 +256,7 @@ This API provides full CRUD operations for all data entities including:
 All endpoints return standardized ApiResponse<T> format.
 Date parameters should be in YYYY-MM-DD format.
 
-Assistant / external callers: send header X-Anchor-Key. Endpoints under /api/assistant and POST /api/notifications/push require it when the key is configured. When AnchorApi:ProtectAllWrites is true (default), all mutating /api routes require it except health and app release.
+Assistant / external callers: send header X-Anchor-Key when AnchorApi:RequireKey is true (default false). Endpoints under /api/assistant and POST /api/notifications/push require it when RequireKey is on and the key is configured. When AnchorApi:ProtectAllWrites is true (default), all mutating /api routes require it except health and app release.
         ",
         Contact = new OpenApiContact
         {

@@ -58,6 +58,11 @@ spec:
               name: pos-api-secrets
               key: AnchorApi__Key
               optional: true
+        - name: AnchorApi__RequireKey
+          valueFrom:
+            configMapKeyRef:
+              name: pos-api-config
+              key: AnchorApi__RequireKey
         - name: BotSystem__BaseUrl
           valueFrom:
             configMapKeyRef:
