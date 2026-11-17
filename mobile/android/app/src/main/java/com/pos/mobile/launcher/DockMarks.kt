@@ -9,7 +9,7 @@ import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import kotlin.math.min
 
-enum class DockMark { PHONE, WALLET, CHAT, CURSOR, SPOTIFY }
+enum class DockMark { PHONE, WALLET, CHAT, GROK, CURSOR, SPOTIFY }
 
 object DockMarks {
     fun drawable(kind: DockMark, color: Int, strokePx: Float): Drawable {
@@ -81,6 +81,13 @@ private fun trace(kind: DockMark, path: Path) {
             path.moveTo(8.2f, 16.2f)
             path.lineTo(6.6f, 20.4f)
             path.lineTo(12.4f, 16.2f)
+        }
+        DockMark.GROK -> {
+            // Calm singularity mark: outer ring + soft diagonal cut (line-art, matches dock stroke style).
+            path.addCircle(12f, 12f, 8.2f, Path.Direction.CW)
+            path.addCircle(12f, 12f, 3.4f, Path.Direction.CW)
+            path.moveTo(7.2f, 16.8f)
+            path.lineTo(16.8f, 7.2f)
         }
         DockMark.CURSOR -> {
             path.moveTo(7.2f, 4f)

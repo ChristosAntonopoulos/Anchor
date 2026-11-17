@@ -30,6 +30,8 @@ data class DockApp(
 object InstalledApps {
     const val WALLET = "com.google.android.apps.walletnfcrel"
     const val CHATGPT = "com.openai.chatgpt"
+    /** Official xAI Grok Android package (Play Store: ai.x.grok). */
+    const val GROK = "ai.x.grok"
     const val SPOTIFY = "com.spotify.music"
     const val PHONE = "com.google.android.dialer"
     val PHONE_APP = DockApp(
@@ -46,6 +48,7 @@ object InstalledApps {
     )
     val WALLET_APP = DockApp("Wallet", DockMark.WALLET, listOf(WALLET, "com.google.android.apps.nbu.paisa.user", "com.samsung.android.spay", "com.samsung.android.spaylite"), listOf("Wallet", "Google Wallet", "GPay", "Samsung Pay"))
     val CHATGPT_APP = DockApp("ChatGPT", DockMark.CHAT, listOf(CHATGPT), listOf("ChatGPT"))
+    val GROK_APP = DockApp("Grok", DockMark.GROK, listOf(GROK), listOf("Grok", "Grok Bot"))
     val CURSOR_APP = DockApp("Cursor", DockMark.CURSOR, listOf("com.anysphere.cursor", "com.todesktop.20100701"), listOf("Cursor"))
     val SPOTIFY_APP = DockApp("Spotify", DockMark.SPOTIFY, listOf(SPOTIFY, "com.spotify.lite"), listOf("Spotify"))
 

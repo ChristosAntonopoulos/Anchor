@@ -93,10 +93,10 @@ object LauncherPalette {
         }
     }
 
-    fun mark(view: View, kind: DockMark, sizeDp: Int = 28): ImageView {
+    fun mark(view: View, kind: DockMark, sizeDp: Int = 28, color: Int = faint): ImageView {
         val size = dp(view, sizeDp)
         return ImageView(view.context).apply {
-            setImageDrawable(DockMarks.drawable(kind, faint, dp(view, 1).toFloat().coerceAtLeast(2f)))
+            setImageDrawable(DockMarks.drawable(kind, color, dp(view, 1).toFloat().coerceAtLeast(2f)))
             scaleType = ImageView.ScaleType.FIT_CENTER
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             layoutParams = android.widget.LinearLayout.LayoutParams(size, size)
