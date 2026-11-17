@@ -252,4 +252,26 @@ class PhoneUnlockResolutionTest {
         assertFalse(PhoneUnlockResolution.needsPause("pay"))
         assertEquals(3, PhoneUnlockResolution.PAUSE_SECONDS)
     }
+
+    @Test
+    fun silentBackgroundPathKeepsNullIntentionAndOptionalOpenedNote() {
+        val prompt = PhoneUnlockPrompt.createPending(1_700_000_000_100L)
+        val decision = PhoneUnlockResolution.Decision(
+            status = PhoneUnlockPrompt.STATUS_ANSWERED,
+            action = PhoneUnlockPrompt.ACTION_CONTINUE,
+            intentionCode = null,
+            triggerCode = null,
+            feelingCode = null,
+            note = PhoneUnlockResolution.sanitizeNote("opened:ai.x.grok"),
+            contextExpanded = false,
+            submissionPath = PhoneUnlockPrompt.PATH_SILENT,
+            putDownExecution = null,
+        )
+        assertTrue(PhoneUnlockResolution.apply(prompt, decision, "2026-11-17T16:00:00.000Z"))
+        assertEquals(PhoneUnlockPrompt.PATH_SILENT, prompt.submissionPath)
+        assertNull(prompt.intentionCode)
+        assertEquals(PhoneUnlockPrompt.ACTION_CONTINUE, prompt.action)
+        assertEquals("opened:ai.x.grok", prompt.note)
+        assertEquals("silent_background", PhoneUnlockPrompt.PATH_SILENT)
+    }
 }

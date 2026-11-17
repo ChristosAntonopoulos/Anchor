@@ -63,6 +63,8 @@ data class PhoneUnlockPrompt(
         const val PATH_CONTEXT = "context_form"
         const val PATH_DIRECT = "direct_action"
         const val PATH_WALLET = "wallet_shortcut"
+        /** No intention popup — unlock logged in the background for history / insights. */
+        const val PATH_SILENT = "silent_background"
         const val PUT_DOWN_OVERLAY = "overlay_dismissed"
         const val PUT_DOWN_LOCK = "lock_requested"
         const val PUT_DOWN_FAILED = "failed"

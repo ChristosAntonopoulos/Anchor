@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform, AppState } from 're
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppIcon } from '../icons/AppIcon';
 import { colors, spacing, typography, borderRadius, shadows } from '../../constants/designTokens';
-import { overlayPermission } from '../../services/overlayPermission';
 import {
   isLockAdminActive,
   isUsageAccessGranted,
@@ -16,19 +15,23 @@ interface UnlockSetupPromptProps {
   onOpenExternal?: () => void;
 }
 
-type SetupStep = 'overlay' | 'usage' | 'lock';
+type SetupStep = 'usage' | 'lock';
 
 let usageSkippedSession = false;
 let lockSkippedSession = false;
 
+/**
+ * Optional permissions after the intention popup was removed.
+ * Usage access: wallet Pay auto-log + first app after unlock.
+ * Lock admin: still useful if other flows request a screen lock.
+ */
 export function UnlockSetupPrompt({ onReady, onOpenExternal }: UnlockSetupPromptProps) {
-  const [overlayOn, setOverlayOn] = useState(false);
   const [usageOn, setUsageOn] = useState(false);
   const [lockOn, setLockOn] = useState(false);
   const [usageSkipped, setUsageSkipped] = useState(usageSkippedSession);
   const [lockSkipped, setLockSkipped] = useState(lockSkippedSession);
 
-  const ready = overlayOn && (usageOn || usageSkipped) && (lockOn || lockSkipped);
+  const ready = (usageOn || usageSkipped) && (lockOn || lockSkipped);
 
   const check = useCallback(async () => {
     if (Platform.OS !== 'android') {
@@ -37,13 +40,11 @@ export function UnlockSetupPrompt({ onReady, onOpenExternal }: UnlockSetupPrompt
     }
 
     try {
-      const overlay = await overlayPermission.isOverlayPermissionGranted();
       const usage = await isUsageAccessGranted();
       const lock = await isLockAdminActive();
-      setOverlayOn(overlay);
       setUsageOn(usage);
       setLockOn(lock);
-      if (overlay && (usage || usageSkipped) && (lock || lockSkipped)) {
+      if ((usage || usageSkipped) && (lock || lockSkipped)) {
         onReady?.();
       }
     } catch (error) {
@@ -68,33 +69,24 @@ export function UnlockSetupPrompt({ onReady, onOpenExternal }: UnlockSetupPrompt
     return null;
   }
 
-  const step: SetupStep = !overlayOn ? 'overlay' : !usageOn && !usageSkipped ? 'usage' : 'lock';
+  const step: SetupStep = !usageOn && !usageSkipped ? 'usage' : 'lock';
 
   const copy =
-    step === 'overlay'
+    step === 'usage'
       ? {
-          title: 'Allow the unlock popup',
+          title: 'Log unlocks with more detail',
           description:
-            'Android will not let this app jump in front after you unlock. Allow display over other apps so “What brings you to your phone?” can appear on the home screen.',
-          button: 'Open overlay settings',
+            'App usage access lets Anchor note which app you open first after unlock, and log lock-screen Cards as Pay. Unlock timestamps still record without this.',
+          button: 'Allow app usage',
         }
-      : step === 'usage'
-        ? {
-            title: 'Log Cards automatically',
-            description:
-              'Nothing’s lock-screen Cards button can skip the popup and log Pay. Android needs App usage access for that. POS only checks which app opened after unlock.',
-            button: 'Allow app usage',
-          }
-        : {
-            title: 'Allow screen lock',
-            description:
-              'So Put phone down can turn the screen off. This only lets the app lock the screen. It cannot erase data.',
-            button: 'Allow screen lock',
-          };
+      : {
+          title: 'Allow screen lock',
+          description:
+            'Lets Anchor turn the screen off when a flow asks to put the phone down. It cannot erase data.',
+          button: 'Allow screen lock',
+        };
 
   const openExternal = (open: () => Promise<unknown> | void) => {
-    // Device-admin and settings screens are dialogs. Hide this React Native
-    // Modal first or they open underneath it and look like a dead button.
     onOpenExternal?.();
     setTimeout(() => {
       void open();
@@ -118,11 +110,7 @@ export function UnlockSetupPrompt({ onReady, onOpenExternal }: UnlockSetupPrompt
               openExternal(() => requestUsageAccess());
               return;
             }
-            if (step === 'lock') {
-              openExternal(() => requestLockAdmin());
-              return;
-            }
-            openExternal(() => overlayPermission.requestOverlayPermission());
+            openExternal(() => requestLockAdmin());
           }}
         >
           <LinearGradient
@@ -137,26 +125,24 @@ export function UnlockSetupPrompt({ onReady, onOpenExternal }: UnlockSetupPrompt
         <TouchableOpacity style={styles.checkButton} onPress={() => void check()}>
           <Text style={styles.checkButtonText}>I allowed it</Text>
         </TouchableOpacity>
-        {step === 'usage' || step === 'lock' ? (
-          <TouchableOpacity
-            style={styles.checkButton}
-            onPress={() => {
-              if (step === 'usage') {
-                usageSkippedSession = true;
-                setUsageSkipped(true);
-                if (overlayOn && (lockOn || lockSkipped)) {
-                  onReady?.();
-                }
-                return;
+        <TouchableOpacity
+          style={styles.checkButton}
+          onPress={() => {
+            if (step === 'usage') {
+              usageSkippedSession = true;
+              setUsageSkipped(true);
+              if (lockOn || lockSkipped) {
+                onReady?.();
               }
-              lockSkippedSession = true;
-              setLockSkipped(true);
-              onReady?.();
-            }}
-          >
-            <Text style={styles.checkButtonText}>Later</Text>
-          </TouchableOpacity>
-        ) : null}
+              return;
+            }
+            lockSkippedSession = true;
+            setLockSkipped(true);
+            onReady?.();
+          }}
+        >
+          <Text style={styles.checkButtonText}>Later</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );

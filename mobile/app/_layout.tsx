@@ -7,10 +7,8 @@ import { ErrorBoundary } from '../components/shared/ErrorBoundary';
 import { useCategoryStore } from '../store/useCategoryStore';
 import { consumePendingWorkBlock, isLockAdminActive, isUsageAccessGranted, phoneUnlockListener } from '../services/phoneUnlockListener';
 import { workPath } from '../utils/workBlock';
-import { PhoneUnlockReasonModal } from '../components/phoneUnlock/PhoneUnlockReasonModal';
 import { UnlockSetupPrompt } from '../components/phoneUnlock/UnlockSetupPrompt';
 import { hasPhoneUnlockModule, isExpoGo } from '../utils/nativeModuleSupport';
-import { overlayPermission } from '../services/overlayPermission';
 import { API_CONFIG } from '../constants/apiConfig';
 import { useLifeReminders } from '../hooks/useLifeReminders';
 import { useFocusPresence } from '../hooks/useFocusPresence';
@@ -18,8 +16,6 @@ import { useOsWidgetSync } from '../hooks/useOsWidgetSync';
 import { useOsDeepLinks } from '../hooks/useOsDeepLinks';
 import { useMorningGate } from '../hooks/useMorningGate';
 import { useNightGate } from '../hooks/useNightGate';
-import { isMorningTakeover, useMorningModeStore } from '../store/useMorningModeStore';
-import { isNightTakeover, useNightModeStore } from '../store/useNightModeStore';
 
 export default function RootLayout() {
   const { fetchCategories } = useCategoryStore();
@@ -30,19 +26,13 @@ export default function RootLayout() {
   const morningTakeover = useMorningGate();
   const nightTakeover = useNightGate();
   const modeTakeover = morningTakeover || nightTakeover;
-  const [showUnlockModal, setShowUnlockModal] = useState(false);
-  const [showOverlayPrompt, setShowOverlayPrompt] = useState(false);
-  const [overlayPromptPaused, setOverlayPromptPaused] = useState(false);
-  const [unlockTime, setUnlockTime] = useState<number>(Date.now());
+  const [showSetupPrompt, setShowSetupPrompt] = useState(false);
+  const [setupPromptPaused, setSetupPromptPaused] = useState(false);
   const unsubscribeRef = useRef<(() => void) | null>(null);
-  const lastUnlockTimeRef = useRef<number>(0);
-  const isShowingModalRef = useRef<boolean>(false);
   const openingWorkRef = useRef(false);
-  const DEBOUNCE_MS = 2000; // Prevent duplicate modals within 2 seconds
+  const listenerSetupRef = useRef(false);
 
   useEffect(() => {
-    // Polyfill for window.addEventListener if it doesn't exist (React Native doesn't have window)
-    // This prevents errors from dependencies that try to use web APIs
     try {
       if (typeof global !== 'undefined') {
         const globalAny = global as any;
@@ -50,52 +40,37 @@ export default function RootLayout() {
           globalAny.window = {};
         }
         if (typeof globalAny.window.addEventListener !== 'function') {
-          globalAny.window.addEventListener = () => {
-            // No-op for React Native - event listeners aren't needed
-          };
+          globalAny.window.addEventListener = () => {};
         }
         if (typeof globalAny.window.removeEventListener !== 'function') {
-          globalAny.window.removeEventListener = () => {
-            // No-op for React Native
-          };
+          globalAny.window.removeEventListener = () => {};
         }
       }
-    } catch (e) {
+    } catch {
       // Silently fail if polyfill can't be applied
     }
 
-    // Fetch categories on app initialization
     fetchCategories();
 
     if (Platform.OS === 'android' && !isExpoGo && hasPhoneUnlockModule) {
       phoneUnlockListener.setApiUrl(API_CONFIG.baseURL);
-      Promise.all([
-        overlayPermission.isOverlayPermissionGranted(),
-        isLockAdminActive(),
-        isUsageAccessGranted(),
-      ])
-        .then(([overlay, lock, usage]) => {
-          setShowOverlayPrompt(!overlay || !lock || !usage);
+      // Overlay permission is no longer required (intention popup removed).
+      // Usage access still helps wallet Pay + first-app logging; lock admin is optional.
+      Promise.all([isLockAdminActive(), isUsageAccessGranted()])
+        .then(([lock, usage]) => {
+          setShowSetupPrompt(!lock || !usage);
         })
         .catch(() => {
-          setShowOverlayPrompt(true);
+          setShowSetupPrompt(true);
         });
     }
 
-    // Don't check pending unlock on initial mount - wait for AppState listener
-    // This prevents race conditions when app is already open
-
-    // Suppress harmless "keep awake" errors from Expo/React Native internals
-    // This is a known issue that occurs when Expo tries to prevent screen sleep
-    // but the feature isn't available or properly configured - it doesn't affect functionality
     const originalError = console.error;
     const originalWarn = console.warn;
-    
+
     console.error = (...args: any[]) => {
       const message = args[0]?.toString() || '';
-      if (message.includes('Unable to activate keep awake') || 
-          message.includes('keep awake')) {
-        // Silently suppress this harmless error
+      if (message.includes('Unable to activate keep awake') || message.includes('keep awake')) {
         return;
       }
       originalError.apply(console, args);
@@ -103,9 +78,7 @@ export default function RootLayout() {
 
     console.warn = (...args: any[]) => {
       const message = args[0]?.toString() || '';
-      if (message.includes('Unable to activate keep awake') || 
-          message.includes('keep awake')) {
-        // Silently suppress this harmless warning
+      if (message.includes('Unable to activate keep awake') || message.includes('keep awake')) {
         return;
       }
       originalWarn.apply(console, args);
@@ -117,83 +90,33 @@ export default function RootLayout() {
     };
   }, [fetchCategories]);
 
-  // Phone unlock detection (Android only)
-  // This useEffect should only run once on mount and cleanup on unmount
-  // Use a ref to track if we've already set up the listener to prevent re-initialization
-  const listenerSetupRef = useRef<boolean>(false);
-  
+  // Keep native unlock listener / FGS alive; silent recording happens in Kotlin (no RN modal).
   useEffect(() => {
-    // Prevent re-initialization if already set up (e.g., during hot reload)
     if (listenerSetupRef.current) {
-      console.log('[RootLayout] Listener already set up, skipping re-initialization');
+      return;
+    }
+    if (Platform.OS !== 'android' || isExpoGo || !hasPhoneUnlockModule) {
       return;
     }
 
-    if (Platform.OS !== 'android') {
-      console.log('[RootLayout] Not Android, skipping phone unlock listener setup');
-      return; // Only Android supports unlock detection
-    }
-
-    if (isExpoGo) {
-      console.log('[RootLayout] Expo Go: skipping phone unlock listener (requires dev build)');
-      return;
-    }
-
-    if (!hasPhoneUnlockModule) {
-      console.log('[RootLayout] PhoneUnlockModule unavailable — run: npx expo run:android');
-      return;
-    }
-
-    console.log('[RootLayout] Setting up phone unlock listener');
-
-    // Mark as set up before starting listener
     listenerSetupRef.current = true;
-
-    const unsubscribe = phoneUnlockListener.startListening((unlockTimeMs: number) => {
-      const now = Date.now();
-      const timeSinceLastUnlock = now - lastUnlockTimeRef.current;
-      if (timeSinceLastUnlock < DEBOUNCE_MS) {
-        return;
-      }
-      if (
-        isMorningTakeover(useMorningModeStore.getState().session) ||
-        isNightTakeover(useNightModeStore.getState().session)
-      ) {
-        return;
-      }
-      if (isShowingModalRef.current) {
-        return;
-      }
-      lastUnlockTimeRef.current = now;
-      isShowingModalRef.current = true;
-      setUnlockTime(unlockTimeMs);
-      setShowUnlockModal(true);
+    const unsubscribe = phoneUnlockListener.startListening(() => {
+      // Intention popup removed — native PhoneUnlockPresenter records silently.
     });
-
     unsubscribeRef.current = unsubscribe;
 
-    // Cleanup on unmount only
-    // Note: In development with hot reload, this may run unnecessarily
-    // The listener should stay active as long as the app is running
     return () => {
-      // Only cleanup if this is a real unmount (not a hot reload)
-      // In development, hot reloads can cause this to run, but we want to keep listening
       if (__DEV__) {
-        console.log('[RootLayout] Cleanup called (may be hot reload) - keeping listener active');
-        // Don't actually stop listening in dev mode to prevent issues with hot reload
-        // The listener will be re-initialized on next mount anyway
         return;
       }
-      
-      console.log('[RootLayout] Component unmounting - cleaning up phone unlock listener');
-      listenerSetupRef.current = false; // Reset flag on cleanup
+      listenerSetupRef.current = false;
       if (unsubscribeRef.current) {
         unsubscribeRef.current();
         unsubscribeRef.current = null;
       }
       phoneUnlockListener.stopListening();
     };
-  }, []); // Empty dependency array - only run on mount/unmount
+  }, []);
 
   const openPendingWork = useCallback(async () => {
     if (openingWorkRef.current) {
@@ -215,24 +138,6 @@ export default function RootLayout() {
     }
   }, []);
 
-  const checkPendingUnlock = useCallback(async () => {
-    try {
-      if (isShowingModalRef.current || showUnlockModal || modeTakeover) {
-        return;
-      }
-
-      const pendingUnlockTime = await phoneUnlockListener.getPendingUnlockTime();
-      if (pendingUnlockTime) {
-        isShowingModalRef.current = true;
-        setUnlockTime(pendingUnlockTime);
-        setShowUnlockModal(true);
-      }
-    } catch (error) {
-      console.error('[RootLayout] Error checking pending unlock:', error);
-    }
-  }, [modeTakeover, showUnlockModal]);
-
-  // Listen for app state changes to check pending unlock when app comes to foreground
   useEffect(() => {
     if (Platform.OS !== 'android') {
       return;
@@ -241,18 +146,13 @@ export default function RootLayout() {
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active') {
         setTimeout(() => {
-          void checkPendingUnlock();
           void openPendingWork();
         }, 400);
-        setOverlayPromptPaused(false);
-        Promise.all([
-          overlayPermission.isOverlayPermissionGranted(),
-          isLockAdminActive(),
-          isUsageAccessGranted(),
-        ])
-          .then(([overlay, lock, usage]) => {
-            if (overlay && lock && usage) {
-              setShowOverlayPrompt(false);
+        setSetupPromptPaused(false);
+        Promise.all([isLockAdminActive(), isUsageAccessGranted()])
+          .then(([lock, usage]) => {
+            if (lock && usage) {
+              setShowSetupPrompt(false);
             }
           })
           .catch(() => undefined);
@@ -261,7 +161,6 @@ export default function RootLayout() {
 
     if (AppState.currentState === 'active') {
       setTimeout(() => {
-        void checkPendingUnlock();
         void openPendingWork();
       }, 800);
     }
@@ -269,41 +168,7 @@ export default function RootLayout() {
     return () => {
       subscription.remove();
     };
-  }, [checkPendingUnlock, openPendingWork]);
-
-  const handleUnlockModalClose = useCallback(() => {
-    try {
-      console.log('[RootLayout] Closing unlock modal');
-      
-      // Reset the ref first
-      isShowingModalRef.current = false;
-      
-      // Close modal - use functional update to ensure state is correct
-      setShowUnlockModal(false);
-      
-      // Clear pending unlock time in a safe way (non-blocking, fire-and-forget)
-      // This is optional cleanup - if it fails, it won't affect functionality
-      // The pending unlock time will be overwritten on the next unlock anyway
-      setTimeout(() => {
-        try {
-          // Check if module is available before calling
-          const { NativeModules } = require('react-native');
-          if (NativeModules?.PhoneUnlockModule?.clearPendingUnlockTime) {
-            // Call directly - the service layer has its own error handling
-            phoneUnlockListener.clearPendingUnlockTime();
-          }
-        } catch (clearError) {
-          // Silently fail - this is not critical
-          // The pending unlock time is just a cache, it will be cleared on next unlock
-        }
-      }, 200); // Delay to ensure React Native bridge is stable
-    } catch (error) {
-      console.error('[RootLayout] Error in handleUnlockModalClose:', error);
-      // Still try to close the modal even if there's an error
-      isShowingModalRef.current = false;
-      setShowUnlockModal(false);
-    }
-  }, []);
+  }, [openPendingWork]);
 
   return (
     <ErrorBoundary>
@@ -339,27 +204,20 @@ export default function RootLayout() {
       <ErrorBoundary>
         {modeTakeover ? null : <AppUpdatePrompt />}
       </ErrorBoundary>
-      <ErrorBoundary>
-        <PhoneUnlockReasonModal
-          visible={showUnlockModal && !modeTakeover}
-          unlockTime={unlockTime}
-          onClose={handleUnlockModalClose}
-        />
-      </ErrorBoundary>
       <Modal
-        visible={showOverlayPrompt && !overlayPromptPaused && !modeTakeover}
+        visible={showSetupPrompt && !setupPromptPaused && !modeTakeover}
         transparent
         animationType="fade"
         onRequestClose={() => undefined}
       >
         <View style={styles.overlayPromptBackdrop}>
           <UnlockSetupPrompt
-            onReady={() => setShowOverlayPrompt(false)}
+            onReady={() => setShowSetupPrompt(false)}
             onOpenExternal={() => {
-              setOverlayPromptPaused(true);
+              setSetupPromptPaused(true);
               setTimeout(() => {
                 if (AppState.currentState === 'active') {
-                  setOverlayPromptPaused(false);
+                  setSetupPromptPaused(false);
                 }
               }, 1200);
             }}
