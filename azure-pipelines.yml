@@ -226,6 +226,13 @@ stages:
         set -euo pipefail
         cd mobile
         export EXPO_PUBLIC_API_URL="http://185.193.66.50:31247/api"
+        # Bake X-Anchor-Key into the release APK (same secret the API uses). Value never echoed.
+        ANCHOR_API_KEY=$(kubectl get secret pos-api-secrets -n "$(kubernetesNamespace)" -o jsonpath='{.data.AnchorApi__Key}' 2>/dev/null | base64 -d || true)
+        if [ -z "${ANCHOR_API_KEY}" ]; then
+          echo "ERROR: AnchorApi__Key missing from cluster secret (Deploy must create it first)."
+          exit 1
+        fi
+        export EXPO_PUBLIC_ANCHOR_API_KEY="${ANCHOR_API_KEY}"
         export NODE_ENV=production
         export JAVA_HOME="${JAVA_HOME}"
         export PATH="${JAVA_HOME}/bin:$PATH"
@@ -235,6 +242,7 @@ stages:
         fi
         echo "Using JAVA_HOME=$JAVA_HOME"
         java -version
+        echo "EXPO_PUBLIC_ANCHOR_API_KEY is set (length ${#EXPO_PUBLIC_ANCHOR_API_KEY}; value not shown)."
 
         export ANDROID_HOME="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
         export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
@@ -281,6 +289,7 @@ stages:
         pathToPublish: 'mobile/pos-mobile.apk'
         artifactName: 'mobile-apk'
         publishLocation: 'Container'
+      retryCountOnTaskFailure: 2
 
     - script: |
         echo "=== Mobile Build Summary ==="
@@ -359,10 +368,12 @@ stages:
                   echo "WARNING: MONGO_CONNECTION_STRING may be malformed (should start with 'mongodb://' or 'mongodb+srv://')"
                 fi
 
-                # Preserve existing upload token when present so redeploys do not rotate it
+                # Preserve existing upload token / Anchor API key so redeploys do not rotate them
                 APP_RELEASE_TOKEN=""
+                ANCHOR_API_KEY=""
                 if kubectl get secret pos-api-secrets -n $(kubernetesNamespace) > /dev/null 2>&1; then
                   APP_RELEASE_TOKEN=$(kubectl get secret pos-api-secrets -n $(kubernetesNamespace) -o jsonpath='{.data.AppRelease__UploadToken}' 2>/dev/null | base64 -d || true)
+                  ANCHOR_API_KEY=$(kubectl get secret pos-api-secrets -n $(kubernetesNamespace) -o jsonpath='{.data.AnchorApi__Key}' 2>/dev/null | base64 -d || true)
                 fi
                 if [ -z "${APP_RELEASE_TOKEN}" ]; then
                   APP_RELEASE_TOKEN=$(openssl rand -hex 32 2>/dev/null || od -An -N32 -tx1 /dev/urandom | tr -d ' \n')
@@ -371,12 +382,20 @@ stages:
                   echo "ERROR: Could not generate the app release upload token."
                   exit 1
                 fi
+                if [ -z "${ANCHOR_API_KEY}" ]; then
+                  ANCHOR_API_KEY=$(openssl rand -hex 32 2>/dev/null || od -An -N32 -tx1 /dev/urandom | tr -d ' \n')
+                fi
+                if [ -z "${ANCHOR_API_KEY}" ]; then
+                  echo "ERROR: Could not generate the Anchor API key."
+                  exit 1
+                fi
 
-                echo "Creating Kubernetes secrets (Mongo + AppRelease + AzureDevOps PAT)..."
-                # Replace pos-api-secrets with the full known key set so apply does not drop the ADO PAT
+                echo "Creating Kubernetes secrets (Mongo + AppRelease + AnchorApi + AzureDevOps PAT)..."
+                # Replace pos-api-secrets with the full known key set so apply does not drop keys
                 kubectl create secret generic pos-api-secrets \
                   --from-literal=ConnectionStrings__MongoDb="${MONGO_CONNECTION_STRING}" \
                   --from-literal=AppRelease__UploadToken="${APP_RELEASE_TOKEN}" \
+                  --from-literal=AnchorApi__Key="${ANCHOR_API_KEY}" \
                   --from-literal=AzureDevOps__PersonalAccessToken="${AzureDevOps__PersonalAccessToken}" \
                   --namespace=$(kubernetesNamespace) \
                   --dry-run=client -o yaml | kubectl apply -f -
@@ -393,7 +412,12 @@ stages:
                     echo "ERROR: AzureDevOps__PersonalAccessToken key missing from secret"
                     exit 1
                   fi
-                  echo "AzureDevOps__PersonalAccessToken key is present (value not shown)."
+                  ANCHOR_KEY_PRESENT=$(kubectl get secret pos-api-secrets -n $(kubernetesNamespace) -o go-template='{{if index .data "AnchorApi__Key"}}yes{{end}}')
+                  if [ "${ANCHOR_KEY_PRESENT}" != "yes" ]; then
+                    echo "ERROR: AnchorApi__Key key missing from secret"
+                    exit 1
+                  fi
+                  echo "AzureDevOps__PersonalAccessToken and AnchorApi__Key are present (values not shown)."
                 else
                   echo "ERROR: Failed to create secret!"
                   exit 1

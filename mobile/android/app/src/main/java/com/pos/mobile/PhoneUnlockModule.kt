@@ -106,6 +106,11 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
+    fun setApiKey(key: String) {
+        PhoneUnlockApi.setApiKey(reactApplicationContext, key)
+    }
+
+    @ReactMethod
     fun setCurrentBlock(
         title: String?,
         startTime: String?,

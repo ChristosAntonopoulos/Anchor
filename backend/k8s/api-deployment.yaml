@@ -52,6 +52,12 @@ spec:
               name: pos-api-secrets
               key: AppRelease__UploadToken
               optional: true
+        - name: AnchorApi__Key
+          valueFrom:
+            secretKeyRef:
+              name: pos-api-secrets
+              key: AnchorApi__Key
+              optional: true
         - name: BotSystem__BaseUrl
           valueFrom:
             configMapKeyRef:

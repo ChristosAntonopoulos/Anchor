@@ -200,6 +200,11 @@ export interface APIClient {
   getNotificationSettings(): Promise<NotificationSettings>;
   updateNotificationSettings(settings: Partial<NotificationSettings>): Promise<NotificationSettings>;
   getNotificationApps(): Promise<AppNotificationCount[]>;
+  registerPushToken(request: {
+    token: string;
+    platform?: string;
+    expoProjectId?: string;
+  }): Promise<{ id: string; token: string; platform: string; lastSeenAt: string }>;
   
   // Phone Unlock endpoints
   createPhoneUnlockEntry(request: CreatePhoneUnlockEntryRequest): Promise<void>;
@@ -948,6 +953,21 @@ class HTTPAPIClient implements APIClient {
       return data || [];
     } catch (error) {
       throw this.handleError(error, 'Failed to get notification apps');
+    }
+  }
+
+  async registerPushToken(request: {
+    token: string;
+    platform?: string;
+    expoProjectId?: string;
+  }): Promise<{ id: string; token: string; platform: string; lastSeenAt: string }> {
+    try {
+      const response = await this.axiosInstance.post<
+        ApiResponse<{ id: string; token: string; platform: string; lastSeenAt: string }>
+      >('/devices/push-token', request);
+      return unwrapResponse(response.data);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to register push token');
     }
   }
 
