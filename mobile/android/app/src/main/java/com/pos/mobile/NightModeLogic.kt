@@ -18,8 +18,8 @@ import java.util.TimeZone
  * the app again. Accessibility is not used.
  */
 object NightModeLogic {
-    const val TRIGGER_HOUR = 22
-    const val TRIGGER_MINUTE = 0
+    const val TRIGGER_HOUR = 21
+    const val TRIGGER_MINUTE = 30
 
     const val NOT_DUE = "NOT_DUE"
     const val WAITING = "WAITING_FOR_FIRST_UNLOCK"

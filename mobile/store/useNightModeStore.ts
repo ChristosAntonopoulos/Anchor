@@ -56,7 +56,20 @@ export const useNightModeStore = create<NightModeState>((set, get) => ({
 
   hydrate: async () => {
     const now = new Date();
-    const stored = parseSession(await loadNativeSessionJson(), now);
+    let stored = parseSession(await loadNativeSessionJson(), now);
+    if (!stored || stored.status === 'NOT_DUE' || stored.status === 'WAITING_FOR_FIRST_UNLOCK') {
+      try {
+        const remote = await apiClient.getNightSession(
+          stored?.localDate ?? undefined,
+          stored?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
+        );
+        if (remote?.session?.localDate && remote.session.status) {
+          stored = reduceNight(remote.session as NightSession, { type: 'tick' }, now);
+        }
+      } catch {
+        // offline: keep local / empty waiting
+      }
+    }
     const gate = await getNightGate();
     const pending = await consumeNightPending();
     let session = reduceNight(stored, { type: 'civilRollover' }, now);

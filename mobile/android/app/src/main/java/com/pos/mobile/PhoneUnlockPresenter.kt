@@ -52,7 +52,7 @@ object PhoneUnlockPresenter {
         screenWasOff = false
         android.util.Log.d(TAG, "Phone unlock detected: $unlockTime present=$fromUserPresent")
         val appContext = context.applicationContext
-        // After 22:00 prefer Night Mode so an unfinished morning waiting state cannot steal wind-down.
+        // After 21:30 prefer Night Mode so an unfinished morning waiting state cannot steal wind-down.
         if (NightModeLogic.isAtOrAfterTrigger(unlockTime) &&
             NightModeLauncher.consumeUnlock(appContext, unlockTime, fromUserPresent)
         ) {

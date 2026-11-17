@@ -109,19 +109,7 @@ public class ScheduleMaterializationService
     internal static List<ScheduleBlockDefinition> DefaultDefinitions(string userId, DateTime now) =>
         new()
         {
-            new ScheduleBlockDefinition
-            {
-                UserId = userId,
-                Title = "Morning Routine",
-                Kind = ScheduleBlockKind.Routine,
-                Recurrence = RecurrenceType.Daily,
-                FixedStartTime = "06:00",
-                FixedEndTime = "07:00",
-                Enabled = true,
-                Priority = 1,
-                RoutineActivities = new List<string> { "Drink water", "Brush teeth", "Morning walk" },
-                CreatedAt = now
-            },
+            FromCatalog(userId, now, RoutineCatalog.Morning, priority: 1),
             new ScheduleBlockDefinition
             {
                 UserId = userId,
@@ -148,18 +136,29 @@ public class ScheduleMaterializationService
                 Energy = EnergyLevel.Medium,
                 CreatedAt = now
             },
-            new ScheduleBlockDefinition
-            {
-                UserId = userId,
-                Title = "Evening Routine",
-                Kind = ScheduleBlockKind.Routine,
-                Recurrence = RecurrenceType.Daily,
-                FixedStartTime = "22:00",
-                FixedEndTime = "22:30",
-                Enabled = true,
-                Priority = 4,
-                RoutineActivities = new List<string> { "Dim lights", "Close screens", "Cool room", "Quiet settle", "Breathing close" },
-                CreatedAt = now
-            }
+            FromCatalog(userId, now, RoutineCatalog.Night, priority: 4),
+        };
+
+    internal static ScheduleBlockDefinition FromCatalog(
+        string userId,
+        DateTime now,
+        UnifiedRoutine routine,
+        int priority) =>
+        new()
+        {
+            UserId = userId,
+            Title = routine.Title,
+            Kind = ScheduleBlockKind.Routine,
+            Recurrence = RecurrenceType.Daily,
+            FixedStartTime = routine.StartTime,
+            FixedEndTime = routine.EndTime,
+            DurationMinutes = routine.DurationMinutes,
+            Enabled = true,
+            Priority = priority,
+            PreferredTimeTag = routine.Key == "morning" ? "morning" : "evening",
+            Tags = new[] { "routine", routine.Key, RoutineCatalog.CatalogVersion },
+            RoutineActivities = routine.ActivityTitles.ToList(),
+            ShorterRoutineActivities = routine.ShorterActivityTitles.ToList(),
+            CreatedAt = now
         };
 }

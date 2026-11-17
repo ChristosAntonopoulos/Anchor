@@ -3,8 +3,11 @@ using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using POS.Application.DTOs.Execution;
 using POS.Application.DTOs.Night;
+using POS.Application.DTOs.Routine;
 using POS.Application.Services.Execution;
+using POS.Application.Services.Schedule;
 using POS.Core.Entities.Night;
+using POS.Core.Schedule;
 using POS.Infrastructure.Data;
 
 namespace POS.Application.Services.Night;
@@ -26,6 +29,46 @@ public class NightModeService
         _execution = execution;
         _llm = llm;
         _logger = logger;
+    }
+
+    public async Task<ModeSessionResponseDto> GetSessionAsync(
+        string userId,
+        string? localDate,
+        string? timezone,
+        CancellationToken ct = default)
+    {
+        var routine = RoutineDtoMapper.FromCatalog(RoutineCatalog.Night);
+        var date = string.IsNullOrWhiteSpace(localDate)
+            ? DateTime.UtcNow.ToString("yyyy-MM-dd")
+            : localDate.Trim();
+
+        var filter = Builders<NightModeSession>.Filter.And(
+            Builders<NightModeSession>.Filter.Eq(x => x.UserId, userId),
+            Builders<NightModeSession>.Filter.Eq(x => x.LocalDate, date)
+        );
+        var existing = await _context.NightModeSessions.Find(filter).FirstOrDefaultAsync(ct);
+        if (existing != null && !string.IsNullOrWhiteSpace(existing.PayloadJson))
+        {
+            using var doc = JsonDocument.Parse(existing.PayloadJson);
+            return new ModeSessionResponseDto
+            {
+                Session = doc.RootElement.Clone(),
+                Routine = routine,
+                HasStoredSession = true,
+            };
+        }
+
+        return new ModeSessionResponseDto
+        {
+            Session = RoutineDtoMapper.ClearWaitingShell(
+                "night",
+                date,
+                timezone,
+                RoutineCatalog.Night.TriggerHour,
+                RoutineCatalog.Night.TriggerMinute),
+            Routine = routine,
+            HasStoredSession = false,
+        };
     }
 
     public async Task UpsertSessionAsync(string userId, JsonElement payload, CancellationToken ct = default)
@@ -102,12 +145,12 @@ public class NightModeService
     {
         var fallback = request.Step switch
         {
-            "screens" => "Close one app. Leave the rest for morning.",
-            "prepare" => "Pick one: cooler air, wash up, or tidy the bed.",
-            "settle" => "Nothing to get right. Quiet is enough.",
-            "breathe" => "Inhale four through the nose. Exhale six, softer. Skip if it feels forced.",
-            "close" => "One tomorrow step. Then charge the phone away from bed.",
-            _ => "One warmer, dimmer light is enough.",
+            "screens" => "Close just one screen. Leave the rest.",
+            "read" => "Read one page. That is enough.",
+            "brush" or "prepare" => "Brush gently. Skip the rest.",
+            "breathe" or "settle" => "One soft inhale, one longer exhale.",
+            "close" => "Write one small step. Then put the phone away.",
+            _ => "Dim one light. Warm light is enough.",
         };
 
         if (!_llm.IsConfigured || string.IsNullOrWhiteSpace(request.Text))
@@ -118,7 +161,7 @@ public class NightModeService
         try
         {
             var json = await _llm.CompleteJsonAsync(
-                "You help one adult wind down for a quiet 30-minute indoor night routine. Reply JSON {\"text\":\"...\"}. Maximum two short English sentences. Practical sleep hygiene only: dim warm light, screens away, cool room, quiet settle, short soft inhale-4/exhale-6 breathing close, one tomorrow step then phone away from bed. No medical advice. No pep talk.",
+                "You help one adult wind down for a quiet 30-minute indoor night routine. Reply JSON {\"text\":\"...\"}. Maximum two short English sentences. Practical sleep hygiene only: dim light, screens away, cool room, quiet breath, one tomorrow step. No medical advice. No pep talk.",
                 "The user is stuck during a night wind-down step. Make the next action smaller.",
                 JsonSerializer.Serialize(new { request.Step, request.Text, userId }),
                 ct);

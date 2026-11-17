@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using POS.Application.DTOs.Morning;
+using POS.Application.DTOs.Routine;
 using POS.Application.Services.Morning;
 using POS.Shared.Results;
 
@@ -16,6 +17,20 @@ public class MorningController : BaseController
     public MorningController(MorningModeService morning)
     {
         _morning = morning;
+    }
+
+    /// <summary>
+    /// Returns the stored morning session for a local date, or a clear waiting shell
+    /// plus the unified morning routine (never an empty body).
+    /// </summary>
+    [HttpGet("session")]
+    [ProducesResponseType(typeof(ApiResponse<ModeSessionResponseDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSession(
+        [FromQuery] string? localDate,
+        [FromQuery] string? timezone,
+        CancellationToken ct)
+    {
+        return Success(await _morning.GetSessionAsync(GetUserId(), localDate, timezone, ct));
     }
 
     [HttpPut("session")]

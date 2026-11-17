@@ -1,6 +1,12 @@
-export const NIGHT_TOTAL_SECONDS = 1800;
-export const NIGHT_TRIGGER_HOUR = 22;
-export const NIGHT_TRIGGER_MINUTE = 0;
+import {
+  NIGHT_ROUTINE,
+  stepOrder,
+  stepSecondsMap,
+} from './routineCatalog';
+
+export const NIGHT_TOTAL_SECONDS = NIGHT_ROUTINE.totalSeconds;
+export const NIGHT_TRIGGER_HOUR = NIGHT_ROUTINE.triggerHour;
+export const NIGHT_TRIGGER_MINUTE = NIGHT_ROUTINE.triggerMinute;
 
 export type NightStatus =
   | 'NOT_DUE'
@@ -10,7 +16,7 @@ export type NightStatus =
   | 'COMPLETED'
   | 'ENDED_EARLY';
 
-export type NightStepId = 'dim' | 'screens' | 'prepare' | 'settle' | 'breathe' | 'close';
+export type NightStepId = 'screens' | 'read' | 'brush' | 'breathe' | 'close';
 
 export type NightEvent =
   | { type: 'unlock'; fromUserPresent: boolean }
@@ -30,8 +36,8 @@ export type NightEvent =
   | { type: 'toggleBreathing' }
   | { type: 'civilRollover' }
   | { type: 'setTomorrowPlan'; plan: NightTomorrowPlan }
-  | { type: 'setPrepare'; prepare: NightSubstep[] }
-  | { type: 'quietAlternative' };
+  | { type: 'quietAlternative' }
+  | { type: 'useShorter' };
 
 export interface NightSubstep {
   id: string;
@@ -75,48 +81,39 @@ export interface NightSession {
   endedReason: string | null;
   confirmEnd: boolean;
   pinEnabled: boolean;
-  prepare: NightSubstep[];
-  settleActualSeconds: number | null;
+  breatheActualSeconds: number | null;
   chimePlayed: boolean;
   lastSpokenKey: string | null;
+  shorter: boolean;
+  catalogVersion: string;
   updatedAt: string;
 }
 
 export const SCREEN_SUBSTEPS: NightSubstep[] = [
+  { id: 'dim', seconds: 60, command: 'Dim the lights. Warm only.', seated: 'Dim one light.' },
   { id: 'feeds', seconds: 60, command: 'Close feeds and social.', seated: 'Close just the feeds.' },
   { id: 'chats', seconds: 60, command: 'Leave chats unread.', seated: 'Leave chats alone.' },
-  { id: 'brightness', seconds: 60, command: 'Lower brightness. Warm tone if you can.', seated: 'Lower brightness.' },
-  { id: 'aside', seconds: 60, command: 'Set the phone face-down aside.', seated: 'Set the phone face-down beside you.' },
+  { id: 'aside', seconds: 60, command: 'Phone face-down aside.', seated: 'Phone face-down beside you.' },
+  { id: 'brightness', seconds: 60, command: 'Lower brightness if still on.', seated: 'Lower brightness.' },
 ];
 
-export const DEFAULT_PREPARE: NightSubstep[] = [
-  { id: 'cool', seconds: 120, command: 'Cool the room a little.' },
-  { id: 'wash', seconds: 120, command: 'Wash up / brush teeth gently.' },
-  { id: 'bed', seconds: 120, command: 'Make the bed inviting. Soft light only.' },
-];
-
-/** Short post-meditation breathing close: soft inhale 4, longer exhale 6. */
+/** Short breathing close: soft inhale 4, longer exhale 6. */
 export const BREATHE_SUBSTEPS: NightSubstep[] = [
   { id: 'inhale', seconds: 60, command: 'Inhale gently through your nose. Count four.', seated: 'Soft nose inhale. Count four.' },
   { id: 'exhale', seconds: 60, command: 'Exhale a little longer. Count six.', seated: 'Longer quiet exhale. Count six.' },
   { id: 'rounds', seconds: 60, command: 'Two quiet rounds. Then stay still.', seated: 'Two quiet rounds. Then still.' },
 ];
 
-export const STEP_SECONDS: Record<NightStepId, number> = {
-  dim: 60,
-  screens: 240,
-  prepare: 360,
-  settle: 660,
-  breathe: 180,
-  close: 300,
-};
+export const STEP_SECONDS: Record<NightStepId, number> = stepSecondsMap<NightStepId>(NIGHT_ROUTINE.steps);
 
-export const STEP_ORDER: NightStepId[] = ['dim', 'screens', 'prepare', 'settle', 'breathe', 'close'];
+export const STEP_ORDER: NightStepId[] = stepOrder<NightStepId>(NIGHT_ROUTINE.steps);
+
+export const SHORTER_STEP_ORDER: NightStepId[] = stepOrder<NightStepId>(NIGHT_ROUTINE.shorterSteps);
 
 export const COPY = {
   title: 'NIGHT MODE',
-  dim: 'Dim the lights. Warm light only.',
-  dimSub: 'Tell your body evening has started. Close curtains if you need.',
+  screens: 'Screens down. Evening starts.',
+  screensSub: 'Dim lights. Close feeds. Phone face-down.',
   ready: 'Ready',
   done: 'Done',
   pause: 'Pause',
@@ -131,29 +128,25 @@ export const COPY = {
   endConfirm: 'Done for tonight?',
   endYes: 'Yes, done',
   endNo: 'Continue',
-  settleTitle: 'Quiet',
-  settleGuide:
-    'Sit or lie down. Soft attention on the breath. When the mind wanders, return without fuss.',
-  settleStopped: 'You stopped early. Stay quiet a minute, or go to the breathing close.',
+  breatheTitle: 'Quiet breath',
+  breatheGuide: 'Soft nose inhale count four. Longer exhale count six. Two quiet rounds.',
+  breatheStopped: 'You stopped early. One more soft breath, or go to close-out.',
   sitQuietly: 'Stay quiet',
-  goToClose: 'Breathing',
-  breatheTitle: 'Breathing close',
-  breatheSub: 'Soft inhale four. Longer exhale six. No force.',
+  goToClose: 'Close-out',
   hideBreath: 'No motion',
   showBreath: 'Breath',
   fallbackPlanTitle: 'First step for tomorrow',
   fallbackFirstAction: 'Write one small first step for tomorrow.',
   fallbackNext: 'Put the phone on charge away from the bed.',
-  fallbackChoose: 'Leave screens out of reach. Lights down.',
-  fallbackEasier: 'Write one word for tomorrow. Then phone away.',
-  fallbackReason: 'Park tomorrow in one concrete step, then stop.',
+  fallbackChoose: 'Pick just one thing for tomorrow morning.',
+  fallbackEasier: 'Write only one word for tomorrow. Nothing else.',
+  fallbackReason: 'Close the loop with one small, concrete step.',
   noPlan: 'No saved plan. Write one small first step for tomorrow.',
-  helpDim: 'One warmer, dimmer light is enough.',
-  helpScreens: 'Close one app. Leave the rest for morning.',
-  helpPrepare: 'Pick one: cooler air, wash up, or tidy the bed.',
-  helpSettle: 'Nothing to get right. Quiet is enough.',
-  helpBreathe: 'Inhale four through the nose. Exhale six, softer. Skip if it feels forced.',
-  helpClose: 'One tomorrow step. Then charge the phone away from bed.',
+  helpScreens: 'Close just one screen. Leave the rest.',
+  helpRead: 'Read one page. That is enough.',
+  helpBrush: 'Brush gently. Skip the rest.',
+  helpBreathe: 'One soft inhale, one longer exhale.',
+  helpClose: 'Write one small step. Then put the phone away.',
 } as const;
 
 export function localDateKey(now: Date): string {
@@ -193,7 +186,7 @@ function baseSession(now: Date, localDate: string, status: NightStatus): NightSe
     status,
     firstEligibleUnlockAt: null,
     activationAt: null,
-    currentStep: 'dim',
+    currentStep: 'screens',
     currentSubstep: 0,
     stepElapsedSeconds: 0,
     sessionElapsedSeconds: 0,
@@ -212,10 +205,11 @@ function baseSession(now: Date, localDate: string, status: NightStatus): NightSe
     endedReason: null,
     confirmEnd: false,
     pinEnabled: false,
-    prepare: DEFAULT_PREPARE.map((item) => ({ ...item })),
-    settleActualSeconds: null,
+    breatheActualSeconds: null,
     chimePlayed: false,
     lastSpokenKey: null,
+    shorter: false,
+    catalogVersion: NIGHT_ROUTINE.key + '-unify-v1',
     updatedAt: now.toISOString(),
   };
 }
@@ -246,6 +240,10 @@ function stamp(session: NightSession, now: Date, patch: Partial<NightSession>): 
   return { ...session, ...patch, updatedAt: now.toISOString() };
 }
 
+function orderOf(session: NightSession): NightStepId[] {
+  return session.shorter ? SHORTER_STEP_ORDER : STEP_ORDER;
+}
+
 function elapsedNow(session: NightSession, now: Date): { step: number; sessionElapsed: number } {
   if (session.status !== 'ACTIVE') {
     return { step: session.stepElapsedSeconds, sessionElapsed: session.sessionElapsedSeconds };
@@ -259,9 +257,9 @@ function elapsedNow(session: NightSession, now: Date): { step: number; sessionEl
 }
 
 function substepsOf(session: NightSession, step: NightStepId): NightSubstep[] {
+  // Breathe uses a single timed block (STEP_SECONDS.breathe) with guide copy;
+  // BREATHE_SUBSTEPS are cue text only, not the step timer.
   if (step === 'screens') return SCREEN_SUBSTEPS;
-  if (step === 'prepare') return session.prepare;
-  if (step === 'breathe') return BREATHE_SUBSTEPS;
   return [];
 }
 
@@ -287,7 +285,7 @@ function activate(session: NightSession, now: Date): NightSession {
     status: 'ACTIVE',
     firstEligibleUnlockAt: session.firstEligibleUnlockAt ?? now.toISOString(),
     activationAt: session.activationAt ?? now.toISOString(),
-    currentStep: session.activationAt ? session.currentStep : 'dim',
+    currentStep: session.activationAt ? session.currentStep : 'screens',
     ...anchor(session, now, session.activationAt ? session.stepElapsedSeconds : 0, session.activationAt ? session.sessionElapsedSeconds : 0),
     helpText: null,
     confirmEnd: false,
@@ -320,17 +318,18 @@ function goToStep(session: NightSession, now: Date, step: NightStepId, skipped?:
     skippedSteps,
     helpText: null,
     planMicroIndex: step === 'close' ? session.planMicroIndex : 0,
-    settleActualSeconds: session.currentStep === 'settle' ? times.step : session.settleActualSeconds,
+    breatheActualSeconds: session.currentStep === 'breathe' ? times.step : session.breatheActualSeconds,
     ...anchor(session, now, 0, times.sessionElapsed),
   });
 }
 
 function nextAfter(session: NightSession, now: Date, skipped = false): NightSession {
-  const index = STEP_ORDER.indexOf(session.currentStep);
-  if (index < 0 || index >= STEP_ORDER.length - 1) {
+  const order = orderOf(session);
+  const index = order.indexOf(session.currentStep);
+  if (index < 0 || index >= order.length - 1) {
     return finishDay(session, now, 'COMPLETED');
   }
-  return goToStep(session, now, STEP_ORDER[index + 1], skipped);
+  return goToStep(session, now, order[index + 1], skipped);
 }
 
 function completeCurrent(session: NightSession, now: Date, skipped = false): NightSession {
@@ -407,11 +406,11 @@ export function reduceNight(
       stepElapsedSeconds: times.step,
       sessionElapsedSeconds: times.sessionElapsed,
     };
-    if (session.currentStep === 'settle' && times.step >= STEP_SECONDS.settle && !session.chimePlayed) {
+    if (session.currentStep === 'breathe' && times.step >= STEP_SECONDS.breathe && !session.chimePlayed) {
       patch.chimePlayed = true;
-      patch.settleActualSeconds = STEP_SECONDS.settle;
+      patch.breatheActualSeconds = STEP_SECONDS.breathe;
     }
-    if (times.step >= planned && session.currentStep !== 'settle' && session.currentStep !== 'close') {
+    if (times.step >= planned && session.currentStep !== 'breathe' && session.currentStep !== 'close') {
       return completeCurrent(stamp(session, now, patch), now);
     }
     return stamp(session, now, patch);
@@ -453,25 +452,29 @@ export function reduceNight(
     return stamp(session, now, { selectedTomorrowPlan: event.plan, planMicroIndex: 0 });
   }
 
-  if (event.type === 'setPrepare') {
-    const total = event.prepare.reduce((sum, item) => sum + item.seconds, 0);
-    const prepare = total <= STEP_SECONDS.prepare ? event.prepare : DEFAULT_PREPARE;
-    return stamp(session, now, { prepare });
+  if (event.type === 'useShorter') {
+    if (session.shorter) return session;
+    const times = elapsedNow(session, now);
+    return stamp(session, now, {
+      shorter: true,
+      currentStep: 'screens',
+      currentSubstep: 0,
+      helpText: 'Bad-day path: screens, breath, tomorrow step.',
+      ...anchor(session, now, 0, times.sessionElapsed),
+    });
   }
 
   if (event.type === 'help') {
     const help =
-      session.currentStep === 'dim'
-        ? COPY.helpDim
-        : session.currentStep === 'screens'
-          ? COPY.helpScreens
-          : session.currentStep === 'prepare'
-            ? COPY.helpPrepare
-            : session.currentStep === 'settle'
-              ? COPY.helpSettle
-              : session.currentStep === 'breathe'
-                ? COPY.helpBreathe
-                : COPY.helpClose;
+      session.currentStep === 'screens'
+        ? COPY.helpScreens
+        : session.currentStep === 'read'
+          ? COPY.helpRead
+          : session.currentStep === 'brush'
+            ? COPY.helpBrush
+            : session.currentStep === 'breathe'
+              ? COPY.helpBreathe
+              : COPY.helpClose;
     return stamp(session, now, { helpText: help });
   }
 
@@ -479,12 +482,9 @@ export function reduceNight(
     if (session.currentStep === 'screens') {
       return stamp(session, now, { seatedScreens: true, helpText: SCREEN_SUBSTEPS[session.currentSubstep]?.seated ?? COPY.helpScreens });
     }
-    if (session.currentStep === 'prepare') {
-      return stamp(session, now, { helpText: COPY.helpPrepare });
-    }
-    if (session.currentStep === 'breathe') {
+    if (session.currentStep === 'read' || session.currentStep === 'brush') {
       return stamp(session, now, {
-        helpText: BREATHE_SUBSTEPS[session.currentSubstep]?.seated ?? COPY.helpBreathe,
+        helpText: session.currentStep === 'read' ? COPY.helpRead : COPY.helpBrush,
       });
     }
     if (session.currentStep === 'close') {
@@ -495,7 +495,7 @@ export function reduceNight(
         planMicroIndex: 0,
       });
     }
-    return stamp(session, now, { helpText: COPY.helpDim });
+    return stamp(session, now, { helpText: COPY.helpScreens });
   }
 
   if (event.type === 'extend') {
@@ -520,17 +520,17 @@ export function reduceNight(
   }
 
   if (event.type === 'quietAlternative') {
-    if (session.currentStep !== 'settle') return session;
+    if (session.currentStep !== 'breathe') return session;
     return nextAfter(session, now, true);
   }
 
   if (event.type === 'skip') {
-    if (session.currentStep === 'settle') {
+    if (session.currentStep === 'breathe') {
       const times = elapsedNow(session, now);
       return stamp(session, now, {
-        settleActualSeconds: times.step,
-        skippedSteps: session.skippedSteps.includes('settle') ? session.skippedSteps : [...session.skippedSteps, 'settle'],
-        helpText: COPY.settleStopped,
+        breatheActualSeconds: times.step,
+        skippedSteps: session.skippedSteps.includes('breathe') ? session.skippedSteps : [...session.skippedSteps, 'breathe'],
+        helpText: COPY.breatheStopped,
         status: 'PAUSED',
         ...anchor(session, now, times.step, times.sessionElapsed),
       });
@@ -539,12 +539,12 @@ export function reduceNight(
   }
 
   if (event.type === 'ready') {
-    if (session.currentStep === 'settle' && session.helpText === COPY.settleStopped) {
+    if (session.currentStep === 'breathe' && session.helpText === COPY.breatheStopped) {
       return nextAfter(session, now, true);
     }
-    if (session.currentStep === 'settle') {
+    if (session.currentStep === 'breathe') {
       const times = elapsedNow(session, now);
-      if (times.step < STEP_SECONDS.settle && !session.chimePlayed) {
+      if (times.step < STEP_SECONDS.breathe && !session.chimePlayed) {
         return session;
       }
       return nextAfter(session, now);
@@ -556,8 +556,12 @@ export function reduceNight(
 }
 
 export function currentCommand(session: NightSession): string {
-  if (session.currentStep === 'dim') return COPY.dim;
-  if (session.currentStep === 'settle') return session.helpText === COPY.settleStopped ? COPY.settleStopped : COPY.settleGuide;
+  if (session.currentStep === 'screens' && session.currentSubstep === 0) return COPY.screens;
+  if (session.currentStep === 'read') return 'Read a few calm pages. No feeds.';
+  if (session.currentStep === 'brush') return 'Wash up / brush teeth gently.';
+  if (session.currentStep === 'breathe') {
+    return session.helpText === COPY.breatheStopped ? COPY.breatheStopped : COPY.breatheGuide;
+  }
   if (session.currentStep === 'close') {
     const plan = session.selectedTomorrowPlan ?? fallbackTomorrowPlan();
     const actions = [plan.firstPhysicalAction, ...plan.nextMicroActions];
@@ -566,16 +570,13 @@ export function currentCommand(session: NightSession): string {
   const subs = substepsOf(session, session.currentStep);
   const item = subs[session.currentSubstep];
   if (!item) return '';
-  if ((session.currentStep === 'screens' || session.currentStep === 'breathe') && session.seatedScreens) {
-    return item.seated ?? item.command;
-  }
+  if (session.currentStep === 'screens' && session.seatedScreens) return item.seated ?? item.command;
   return item.command;
 }
 
 export function currentSubtext(session: NightSession): string | null {
   if (session.helpText) return session.helpText;
-  if (session.currentStep === 'dim') return COPY.dimSub;
-  if (session.currentStep === 'breathe') return COPY.breatheSub;
+  if (session.currentStep === 'screens' && session.currentSubstep === 0) return COPY.screensSub;
   if (session.currentStep === 'close') return session.selectedTomorrowPlan?.taskTitle ?? COPY.fallbackPlanTitle;
   return null;
 }
@@ -594,7 +595,7 @@ export function formatClock(totalSeconds: number): string {
 
 export function shouldSpeak(session: NightSession, previous: NightSession | null): string | null {
   if (session.status !== 'ACTIVE') return null;
-  if (session.currentStep === 'settle' && previous?.currentStep === 'settle' && previous.status === 'ACTIVE') {
+  if (session.currentStep === 'breathe' && previous?.currentStep === 'breathe' && previous.status === 'ACTIVE') {
     return null;
   }
   const key = `${session.currentStep}:${session.currentSubstep}:${session.planMicroIndex}:${currentCommand(session)}`;
@@ -610,10 +611,10 @@ export function spokenKey(session: NightSession): string {
 }
 
 export function primaryLabel(session: NightSession): string {
-  if (session.currentStep === 'dim') return COPY.ready;
-  if (session.currentStep === 'settle' && session.helpText === COPY.settleStopped) return COPY.goToClose;
-  if (session.currentStep === 'settle' && session.chimePlayed) return COPY.done;
-  if (session.currentStep === 'settle') return COPY.pause;
+  if (session.currentStep === 'screens' && session.currentSubstep === 0) return COPY.ready;
+  if (session.currentStep === 'breathe' && session.helpText === COPY.breatheStopped) return COPY.goToClose;
+  if (session.currentStep === 'breathe' && session.chimePlayed) return COPY.done;
+  if (session.currentStep === 'breathe') return COPY.pause;
   if (stepRemainingSeconds(session) <= 0 && session.currentStep !== 'close') return COPY.next;
   return COPY.done;
 }
@@ -623,13 +624,5 @@ export function isNightTakeover(session: NightSession | null): boolean {
 }
 
 export function timeBudgetOk(): boolean {
-  return (
-    STEP_SECONDS.dim +
-      STEP_SECONDS.screens +
-      STEP_SECONDS.prepare +
-      STEP_SECONDS.settle +
-      STEP_SECONDS.breathe +
-      STEP_SECONDS.close ===
-    NIGHT_TOTAL_SECONDS
-  );
+  return STEP_ORDER.reduce((sum, id) => sum + STEP_SECONDS[id], 0) === NIGHT_TOTAL_SECONDS;
 }
