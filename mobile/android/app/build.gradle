@@ -197,3 +197,12 @@ dependencies {
         implementation jscFlavor
     }
 }
+
+// FCM / Expo push — apply only when google-services.json was materialized for this build
+def googleServicesFile = file("google-services.json")
+if (googleServicesFile.exists()) {
+    apply plugin: 'com.google.gms.google-services'
+    println "Applied com.google.gms.google-services (FCM)"
+} else {
+    println "WARNING: android/app/google-services.json missing — Expo push token fetch will fail on device"
+}
