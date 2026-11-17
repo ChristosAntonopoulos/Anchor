@@ -3,11 +3,12 @@ using POS.Core.Entities.Schedule;
 namespace POS.Core.Schedule;
 
 /// <summary>
-/// Builds per-day checklists with realistic per-step durations (not equal splits).
+/// Builds per-day checklists. Morning/Evening routines come from <see cref="RoutineCatalog"/>;
+/// other blocks keep title templates / activity durations.
 /// </summary>
 public static class ScheduleChecklistBuilder
 {
-    public const int CurrentChecklistVersion = 2;
+    public const int CurrentChecklistVersion = 3;
 
     private sealed record StepTemplate(string Title, int DurationMinutes);
 
@@ -15,7 +16,15 @@ public static class ScheduleChecklistBuilder
     {
         ["drink water"] = 2,
         ["hydrate"] = 2,
+        ["light movement"] = 5,
+        ["brush / hygiene"] = 4,
         ["brush teeth"] = 3,
+        ["short settle"] = 13,
+        ["first work task"] = 6,
+        ["screens down"] = 5,
+        ["short read"] = 8,
+        ["quiet breath"] = 3,
+        ["tomorrow first step"] = 11,
         ["morning walk"] = 20,
         ["move"] = 15,
         ["plan the day"] = 10,
@@ -38,21 +47,6 @@ public static class ScheduleChecklistBuilder
 
     private static readonly Dictionary<string, StepTemplate[]> TitleTemplates = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["morning routine"] =
-        [
-            new("Drink water", 2),
-            new("Brush teeth", 3),
-            new("Morning walk", 20),
-            new("Plan the day", 10),
-        ],
-        ["evening routine"] =
-        [
-            new("Dim lights", 2),
-            new("Close screens", 5),
-            new("Cool room", 3),
-            new("Wind down", 15),
-            new("Prepare tomorrow", 5),
-        ],
         ["deep work"] =
         [
             new("Set intention", 5),
@@ -112,6 +106,12 @@ public static class ScheduleChecklistBuilder
 
     private static List<StepTemplate> ResolveTemplates(ScheduleBlockInstance block)
     {
+        if (RoutineCatalog.IsMorningTitle(block.Title))
+            return FromRoutine(RoutineCatalog.Morning);
+
+        if (RoutineCatalog.IsEveningTitle(block.Title))
+            return FromRoutine(RoutineCatalog.Night);
+
         if (TryGetTitleTemplate(block.Title, out var byTitle))
             return byTitle;
 
@@ -129,6 +129,11 @@ public static class ScheduleChecklistBuilder
             new("Wrap up", 10),
         ];
     }
+
+    private static List<StepTemplate> FromRoutine(UnifiedRoutine routine) =>
+        routine.Steps
+            .Select(step => new StepTemplate(step.Title, Math.Max(1, (int)Math.Round(step.Seconds / 60.0))))
+            .ToList();
 
     private static bool TryGetTitleTemplate(string title, out List<StepTemplate> templates)
     {

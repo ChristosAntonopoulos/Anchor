@@ -18,16 +18,16 @@ class NightModeLogicTest {
     }
 
     @Test
-    fun unlockBeforeTenDoesNotActivate() {
-        val decision = NightModeLogic.onUnlock(null, at(21, 59), true, athens)
+    fun unlockBeforeNineThirtyDoesNotActivate() {
+        val decision = NightModeLogic.onUnlock(null, at(21, 29), true, athens)
         assertEquals("wait", decision.action)
         assertEquals(NightModeLogic.NOT_DUE, decision.gate.status)
         assertFalse(decision.takeover)
     }
 
     @Test
-    fun firstUnlockAtTenActivates() {
-        val decision = NightModeLogic.onUnlock(null, at(22, 0), true, athens)
+    fun firstUnlockAtNineThirtyActivates() {
+        val decision = NightModeLogic.onUnlock(null, at(21, 30), true, athens)
         assertEquals("activate", decision.action)
         assertEquals(NightModeLogic.ACTIVE, decision.gate.status)
         assertTrue(decision.takeover)
@@ -35,8 +35,8 @@ class NightModeLogicTest {
 
     @Test
     fun lateUnlockStillActivatesOnce() {
-        val first = NightModeLogic.onUnlock(null, at(22, 35), true, athens)
-        val second = NightModeLogic.onUnlock(first.gate, at(22, 50), true, athens)
+        val first = NightModeLogic.onUnlock(null, at(21, 50), true, athens)
+        val second = NightModeLogic.onUnlock(first.gate, at(22, 10), true, athens)
         assertEquals("activate", first.action)
         assertEquals("resume", second.action)
         assertEquals(first.gate.localDate, second.gate.localDate)
@@ -44,7 +44,7 @@ class NightModeLogicTest {
 
     @Test
     fun screenOnWithoutUserPresentDoesNotHijack() {
-        val decision = NightModeLogic.onUnlock(null, at(22, 30), false, athens)
+        val decision = NightModeLogic.onUnlock(null, at(21, 45), false, athens)
         assertEquals("ignore", decision.action)
         assertEquals(NightModeLogic.WAITING, decision.gate.status)
     }
@@ -55,8 +55,8 @@ class NightModeLogicTest {
             localDate = NightModeLogic.localDate(at(23, 0), athens),
             timezone = athens.id,
             status = NightModeLogic.COMPLETED,
-            firstEligibleUnlockAtMs = at(22, 0),
-            activationAtMs = at(22, 0),
+            firstEligibleUnlockAtMs = at(21, 30),
+            activationAtMs = at(21, 30),
             pinEnabled = false,
         )
         val decision = NightModeLogic.onUnlock(done, at(23, 15), true, athens)
@@ -69,11 +69,11 @@ class NightModeLogicTest {
             localDate = NightModeLogic.localDate(at(23, 0, 12), athens),
             timezone = athens.id,
             status = NightModeLogic.ENDED_EARLY,
-            firstEligibleUnlockAtMs = at(22, 0, 12),
-            activationAtMs = at(22, 0, 12),
+            firstEligibleUnlockAtMs = at(21, 30, 12),
+            activationAtMs = at(21, 30, 12),
             pinEnabled = true,
         )
-        val next = NightModeLogic.onCivilDate(done, at(22, 0, 13), athens)
+        val next = NightModeLogic.onCivilDate(done, at(21, 30, 13), athens)
         assertEquals("2026-11-13", next.localDate)
         assertEquals(NightModeLogic.WAITING, next.status)
         assertTrue(next.pinEnabled)

@@ -149,9 +149,19 @@ export interface APIClient {
   skipRoutine(blockId: string): Promise<void>;
   getExecutionReview(): Promise<import('../types/execution').ExecutionReview>;
   syncMorningSession(session: import('../utils/morningMode').MorningSession): Promise<void>;
+  getMorningSession(localDate?: string, timezone?: string): Promise<{
+    session: import('../utils/morningMode').MorningSession;
+    routine: import('../utils/routineCatalog').UnifiedRoutineDef & { catalogVersion?: string };
+    hasStoredSession: boolean;
+  }>;
   getMorningFirstTask(): Promise<import('../utils/morningMode').MorningFirstTask>;
   helpMorning(request: { step: string; text: string }): Promise<string | null>;
   syncNightSession(session: import('../utils/nightMode').NightSession): Promise<void>;
+  getNightSession(localDate?: string, timezone?: string): Promise<{
+    session: import('../utils/nightMode').NightSession;
+    routine: import('../utils/routineCatalog').UnifiedRoutineDef & { catalogVersion?: string };
+    hasStoredSession: boolean;
+  }>;
   getNightTomorrowPlan(): Promise<import('../utils/nightMode').NightTomorrowPlan>;
   helpNight(request: { step: string; text: string }): Promise<string | null>;
   getTodayFocus(): Promise<Task[]>;
@@ -1227,6 +1237,15 @@ class HTTPAPIClient implements APIClient {
     await this.axiosInstance.put('/morning/session', session);
   }
 
+  async getMorningSession(localDate?: string, timezone?: string) {
+    const response = await this.axiosInstance.get<ApiResponse<{
+      session: import('../utils/morningMode').MorningSession;
+      routine: import('../utils/routineCatalog').UnifiedRoutineDef & { catalogVersion?: string };
+      hasStoredSession: boolean;
+    }>>('/morning/session', { params: { localDate, timezone } });
+    return unwrapResponse(response.data);
+  }
+
   async getMorningFirstTask(): Promise<import('../utils/morningMode').MorningFirstTask> {
     const response = await this.axiosInstance.get<ApiResponse<import('../utils/morningMode').MorningFirstTask>>('/morning/first-task');
     return unwrapResponse(response.data);
@@ -1244,6 +1263,15 @@ class HTTPAPIClient implements APIClient {
 
   async syncNightSession(session: import('../utils/nightMode').NightSession): Promise<void> {
     await this.axiosInstance.put('/night/session', session);
+  }
+
+  async getNightSession(localDate?: string, timezone?: string) {
+    const response = await this.axiosInstance.get<ApiResponse<{
+      session: import('../utils/nightMode').NightSession;
+      routine: import('../utils/routineCatalog').UnifiedRoutineDef & { catalogVersion?: string };
+      hasStoredSession: boolean;
+    }>>('/night/session', { params: { localDate, timezone } });
+    return unwrapResponse(response.data);
   }
 
   async getNightTomorrowPlan(): Promise<import('../utils/nightMode').NightTomorrowPlan> {

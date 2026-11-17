@@ -81,7 +81,7 @@ export default function MorningScreen() {
   const remaining = stepRemainingSeconds(session);
   const command = currentCommand(session);
   const sub = currentSubtext(session);
-  const meditation = session.currentStep === 'meditate' && session.helpText !== COPY.meditationStopped;
+  const settle = session.currentStep === 'settle' && session.helpText !== COPY.settleStopped;
   const primary = primaryLabel(session);
   const waiting = session.status === 'NOT_DUE' || session.status === 'WAITING_FOR_FIRST_UNLOCK';
 
@@ -91,15 +91,15 @@ export default function MorningScreen() {
   }, [command, session.status]);
 
   const onPrimary = () => {
-    if (session.status === 'PAUSED' && session.currentStep !== 'meditate') {
+    if (session.status === 'PAUSED' && session.currentStep !== 'settle') {
       dispatch({ type: 'resume' });
       return;
     }
-    if (meditation && !session.chimePlayed) {
+    if (settle && !session.chimePlayed) {
       dispatch({ type: 'pause' });
       return;
     }
-    if (session.status === 'PAUSED' && meditation) {
+    if (session.status === 'PAUSED' && settle) {
       dispatch({ type: 'resume' });
       return;
     }
@@ -114,7 +114,7 @@ export default function MorningScreen() {
           <Text style={styles.kicker}>{COPY.title}</Text>
           <View style={styles.center}>
             <Text style={styles.command}>After 07:00, on the first unlock.</Text>
-            <Text style={styles.sub}>It will not start if the phone stays unlocked. One unlock. Once a day.</Text>
+            <Text style={styles.sub}>Same morning routine as your schedule block (until 07:45). One unlock. Once a day.</Text>
           </View>
           <Pressable onPress={() => router.replace('/(tabs)')} style={styles.primary}>
             <Text style={styles.primaryText}>Back</Text>
@@ -135,9 +135,9 @@ export default function MorningScreen() {
           </Text>
         </View>
 
-        {meditation ? (
+        {settle ? (
           <View style={styles.center}>
-            <Text style={styles.medTitle}>{COPY.meditationTitle}</Text>
+            <Text style={styles.medTitle}>{COPY.settleTitle}</Text>
             <Text style={styles.medClock}>{formatClock(remaining)}</Text>
             <MorningBreath enabled={session.breathingEnabled} />
             <Pressable onPress={() => dispatch({ type: 'pause' })} hitSlop={16}>
@@ -149,7 +149,7 @@ export default function MorningScreen() {
             <Text style={styles.stepClock}>{formatClock(remaining)}</Text>
             <Text style={styles.command}>{command}</Text>
             {sub ? <Text style={styles.sub}>{sub}</Text> : null}
-            {session.currentStep === 'meditate' && session.helpText === COPY.meditationStopped ? (
+            {session.currentStep === 'settle' && session.helpText === COPY.settleStopped ? (
               <Pressable onPress={() => dispatch({ type: 'quietAlternative' })} style={styles.secondaryBtn}>
                 <Text style={styles.secondaryText}>{COPY.sitQuietly}</Text>
               </Pressable>
@@ -158,10 +158,10 @@ export default function MorningScreen() {
         )}
 
         <View style={styles.actions}>
-          {!meditation || session.chimePlayed || session.helpText === COPY.meditationStopped ? (
+          {!settle || session.chimePlayed || session.helpText === COPY.settleStopped ? (
             <Pressable style={styles.primary} onPress={onPrimary}>
               <Text style={styles.primaryText}>
-                {session.status === 'PAUSED' && !meditation ? COPY.resume : primary}
+                {session.status === 'PAUSED' && !settle ? COPY.resume : primary}
               </Text>
             </Pressable>
           ) : null}
@@ -175,17 +175,17 @@ export default function MorningScreen() {
             <Pressable onPress={() => void askHelp()}>
               <Text style={styles.ghost}>{COPY.help}</Text>
             </Pressable>
-            {session.currentStep === 'task' || session.currentStep === 'move' || session.currentStep === 'clean' ? (
+            {session.currentStep === 'task' || session.currentStep === 'move' || session.currentStep === 'brush' ? (
               <Pressable onPress={() => dispatch({ type: session.currentStep === 'task' ? 'otherTask' : 'easier' })}>
                 <Text style={styles.ghost}>{session.currentStep === 'task' ? COPY.other : COPY.easier}</Text>
               </Pressable>
             ) : null}
-            {remaining <= 0 && session.currentStep !== 'wake' ? (
+            {remaining <= 0 && session.currentStep !== 'water' ? (
               <Pressable onPress={() => dispatch({ type: 'extend' })}>
                 <Text style={styles.ghost}>{COPY.extend}</Text>
               </Pressable>
             ) : null}
-            {meditation ? (
+            {settle ? (
               <Pressable onPress={() => dispatch({ type: 'toggleBreathing' })}>
                 <Text style={styles.ghost}>{session.breathingEnabled ? COPY.hideBreath : COPY.showBreath}</Text>
               </Pressable>

@@ -1,6 +1,12 @@
-export const MORNING_TOTAL_SECONDS = 1800;
-export const MORNING_TRIGGER_HOUR = 7;
-export const MORNING_TRIGGER_MINUTE = 0;
+import {
+  MORNING_ROUTINE,
+  stepOrder,
+  stepSecondsMap,
+} from './routineCatalog';
+
+export const MORNING_TOTAL_SECONDS = MORNING_ROUTINE.totalSeconds;
+export const MORNING_TRIGGER_HOUR = MORNING_ROUTINE.triggerHour;
+export const MORNING_TRIGGER_MINUTE = MORNING_ROUTINE.triggerMinute;
 
 export type MorningStatus =
   | 'NOT_DUE'
@@ -10,7 +16,7 @@ export type MorningStatus =
   | 'COMPLETED'
   | 'ENDED_EARLY';
 
-export type MorningStepId = 'wake' | 'move' | 'clean' | 'meditate' | 'task';
+export type MorningStepId = 'water' | 'move' | 'brush' | 'settle' | 'task';
 
 export type MorningEvent =
   | { type: 'unlock'; fromUserPresent: boolean }
@@ -30,8 +36,9 @@ export type MorningEvent =
   | { type: 'toggleBreathing' }
   | { type: 'civilRollover' }
   | { type: 'setFirstTask'; task: MorningFirstTask }
-  | { type: 'setCleaning'; cleaning: MorningSubstep[] }
-  | { type: 'quietAlternative' };
+  | { type: 'setBrush'; brush: MorningSubstep[] }
+  | { type: 'quietAlternative' }
+  | { type: 'useShorter' };
 
 export interface MorningSubstep {
   id: string;
@@ -75,40 +82,37 @@ export interface MorningSession {
   endedReason: string | null;
   confirmEnd: boolean;
   pinEnabled: boolean;
-  cleaning: MorningSubstep[];
-  meditationActualSeconds: number | null;
+  brush: MorningSubstep[];
+  settleActualSeconds: number | null;
   chimePlayed: boolean;
   lastSpokenKey: string | null;
+  shorter: boolean;
+  catalogVersion: string;
   updatedAt: string;
 }
 
 export const MOVE_SUBSTEPS: MorningSubstep[] = [
-  { id: 'march', seconds: 60, command: 'March in place.', seated: 'Move your feet while seated.' },
-  { id: 'shoulders', seconds: 60, command: 'Relax your shoulders.', seated: 'Relax your shoulders while seated.' },
-  { id: 'stands', seconds: 60, command: 'Do a few squats.', seated: 'Stand and sit with support.' },
-  { id: 'stretch', seconds: 60, command: 'Stretch gently.', seated: 'Stretch gently while seated.' },
+  { id: 'march', seconds: 75, command: 'March in place.', seated: 'Move your feet while seated.' },
+  { id: 'shoulders', seconds: 75, command: 'Relax your shoulders.', seated: 'Relax your shoulders while seated.' },
+  { id: 'stands', seconds: 75, command: 'Do a few squats.', seated: 'Stand and sit with support.' },
+  { id: 'stretch', seconds: 75, command: 'Stretch gently.', seated: 'Stretch gently while seated.' },
 ];
 
-export const DEFAULT_CLEANING: MorningSubstep[] = [
-  { id: 'bed', seconds: 120, command: 'Make the bed.' },
-  { id: 'clothes', seconds: 180, command: 'Pick up your things.' },
-  { id: 'desk', seconds: 180, command: 'Tidy the desk a little.' },
+export const DEFAULT_BRUSH: MorningSubstep[] = [
+  { id: 'teeth', seconds: 120, command: 'Brush your teeth.' },
+  { id: 'wash', seconds: 120, command: 'Quick wash of face and hands.' },
 ];
 
-export const STEP_SECONDS: Record<MorningStepId, number> = {
-  wake: 60,
-  move: 240,
-  clean: 480,
-  meditate: 780,
-  task: 240,
-};
+export const STEP_SECONDS: Record<MorningStepId, number> = stepSecondsMap<MorningStepId>(MORNING_ROUTINE.steps);
 
-export const STEP_ORDER: MorningStepId[] = ['wake', 'move', 'clean', 'meditate', 'task'];
+export const STEP_ORDER: MorningStepId[] = stepOrder<MorningStepId>(MORNING_ROUTINE.steps);
+
+export const SHORTER_STEP_ORDER: MorningStepId[] = stepOrder<MorningStepId>(MORNING_ROUTINE.shorterSteps);
 
 export const COPY = {
   title: 'MORNING MODE',
-  wake: 'Get up. Let\'s get started.',
-  wakeSub: 'Open the curtains and drink a little water if you want.',
+  water: 'Drink water. Let\'s get started.',
+  waterSub: 'Open the curtains if you want. One glass is enough.',
   ready: 'Ready',
   done: 'Done',
   pause: 'Pause',
@@ -123,10 +127,10 @@ export const COPY = {
   endConfirm: 'Done for today?',
   endYes: 'Yes, done',
   endNo: 'Continue',
-  meditationTitle: 'Meditation',
-  meditationGuide:
+  settleTitle: 'Short settle',
+  settleGuide:
     'Sit comfortably. Notice your breath. When your mind wanders, gently come back.',
-  meditationStopped: 'You stopped early. Sit quietly for a minute, or go to the first task.',
+  settleStopped: 'You stopped early. Sit quietly for a minute, or go to the first task.',
   sitQuietly: 'Sit quietly',
   goToTask: 'First task',
   hideBreath: 'No motion',
@@ -138,10 +142,10 @@ export const COPY = {
   fallbackEasier: 'Just open Cursor. Nothing else.',
   fallbackReason: 'Start with something small you already know.',
   noTask: 'No saved task. Open Cursor and pick one small step.',
-  helpWake: 'Open the curtains. A glass of water is enough.',
+  helpWater: 'Open the curtains. A glass of water is enough.',
   helpMove: 'Only do what feels comfortable. Sit if you need to.',
-  helpClean: 'Put just one thing back in its place.',
-  helpMeditate: 'You do not need to do it right. Just sit.',
+  helpBrush: 'Brush and wash gently. That is enough.',
+  helpSettle: 'You do not need to do it right. Just sit.',
   helpTask: 'Do only the first physical move. No planning.',
 } as const;
 
@@ -182,7 +186,7 @@ function baseSession(now: Date, localDate: string, status: MorningStatus): Morni
     status,
     firstEligibleUnlockAt: null,
     activationAt: null,
-    currentStep: 'wake',
+    currentStep: 'water',
     currentSubstep: 0,
     stepElapsedSeconds: 0,
     sessionElapsedSeconds: 0,
@@ -201,10 +205,12 @@ function baseSession(now: Date, localDate: string, status: MorningStatus): Morni
     endedReason: null,
     confirmEnd: false,
     pinEnabled: false,
-    cleaning: DEFAULT_CLEANING.map((item) => ({ ...item })),
-    meditationActualSeconds: null,
+    brush: DEFAULT_BRUSH.map((item) => ({ ...item })),
+    settleActualSeconds: null,
     chimePlayed: false,
     lastSpokenKey: null,
+    shorter: false,
+    catalogVersion: MORNING_ROUTINE.key + '-unify-v1',
     updatedAt: now.toISOString(),
   };
 }
@@ -235,6 +241,10 @@ function stamp(session: MorningSession, now: Date, patch: Partial<MorningSession
   return { ...session, ...patch, updatedAt: now.toISOString() };
 }
 
+function orderOf(session: MorningSession): MorningStepId[] {
+  return session.shorter ? SHORTER_STEP_ORDER : STEP_ORDER;
+}
+
 function elapsedNow(session: MorningSession, now: Date): { step: number; sessionElapsed: number } {
   if (session.status !== 'ACTIVE') {
     return { step: session.stepElapsedSeconds, sessionElapsed: session.sessionElapsedSeconds };
@@ -249,7 +259,7 @@ function elapsedNow(session: MorningSession, now: Date): { step: number; session
 
 function substepsOf(session: MorningSession, step: MorningStepId): MorningSubstep[] {
   if (step === 'move') return MOVE_SUBSTEPS;
-  if (step === 'clean') return session.cleaning;
+  if (step === 'brush') return session.brush;
   return [];
 }
 
@@ -275,7 +285,7 @@ function activate(session: MorningSession, now: Date): MorningSession {
     status: 'ACTIVE',
     firstEligibleUnlockAt: session.firstEligibleUnlockAt ?? now.toISOString(),
     activationAt: session.activationAt ?? now.toISOString(),
-    currentStep: session.activationAt ? session.currentStep : 'wake',
+    currentStep: session.activationAt ? session.currentStep : 'water',
     ...anchor(session, now, session.activationAt ? session.stepElapsedSeconds : 0, session.activationAt ? session.sessionElapsedSeconds : 0),
     helpText: null,
     confirmEnd: false,
@@ -308,17 +318,18 @@ function goToStep(session: MorningSession, now: Date, step: MorningStepId, skipp
     skippedSteps,
     helpText: null,
     taskMicroIndex: step === 'task' ? session.taskMicroIndex : 0,
-    meditationActualSeconds: session.currentStep === 'meditate' ? times.step : session.meditationActualSeconds,
+    settleActualSeconds: session.currentStep === 'settle' ? times.step : session.settleActualSeconds,
     ...anchor(session, now, 0, times.sessionElapsed),
   });
 }
 
 function nextAfter(session: MorningSession, now: Date, skipped = false): MorningSession {
-  const index = STEP_ORDER.indexOf(session.currentStep);
-  if (index < 0 || index >= STEP_ORDER.length - 1) {
+  const order = orderOf(session);
+  const index = order.indexOf(session.currentStep);
+  if (index < 0 || index >= order.length - 1) {
     return finishDay(session, now, 'COMPLETED');
   }
-  return goToStep(session, now, STEP_ORDER[index + 1], skipped);
+  return goToStep(session, now, order[index + 1], skipped);
 }
 
 function completeCurrent(session: MorningSession, now: Date, skipped = false): MorningSession {
@@ -395,11 +406,11 @@ export function reduceMorning(
       stepElapsedSeconds: times.step,
       sessionElapsedSeconds: times.sessionElapsed,
     };
-    if (session.currentStep === 'meditate' && times.step >= STEP_SECONDS.meditate && !session.chimePlayed) {
+    if (session.currentStep === 'settle' && times.step >= STEP_SECONDS.settle && !session.chimePlayed) {
       patch.chimePlayed = true;
-      patch.meditationActualSeconds = STEP_SECONDS.meditate;
+      patch.settleActualSeconds = STEP_SECONDS.settle;
     }
-    if (times.step >= planned && session.currentStep !== 'meditate' && session.currentStep !== 'task') {
+    if (times.step >= planned && session.currentStep !== 'settle' && session.currentStep !== 'task') {
       return completeCurrent(stamp(session, now, patch), now);
     }
     return stamp(session, now, patch);
@@ -441,22 +452,34 @@ export function reduceMorning(
     return stamp(session, now, { selectedFirstTask: event.task, taskMicroIndex: 0 });
   }
 
-  if (event.type === 'setCleaning') {
-    const total = event.cleaning.reduce((sum, item) => sum + item.seconds, 0);
-    const cleaning = total <= STEP_SECONDS.clean ? event.cleaning : DEFAULT_CLEANING;
-    return stamp(session, now, { cleaning });
+  if (event.type === 'setBrush') {
+    const total = event.brush.reduce((sum, item) => sum + item.seconds, 0);
+    const brush = total <= STEP_SECONDS.brush ? event.brush : DEFAULT_BRUSH;
+    return stamp(session, now, { brush });
+  }
+
+  if (event.type === 'useShorter') {
+    if (session.shorter) return session;
+    const times = elapsedNow(session, now);
+    return stamp(session, now, {
+      shorter: true,
+      currentStep: 'water',
+      currentSubstep: 0,
+      helpText: 'Bad-day path: water, then first task.',
+      ...anchor(session, now, 0, times.sessionElapsed),
+    });
   }
 
   if (event.type === 'help') {
     const help =
-      session.currentStep === 'wake'
-        ? COPY.helpWake
+      session.currentStep === 'water'
+        ? COPY.helpWater
         : session.currentStep === 'move'
           ? COPY.helpMove
-          : session.currentStep === 'clean'
-            ? COPY.helpClean
-            : session.currentStep === 'meditate'
-              ? COPY.helpMeditate
+          : session.currentStep === 'brush'
+            ? COPY.helpBrush
+            : session.currentStep === 'settle'
+              ? COPY.helpSettle
               : COPY.helpTask;
     return stamp(session, now, { helpText: help });
   }
@@ -465,8 +488,8 @@ export function reduceMorning(
     if (session.currentStep === 'move') {
       return stamp(session, now, { seatedMovement: true, helpText: MOVE_SUBSTEPS[session.currentSubstep]?.seated ?? COPY.helpMove });
     }
-    if (session.currentStep === 'clean') {
-      return stamp(session, now, { helpText: COPY.helpClean });
+    if (session.currentStep === 'brush') {
+      return stamp(session, now, { helpText: COPY.helpBrush });
     }
     if (session.currentStep === 'task') {
       const task = session.selectedFirstTask ?? fallbackFirstTask();
@@ -476,7 +499,7 @@ export function reduceMorning(
         taskMicroIndex: 0,
       });
     }
-    return stamp(session, now, { helpText: COPY.helpWake });
+    return stamp(session, now, { helpText: COPY.helpWater });
   }
 
   if (event.type === 'extend') {
@@ -501,17 +524,17 @@ export function reduceMorning(
   }
 
   if (event.type === 'quietAlternative') {
-    if (session.currentStep !== 'meditate') return session;
+    if (session.currentStep !== 'settle') return session;
     return nextAfter(session, now, true);
   }
 
   if (event.type === 'skip') {
-    if (session.currentStep === 'meditate') {
+    if (session.currentStep === 'settle') {
       const times = elapsedNow(session, now);
       return stamp(session, now, {
-        meditationActualSeconds: times.step,
-        skippedSteps: session.skippedSteps.includes('meditate') ? session.skippedSteps : [...session.skippedSteps, 'meditate'],
-        helpText: COPY.meditationStopped,
+        settleActualSeconds: times.step,
+        skippedSteps: session.skippedSteps.includes('settle') ? session.skippedSteps : [...session.skippedSteps, 'settle'],
+        helpText: COPY.settleStopped,
         status: 'PAUSED',
         ...anchor(session, now, times.step, times.sessionElapsed),
       });
@@ -520,12 +543,12 @@ export function reduceMorning(
   }
 
   if (event.type === 'ready') {
-    if (session.currentStep === 'meditate' && session.helpText === COPY.meditationStopped) {
+    if (session.currentStep === 'settle' && session.helpText === COPY.settleStopped) {
       return nextAfter(session, now, true);
     }
-    if (session.currentStep === 'meditate') {
+    if (session.currentStep === 'settle') {
       const times = elapsedNow(session, now);
-      if (times.step < STEP_SECONDS.meditate && !session.chimePlayed) {
+      if (times.step < STEP_SECONDS.settle && !session.chimePlayed) {
         return session;
       }
       return nextAfter(session, now);
@@ -537,8 +560,8 @@ export function reduceMorning(
 }
 
 export function currentCommand(session: MorningSession): string {
-  if (session.currentStep === 'wake') return COPY.wake;
-  if (session.currentStep === 'meditate') return session.helpText === COPY.meditationStopped ? COPY.meditationStopped : COPY.meditationGuide;
+  if (session.currentStep === 'water') return COPY.water;
+  if (session.currentStep === 'settle') return session.helpText === COPY.settleStopped ? COPY.settleStopped : COPY.settleGuide;
   if (session.currentStep === 'task') {
     const task = session.selectedFirstTask ?? fallbackFirstTask();
     const actions = [task.firstPhysicalAction, ...task.nextMicroActions];
@@ -553,7 +576,7 @@ export function currentCommand(session: MorningSession): string {
 
 export function currentSubtext(session: MorningSession): string | null {
   if (session.helpText) return session.helpText;
-  if (session.currentStep === 'wake') return COPY.wakeSub;
+  if (session.currentStep === 'water') return COPY.waterSub;
   if (session.currentStep === 'task') return session.selectedFirstTask?.taskTitle ?? COPY.fallbackTaskTitle;
   return null;
 }
@@ -572,7 +595,7 @@ export function formatClock(totalSeconds: number): string {
 
 export function shouldSpeak(session: MorningSession, previous: MorningSession | null): string | null {
   if (session.status !== 'ACTIVE') return null;
-  if (session.currentStep === 'meditate' && previous?.currentStep === 'meditate' && previous.status === 'ACTIVE') {
+  if (session.currentStep === 'settle' && previous?.currentStep === 'settle' && previous.status === 'ACTIVE') {
     return null;
   }
   const key = `${session.currentStep}:${session.currentSubstep}:${session.taskMicroIndex}:${currentCommand(session)}`;
@@ -588,10 +611,10 @@ export function spokenKey(session: MorningSession): string {
 }
 
 export function primaryLabel(session: MorningSession): string {
-  if (session.currentStep === 'wake') return COPY.ready;
-  if (session.currentStep === 'meditate' && session.helpText === COPY.meditationStopped) return COPY.goToTask;
-  if (session.currentStep === 'meditate' && session.chimePlayed) return COPY.done;
-  if (session.currentStep === 'meditate') return COPY.pause;
+  if (session.currentStep === 'water') return COPY.ready;
+  if (session.currentStep === 'settle' && session.helpText === COPY.settleStopped) return COPY.goToTask;
+  if (session.currentStep === 'settle' && session.chimePlayed) return COPY.done;
+  if (session.currentStep === 'settle') return COPY.pause;
   if (stepRemainingSeconds(session) <= 0 && session.currentStep !== 'task') return COPY.next;
   return COPY.done;
 }
@@ -601,5 +624,5 @@ export function isMorningTakeover(session: MorningSession | null): boolean {
 }
 
 export function timeBudgetOk(): boolean {
-  return STEP_SECONDS.wake + STEP_SECONDS.move + STEP_SECONDS.clean + STEP_SECONDS.meditate + STEP_SECONDS.task === MORNING_TOTAL_SECONDS;
+  return STEP_ORDER.reduce((sum, id) => sum + STEP_SECONDS[id], 0) === MORNING_TOTAL_SECONDS;
 }

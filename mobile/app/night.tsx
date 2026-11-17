@@ -81,7 +81,7 @@ export default function NightScreen() {
   const remaining = stepRemainingSeconds(session);
   const command = currentCommand(session);
   const sub = currentSubtext(session);
-  const settle = session.currentStep === 'settle' && session.helpText !== COPY.settleStopped;
+  const breathe = session.currentStep === 'breathe' && session.helpText !== COPY.breatheStopped;
   const primary = primaryLabel(session);
   const waiting = session.status === 'NOT_DUE' || session.status === 'WAITING_FOR_FIRST_UNLOCK';
 
@@ -91,15 +91,15 @@ export default function NightScreen() {
   }, [command, session.status]);
 
   const onPrimary = () => {
-    if (session.status === 'PAUSED' && session.currentStep !== 'settle') {
+    if (session.status === 'PAUSED' && session.currentStep !== 'breathe') {
       dispatch({ type: 'resume' });
       return;
     }
-    if (settle && !session.chimePlayed) {
+    if (breathe && !session.chimePlayed) {
       dispatch({ type: 'pause' });
       return;
     }
-    if (session.status === 'PAUSED' && settle) {
+    if (session.status === 'PAUSED' && breathe) {
       dispatch({ type: 'resume' });
       return;
     }
@@ -113,8 +113,8 @@ export default function NightScreen() {
         <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
           <Text style={styles.kicker}>{COPY.title}</Text>
           <View style={styles.center}>
-            <Text style={styles.command}>After 22:00, on the first unlock.</Text>
-            <Text style={styles.sub}>It will not start if the phone stays unlocked. One unlock. Once a day.</Text>
+            <Text style={styles.command}>After 21:30, on the first unlock.</Text>
+            <Text style={styles.sub}>Same evening routine as your schedule block (until 22:15). One unlock. Once a day.</Text>
           </View>
           <Pressable onPress={() => router.replace('/(tabs)')} style={styles.primary}>
             <Text style={styles.primaryText}>Back</Text>
@@ -135,9 +135,9 @@ export default function NightScreen() {
           </Text>
         </View>
 
-        {settle ? (
+        {breathe ? (
           <View style={styles.center}>
-            <Text style={styles.medTitle}>{COPY.settleTitle}</Text>
+            <Text style={styles.medTitle}>{COPY.breatheTitle}</Text>
             <Text style={styles.medClock}>{formatClock(remaining)}</Text>
             <NightBreath enabled={session.breathingEnabled} />
             <Pressable onPress={() => dispatch({ type: 'pause' })} hitSlop={16}>
@@ -149,7 +149,7 @@ export default function NightScreen() {
             <Text style={styles.stepClock}>{formatClock(remaining)}</Text>
             <Text style={styles.command}>{command}</Text>
             {sub ? <Text style={styles.sub}>{sub}</Text> : null}
-            {session.currentStep === 'settle' && session.helpText === COPY.settleStopped ? (
+            {session.currentStep === 'breathe' && session.helpText === COPY.breatheStopped ? (
               <Pressable onPress={() => dispatch({ type: 'quietAlternative' })} style={styles.secondaryBtn}>
                 <Text style={styles.secondaryText}>{COPY.sitQuietly}</Text>
               </Pressable>
@@ -158,10 +158,10 @@ export default function NightScreen() {
         )}
 
         <View style={styles.actions}>
-          {!settle || session.chimePlayed || session.helpText === COPY.settleStopped ? (
+          {!breathe || session.chimePlayed || session.helpText === COPY.breatheStopped ? (
             <Pressable style={styles.primary} onPress={onPrimary}>
               <Text style={styles.primaryText}>
-                {session.status === 'PAUSED' && !settle ? COPY.resume : primary}
+                {session.status === 'PAUSED' && !breathe ? COPY.resume : primary}
               </Text>
             </Pressable>
           ) : null}
@@ -175,17 +175,17 @@ export default function NightScreen() {
             <Pressable onPress={() => void askHelp()}>
               <Text style={styles.ghost}>{COPY.help}</Text>
             </Pressable>
-            {session.currentStep === 'close' || session.currentStep === 'screens' || session.currentStep === 'prepare' ? (
+            {session.currentStep === 'close' || session.currentStep === 'screens' || session.currentStep === 'read' || session.currentStep === 'brush' ? (
               <Pressable onPress={() => dispatch({ type: session.currentStep === 'close' ? 'otherPlan' : 'easier' })}>
                 <Text style={styles.ghost}>{session.currentStep === 'close' ? COPY.other : COPY.easier}</Text>
               </Pressable>
             ) : null}
-            {remaining <= 0 && session.currentStep !== 'dim' ? (
+            {remaining <= 0 && session.currentStep !== 'screens' ? (
               <Pressable onPress={() => dispatch({ type: 'extend' })}>
                 <Text style={styles.ghost}>{COPY.extend}</Text>
               </Pressable>
             ) : null}
-            {settle ? (
+            {breathe ? (
               <Pressable onPress={() => dispatch({ type: 'toggleBreathing' })}>
                 <Text style={styles.ghost}>{session.breathingEnabled ? COPY.hideBreath : COPY.showBreath}</Text>
               </Pressable>

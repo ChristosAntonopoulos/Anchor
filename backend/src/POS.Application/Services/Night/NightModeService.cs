@@ -3,8 +3,11 @@ using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using POS.Application.DTOs.Execution;
 using POS.Application.DTOs.Night;
+using POS.Application.DTOs.Routine;
 using POS.Application.Services.Execution;
+using POS.Application.Services.Schedule;
 using POS.Core.Entities.Night;
+using POS.Core.Schedule;
 using POS.Infrastructure.Data;
 
 namespace POS.Application.Services.Night;
@@ -26,6 +29,46 @@ public class NightModeService
         _execution = execution;
         _llm = llm;
         _logger = logger;
+    }
+
+    public async Task<ModeSessionResponseDto> GetSessionAsync(
+        string userId,
+        string? localDate,
+        string? timezone,
+        CancellationToken ct = default)
+    {
+        var routine = RoutineDtoMapper.FromCatalog(RoutineCatalog.Night);
+        var date = string.IsNullOrWhiteSpace(localDate)
+            ? DateTime.UtcNow.ToString("yyyy-MM-dd")
+            : localDate.Trim();
+
+        var filter = Builders<NightModeSession>.Filter.And(
+            Builders<NightModeSession>.Filter.Eq(x => x.UserId, userId),
+            Builders<NightModeSession>.Filter.Eq(x => x.LocalDate, date)
+        );
+        var existing = await _context.NightModeSessions.Find(filter).FirstOrDefaultAsync(ct);
+        if (existing != null && !string.IsNullOrWhiteSpace(existing.PayloadJson))
+        {
+            using var doc = JsonDocument.Parse(existing.PayloadJson);
+            return new ModeSessionResponseDto
+            {
+                Session = doc.RootElement.Clone(),
+                Routine = routine,
+                HasStoredSession = true,
+            };
+        }
+
+        return new ModeSessionResponseDto
+        {
+            Session = RoutineDtoMapper.ClearWaitingShell(
+                "night",
+                date,
+                timezone,
+                RoutineCatalog.Night.TriggerHour,
+                RoutineCatalog.Night.TriggerMinute),
+            Routine = routine,
+            HasStoredSession = false,
+        };
     }
 
     public async Task UpsertSessionAsync(string userId, JsonElement payload, CancellationToken ct = default)
@@ -103,8 +146,9 @@ public class NightModeService
         var fallback = request.Step switch
         {
             "screens" => "Close just one screen. Leave the rest.",
-            "prepare" => "Do only one thing: cool the room, wash up, or make the bed.",
-            "settle" => "You do not need to do it right. Stay quiet.",
+            "read" => "Read one page. That is enough.",
+            "brush" or "prepare" => "Brush gently. Skip the rest.",
+            "breathe" or "settle" => "One soft inhale, one longer exhale.",
             "close" => "Write one small step. Then put the phone away.",
             _ => "Dim one light. Warm light is enough.",
         };

@@ -3,8 +3,11 @@ using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using POS.Application.DTOs.Execution;
 using POS.Application.DTOs.Morning;
+using POS.Application.DTOs.Routine;
 using POS.Application.Services.Execution;
+using POS.Application.Services.Schedule;
 using POS.Core.Entities.Morning;
+using POS.Core.Schedule;
 using POS.Infrastructure.Data;
 
 namespace POS.Application.Services.Morning;
@@ -26,6 +29,46 @@ public class MorningModeService
         _execution = execution;
         _llm = llm;
         _logger = logger;
+    }
+
+    public async Task<ModeSessionResponseDto> GetSessionAsync(
+        string userId,
+        string? localDate,
+        string? timezone,
+        CancellationToken ct = default)
+    {
+        var routine = RoutineDtoMapper.FromCatalog(RoutineCatalog.Morning);
+        var date = string.IsNullOrWhiteSpace(localDate)
+            ? DateTime.UtcNow.ToString("yyyy-MM-dd")
+            : localDate.Trim();
+
+        var filter = Builders<MorningModeSession>.Filter.And(
+            Builders<MorningModeSession>.Filter.Eq(x => x.UserId, userId),
+            Builders<MorningModeSession>.Filter.Eq(x => x.LocalDate, date)
+        );
+        var existing = await _context.MorningModeSessions.Find(filter).FirstOrDefaultAsync(ct);
+        if (existing != null && !string.IsNullOrWhiteSpace(existing.PayloadJson))
+        {
+            using var doc = JsonDocument.Parse(existing.PayloadJson);
+            return new ModeSessionResponseDto
+            {
+                Session = doc.RootElement.Clone(),
+                Routine = routine,
+                HasStoredSession = true,
+            };
+        }
+
+        return new ModeSessionResponseDto
+        {
+            Session = RoutineDtoMapper.ClearWaitingShell(
+                "morning",
+                date,
+                timezone,
+                RoutineCatalog.Morning.TriggerHour,
+                RoutineCatalog.Morning.TriggerMinute),
+            Routine = routine,
+            HasStoredSession = false,
+        };
     }
 
     public async Task UpsertSessionAsync(string userId, JsonElement payload, CancellationToken ct = default)
@@ -101,8 +144,8 @@ public class MorningModeService
         var fallback = request.Step switch
         {
             "move" => "Only do what feels comfortable. Sit if you need to.",
-            "clean" => "Put just one thing back in its place.",
-            "meditate" => "You do not need to do it right. Just sit.",
+            "brush" or "clean" => "Brush and wash gently. That is enough.",
+            "settle" or "meditate" => "You do not need to do it right. Just sit.",
             "task" => "Do only the first physical move. No planning.",
             _ => "Open the curtains. A glass of water is enough.",
         };

@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   COPY,
   MORNING_TOTAL_SECONDS,
+  STEP_ORDER,
   STEP_SECONDS,
   currentCommand,
   emptyWaiting,
@@ -19,11 +20,11 @@ const morning = (h: number, m = 0, s = 0) => new Date(2026, 10, 12, h, m, s, 0);
 
 test('planned durations total exactly 30 minutes', () => {
   assert.equal(
-    STEP_SECONDS.wake + STEP_SECONDS.move + STEP_SECONDS.clean + STEP_SECONDS.meditate + STEP_SECONDS.task,
+    STEP_ORDER.reduce((sum, id) => sum + STEP_SECONDS[id], 0),
     MORNING_TOTAL_SECONDS
   );
   assert.equal(timeBudgetOk(), true);
-  assert.equal(STEP_SECONDS.meditate, 780);
+  assert.equal(STEP_SECONDS.settle, 780);
 });
 
 test('unlock before 07:00 does not activate', () => {
@@ -38,8 +39,8 @@ test('first unlock at 07:00 activates once', () => {
   const now = morning(7, 0);
   const session = reduceMorning(emptyWaiting(now), { type: 'unlock', fromUserPresent: true }, now);
   assert.equal(session.status, 'ACTIVE');
-  assert.equal(session.currentStep, 'wake');
-  assert.equal(currentCommand(session), COPY.wake);
+  assert.equal(session.currentStep, 'water');
+  assert.equal(currentCommand(session), COPY.water);
   const again = reduceMorning(session, { type: 'unlock', fromUserPresent: true }, morning(7, 35));
   assert.equal(again.status, 'ACTIVE');
   assert.equal(again.id, session.id);
@@ -74,7 +75,7 @@ test('new local date resets after completion', () => {
   assert.equal(session.status, 'WAITING_FOR_FIRST_UNLOCK');
 });
 
-test('wake ready then movement commands stay one at a time', () => {
+test('water ready then movement commands stay one at a time', () => {
   let session = reduceMorning(emptyWaiting(morning(7)), { type: 'unlock', fromUserPresent: true }, morning(7));
   session = reduceMorning(session, { type: 'ready' }, morning(7, 0, 20));
   assert.equal(session.currentStep, 'move');
@@ -83,19 +84,19 @@ test('wake ready then movement commands stay one at a time', () => {
   assert.equal(currentCommand(session), 'Move your feet while seated.');
 });
 
-test('skipping cleaning does not invent extra chores', () => {
+test('skipping brush advances substeps without inventing chores', () => {
   let session = reduceMorning(emptyWaiting(morning(7)), { type: 'unlock', fromUserPresent: true }, morning(7));
-  session = { ...session, currentStep: 'clean', currentSubstep: 0 };
+  session = { ...session, currentStep: 'brush', currentSubstep: 0 };
   session = reduceMorning(session, { type: 'skip' }, morning(7, 10));
   assert.equal(session.currentSubstep, 1);
-  assert.ok(!session.cleaning.some((item) => item.seconds > 180));
+  assert.ok(!session.brush.some((item) => item.seconds > 180));
 });
 
-test('meditation stays silent after the opening line and keeps remaining time across pause', () => {
+test('settle stays silent after the opening line and keeps remaining time across pause', () => {
   let session = reduceMorning(emptyWaiting(morning(7)), { type: 'unlock', fromUserPresent: true }, morning(7));
-  session = { ...session, currentStep: 'meditate', status: 'ACTIVE', stepElapsedAtAnchor: 0, stepAnchorMs: morning(8).getTime(), sessionAnchorMs: morning(8).getTime() };
-  const spoken = shouldSpeak(session, { ...session, currentStep: 'clean' });
-  assert.equal(spoken, COPY.meditationGuide);
+  session = { ...session, currentStep: 'settle', status: 'ACTIVE', stepElapsedAtAnchor: 0, stepAnchorMs: morning(8).getTime(), sessionAnchorMs: morning(8).getTime() };
+  const spoken = shouldSpeak(session, { ...session, currentStep: 'brush' });
+  assert.equal(spoken, COPY.settleGuide);
   const later = reduceMorning(session, { type: 'tick' }, morning(8, 2));
   assert.equal(shouldSpeak(later, session), null);
   const paused = reduceMorning(later, { type: 'pause' }, morning(8, 2));
@@ -106,11 +107,11 @@ test('meditation stays silent after the opening line and keeps remaining time ac
   assert.ok(after.stepElapsedSeconds >= 129 && after.stepElapsedSeconds <= 131);
 });
 
-test('stopping meditation early records actual duration and is not punished', () => {
+test('stopping settle early records actual duration and is not punished', () => {
   let session = reduceMorning(emptyWaiting(morning(7)), { type: 'unlock', fromUserPresent: true }, morning(7));
   session = {
     ...session,
-    currentStep: 'meditate',
+    currentStep: 'settle',
     status: 'ACTIVE',
     stepElapsedAtAnchor: 90,
     stepAnchorMs: morning(8).getTime(),
@@ -118,9 +119,18 @@ test('stopping meditation early records actual duration and is not punished', ()
   };
   session = reduceMorning(session, { type: 'skip' }, morning(8, 0, 10));
   assert.equal(session.status, 'PAUSED');
-  assert.equal(session.meditationActualSeconds, 100);
-  assert.ok(session.skippedSteps.includes('meditate'));
-  assert.equal(session.helpText, COPY.meditationStopped);
+  assert.equal(session.settleActualSeconds, 100);
+  assert.ok(session.skippedSteps.includes('settle'));
+  assert.equal(session.helpText, COPY.settleStopped);
+});
+
+test('bad-day shorter path is water then first task', () => {
+  let session = reduceMorning(emptyWaiting(morning(7)), { type: 'unlock', fromUserPresent: true }, morning(7));
+  session = reduceMorning(session, { type: 'useShorter' }, morning(7, 1));
+  assert.equal(session.shorter, true);
+  assert.equal(session.currentStep, 'water');
+  session = reduceMorning(session, { type: 'ready' }, morning(7, 1, 10));
+  assert.equal(session.currentStep, 'task');
 });
 
 test('first task uses progressive physical actions, not a list', () => {

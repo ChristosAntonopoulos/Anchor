@@ -81,6 +81,7 @@ builder.Services.AddScoped<ScheduleMaterializationService>();
 builder.Services.AddHttpClient<BotSystemDayStartClient>();
 builder.Services.AddScoped<TodayService>();
 builder.Services.AddScoped<ScheduleService>();
+builder.Services.AddScoped<POS.Application.Services.Schedule.RoutineUnificationMigrator>();
 builder.Services.AddScoped<BetterItemService>();
 builder.Services.AddScoped<TaskService>();
 builder.Services.AddScoped<DisciplineService>();
@@ -344,6 +345,22 @@ catch (Exception ex)
 {
     var migrationLogger = app.Services.GetRequiredService<ILogger<Program>>();
     migrationLogger.LogWarning(ex, "Task status migration failed. Application will continue.");
+}
+
+// Unify morning/evening schedule definitions with immersive routines (idempotent)
+try
+{
+    using var routineScope = app.Services.CreateScope();
+    var routineMigrator = routineScope.ServiceProvider
+        .GetRequiredService<POS.Application.Services.Schedule.RoutineUnificationMigrator>();
+    var routineLogger = routineScope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    await routineMigrator.MigrateAsync();
+    routineLogger.LogInformation("Routine unification migration completed.");
+}
+catch (Exception ex)
+{
+    var routineLogger = app.Services.GetRequiredService<ILogger<Program>>();
+    routineLogger.LogWarning(ex, "Routine unification migration failed. Application will continue.");
 }
 
 // Auto-seed database on startup if enabled and database doesn't exist
