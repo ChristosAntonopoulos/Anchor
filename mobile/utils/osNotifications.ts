@@ -104,6 +104,10 @@ export async function ensureOsNotifications(): Promise<NotifMod | null> {
           importance: mod.AndroidImportance?.DEFAULT ?? 3,
           sound: 'default',
         }),
+        mod.setNotificationChannelAsync('os-assistant-priority', {
+          name: 'Assistant',
+          ...priority,
+        }),
       ]);
     }
     await mod.requestPermissionsAsync();

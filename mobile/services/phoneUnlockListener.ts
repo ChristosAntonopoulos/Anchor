@@ -49,6 +49,7 @@ export interface PhoneUnlockListenerService {
   clearPendingUnlockTime(): void;
 
   setApiUrl(url: string): void;
+  setApiKey?(key: string): void;
 }
 
 class PhoneUnlockListenerServiceImpl implements PhoneUnlockListenerService {
@@ -143,6 +144,13 @@ class PhoneUnlockListenerServiceImpl implements PhoneUnlockListenerService {
       return;
     }
     PhoneUnlockModule.setApiUrl(url);
+  }
+
+  setApiKey(key: string): void {
+    if (!isAndroid || !PhoneUnlockModule || typeof PhoneUnlockModule.setApiKey !== 'function') {
+      return;
+    }
+    PhoneUnlockModule.setApiKey(key);
   }
 
   clearPendingUnlockTime(): void {

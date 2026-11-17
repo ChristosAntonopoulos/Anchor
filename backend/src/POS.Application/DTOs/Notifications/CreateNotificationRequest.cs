@@ -29,4 +29,10 @@ public class CreateNotificationRequest
 
     // Task relevance flag (set by frontend based on keyword detection)
     public bool IsTaskRelevant { get; set; }
+
+    /// <summary>Optional deep link (pos://…)</summary>
+    public string? DeepLink { get; set; }
+
+    /// <summary>Optional category label</summary>
+    public string? Category { get; set; }
 }

@@ -14,6 +14,8 @@ import { useLifeReminders } from '../hooks/useLifeReminders';
 import { useFocusPresence } from '../hooks/useFocusPresence';
 import { useOsWidgetSync } from '../hooks/useOsWidgetSync';
 import { useOsDeepLinks } from '../hooks/useOsDeepLinks';
+import { usePushRegistration } from '../hooks/usePushRegistration';
+import { usePushNotificationOpens } from '../hooks/usePushNotificationOpens';
 import { useMorningGate } from '../hooks/useMorningGate';
 import { useNightGate } from '../hooks/useNightGate';
 
@@ -23,6 +25,8 @@ export default function RootLayout() {
   useFocusPresence();
   useOsWidgetSync();
   useOsDeepLinks();
+  usePushRegistration();
+  usePushNotificationOpens();
   const morningTakeover = useMorningGate();
   const nightTakeover = useNightGate();
   const modeTakeover = morningTakeover || nightTakeover;
@@ -54,6 +58,9 @@ export default function RootLayout() {
 
     if (Platform.OS === 'android' && !isExpoGo && hasPhoneUnlockModule) {
       phoneUnlockListener.setApiUrl(API_CONFIG.baseURL);
+      if (API_CONFIG.anchorApiKey) {
+        phoneUnlockListener.setApiKey(API_CONFIG.anchorApiKey);
+      }
       // Overlay permission is no longer required (intention popup removed).
       // Usage access still helps wallet Pay + first-app logging; lock admin is optional.
       Promise.all([isLockAdminActive(), isUsageAccessGranted()])

@@ -34,6 +34,9 @@ public class NotificationDto : ResponseDto
     public bool IsRead { get; set; }
     public bool IsTaskRelevant { get; set; }
     public bool IsIgnored { get; set; }
+
+    public string? DeepLink { get; set; }
+    public string? Category { get; set; }
 }
 
 /// <summary>

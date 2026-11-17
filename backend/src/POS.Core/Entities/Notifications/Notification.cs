@@ -76,6 +76,18 @@ public class Notification : EntityBase
 
     [BsonElement("isIgnored")]
     public bool IsIgnored { get; set; } // Based on app whitelist/blacklist
+
+    /// <summary>
+    /// Optional deep link for in-app / push opens (e.g. pos://os/night).
+    /// </summary>
+    [BsonElement("deepLink")]
+    public string? DeepLink { get; set; }
+
+    /// <summary>
+    /// Optional category for assistant / system notifications.
+    /// </summary>
+    [BsonElement("category")]
+    public string? Category { get; set; }
 }
 
 /// <summary>

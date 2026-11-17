@@ -112,6 +112,8 @@ public class MongoDbContext
         _database.GetCollection<Notification>("notifications");
     public IMongoCollection<NotificationSettings> NotificationSettings =>
         _database.GetCollection<NotificationSettings>("notificationSettings");
+    public IMongoCollection<POS.Core.Entities.Devices.DevicePushToken> DevicePushTokens =>
+        _database.GetCollection<POS.Core.Entities.Devices.DevicePushToken>("devicePushTokens");
 
     // Phone Unlock collection
     public IMongoCollection<PhoneUnlockEntry> PhoneUnlockEntries =>

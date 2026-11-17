@@ -23,6 +23,8 @@ using POS.Application.Services.AIInput;
 using POS.Application.Services.Category;
 using POS.Application.Services.CBT;
 using POS.Application.Services.Notifications;
+using POS.Application.Services.Push;
+using POS.Application.Services.Assistant;
 using POS.Application.Services.Execution;
 using POS.Application.Validators.BetterToday;
 using POS.Application.Validators.Deadlines;
@@ -125,7 +127,24 @@ builder.Services.AddScoped<CBTService>();
 builder.Services.AddSingleton<ActivityCatalogService>();
 builder.Services.AddScoped<CheckInService>();
 builder.Services.AddScoped<NotificationService>();
+builder.Services.AddScoped<DevicePushTokenService>();
+builder.Services.AddScoped<PushNotificationService>();
+builder.Services.AddScoped<AssistantWriteService>();
+builder.Services.AddHttpClient<ExpoPushSender>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(20);
+    client.DefaultRequestHeaders.TryAddWithoutValidation("Accept", "application/json");
+});
 builder.Services.AddScoped<POS.Application.Services.PhoneUnlock.PhoneUnlockService>();
+builder.Services.Configure<AnchorApiOptions>(options =>
+{
+    builder.Configuration.GetSection(AnchorApiOptions.SectionName).Bind(options);
+    if (string.IsNullOrWhiteSpace(options.Key))
+    {
+        options.Key = Environment.GetEnvironmentVariable("ANCHOR_API_KEY")
+            ?? Environment.GetEnvironmentVariable("AnchorApi__Key");
+    }
+});
 builder.Services.Configure<OpenAiOptions>(options =>
 {
     builder.Configuration.GetSection(OpenAiOptions.SectionName).Bind(options);
@@ -234,6 +253,8 @@ This API provides full CRUD operations for all data entities including:
 
 All endpoints return standardized ApiResponse<T> format.
 Date parameters should be in YYYY-MM-DD format.
+
+Assistant / external callers: send header X-Anchor-Key. Endpoints under /api/assistant and POST /api/notifications/push require it when the key is configured. When AnchorApi:ProtectAllWrites is true (default), all mutating /api routes require it except health and app release.
         ",
         Contact = new OpenApiContact
         {
@@ -257,6 +278,28 @@ Date parameters should be in YYYY-MM-DD format.
     {
         Url = "http://localhost:5000",
         Description = "Development server (local)"
+    });
+
+    c.AddSecurityDefinition("AnchorApiKey", new OpenApiSecurityScheme
+    {
+        Description = "Shared Anchor API key. Example: X-Anchor-Key: {key}",
+        Name = AnchorApiOptions.HeaderName,
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey
+    });
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "AnchorApiKey"
+                }
+            },
+            Array.Empty<string>()
+        }
     });
     
     // Include XML comments from API project
@@ -328,6 +371,9 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 // Use CORS
 app.UseCors();
+
+// Shared API key for assistant writes (+ optional all writes)
+app.UseMiddleware<AnchorApiKeyMiddleware>();
 
 // Map controllers
 app.MapControllers();

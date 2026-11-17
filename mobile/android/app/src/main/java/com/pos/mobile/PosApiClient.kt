@@ -15,6 +15,7 @@ import java.util.concurrent.Executors
 object PosApiClient {
     private const val PREFS = "pos_unlock"
     private const val KEY_URL = "apiUrl"
+    private const val KEY_API_KEY = "anchorApiKey"
     const val DEFAULT_URL = "http://185.193.66.50:31247/api"
     private val executor = Executors.newSingleThreadExecutor()
 
@@ -23,6 +24,13 @@ object PosApiClient {
             .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(KEY_URL, DEFAULT_URL)
             ?: DEFAULT_URL
+    }
+
+    fun apiKey(context: Context): String {
+        return context.applicationContext
+            .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(KEY_API_KEY, "")
+            .orEmpty()
     }
 
     fun enqueue(work: () -> Unit) {
@@ -41,6 +49,10 @@ object PosApiClient {
             connectTimeout = connectTimeoutMs
             readTimeout = readTimeoutMs
             setRequestProperty("Accept", "application/json")
+            val key = apiKey(context)
+            if (key.isNotBlank()) {
+                setRequestProperty("X-Anchor-Key", key)
+            }
         }
         return try {
             val code = connection.responseCode

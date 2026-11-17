@@ -40,11 +40,18 @@ const getApiBaseUrl = (): string => {
 
 const apiBaseUrl = getApiBaseUrl();
 
+/** Shared X-Anchor-Key — baked into release APK via EXPO_PUBLIC_ANCHOR_API_KEY in the pipeline. */
+function getAnchorApiKey(): string {
+  return (process.env.EXPO_PUBLIC_ANCHOR_API_KEY || '').trim();
+}
+
 export const API_CONFIG = {
   baseURL: apiBaseUrl,
   timeout: 30000,
+  anchorApiKey: getAnchorApiKey(),
   headers: {
     'Content-Type': 'application/json',
+    ...(getAnchorApiKey() ? { 'X-Anchor-Key': getAnchorApiKey() } : {}),
   },
 };
 
