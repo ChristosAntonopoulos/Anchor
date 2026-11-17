@@ -43,4 +43,13 @@ class WalletLaunchDetectorTest {
         )
         assertFalse(WalletLaunchDetector.isWallet("com.nothing.launcher", "com.nothing.launcher.Home"))
     }
+
+    @Test
+    fun ignoredPackagesSkipLaunchersAndSystemUi() {
+        assertTrue(WalletLaunchDetector.isIgnoredForegroundPackage("com.android.systemui"))
+        assertTrue(WalletLaunchDetector.isIgnoredForegroundPackage("com.nothing.launcher"))
+        assertTrue(WalletLaunchDetector.isIgnoredForegroundPackage("com.sec.android.app.launcher"))
+        assertFalse(WalletLaunchDetector.isIgnoredForegroundPackage("ai.x.grok"))
+        assertFalse(WalletLaunchDetector.isIgnoredForegroundPackage("com.spotify.music"))
+    }
 }

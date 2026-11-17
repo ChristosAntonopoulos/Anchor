@@ -88,6 +88,61 @@ object PhoneUnlockStore {
         )
     }
 
+    /**
+     * Log an unlock without showing the intention popup.
+     * Keeps Unlocks history / API flowing; optional [firstAppPackage] lands in note as `opened:<pkg>`.
+     */
+    @Synchronized
+    fun recordSilentUnlock(
+        context: Context,
+        unlockTimeMs: Long,
+        firstAppPackage: String? = null,
+    ): Boolean {
+        val prompt = createPending(context, unlockTimeMs)
+        val note = firstAppPackage
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { "opened:$it" }
+        return resolve(
+            context = context,
+            prompt = prompt,
+            status = PhoneUnlockPrompt.STATUS_ANSWERED,
+            action = PhoneUnlockPrompt.ACTION_CONTINUE,
+            intentionCode = null,
+            triggerCode = null,
+            feelingCode = null,
+            note = note,
+            contextExpanded = false,
+            submissionPath = PhoneUnlockPrompt.PATH_SILENT,
+            putDownExecution = null,
+        )
+    }
+
+    /** Attach first-app package to an already-resolved silent unlock and re-sync. */
+    @Synchronized
+    fun attachFirstApp(context: Context, unlockTimeMs: Long, packageName: String): Boolean {
+        val pkg = packageName.trim()
+        if (pkg.isEmpty()) {
+            return false
+        }
+        val records = load(context)
+        val prompt = records.find { it.unlockedAtMs == unlockTimeMs }
+            ?: records.lastOrNull { it.unlockedAtMs in 1..unlockTimeMs }
+            ?: return false
+        if (prompt.submissionPath != PhoneUnlockPrompt.PATH_SILENT) {
+            return false
+        }
+        val tag = "opened:$pkg"
+        if (prompt.note == tag) {
+            return false
+        }
+        prompt.note = PhoneUnlockResolution.sanitizeNote(tag)
+        prompt.synced = false
+        save(context, records)
+        PhoneUnlockApi.enqueueSync(context)
+        return true
+    }
+
     @Synchronized
     fun getById(context: Context, id: String): PhoneUnlockPrompt? {
         return load(context).find { it.id == id }

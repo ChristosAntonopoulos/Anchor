@@ -15,12 +15,17 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.WindowManager
+import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextClock
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import com.pos.mobile.launcher.DockMark
+import com.pos.mobile.launcher.InstalledApps
 import com.pos.mobile.launcher.LauncherPalette
 import com.pos.mobile.launcher.LockScreenCallLogic
 import com.pos.mobile.launcher.LockScreenContent
@@ -51,9 +56,16 @@ class LockScreenActivity : AppCompatActivity() {
     private lateinit var callLine: TextView
     private lateinit var callAnswer: TextView
     private lateinit var callDecline: TextView
+    private lateinit var actionsRow: LinearLayout
+    private lateinit var grokMark: ImageView
+    private lateinit var grokLabel: TextView
+    private lateinit var notifMark: ImageView
+    private lateinit var notifBadge: TextView
     private var stopMediaObserve: (() -> Unit)? = null
     private var stopCallObserve: (() -> Unit)? = null
+    private var stopNotifObserve: (() -> Unit)? = null
     private var activeCall: CallLockSnapshot? = null
+    private var notifSnap: LockNotifSnapshot? = null
     private var edgeTrack = false
     private var edgeConsumed = false
     private var edgeStartX = 0f
@@ -115,6 +127,7 @@ class LockScreenActivity : AppCompatActivity() {
         }
         mediaPanel = buildMediaPanel(root)
         callPanel = buildCallPanel(root)
+        actionsRow = buildActionsRow(root)
         val hint = LauncherPalette.text(root, 12f, LauncherPalette.faint).apply {
             text = "Unlock to continue"
             gravity = Gravity.CENTER_HORIZONTAL
@@ -145,6 +158,10 @@ class LockScreenActivity : AppCompatActivity() {
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT,
         ).apply { bottomMargin = LauncherPalette.dp(root, 18) })
+        root.addView(actionsRow, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+        ).apply { bottomMargin = LauncherPalette.dp(root, 16) })
         root.addView(hint)
 
         root.isClickable = true
@@ -152,8 +169,10 @@ class LockScreenActivity : AppCompatActivity() {
         root.setOnClickListener { requestUnlock() }
 
         bindCopy()
+        bindGrokCell()
         startCallObserve()
         startMediaObserve()
+        startNotifObserve()
         // Only bail if we clearly woke into an unlocked phone (not while arming for lock).
         if (!isKeyguardLocked() && !isScreenOffLikely()) {
             finish()
@@ -175,8 +194,10 @@ class LockScreenActivity : AppCompatActivity() {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
         bindCopy()
+        bindGrokCell()
         startCallObserve()
         startMediaObserve()
+        startNotifObserve()
         if (!isKeyguardLocked() && !isScreenOffLikely()) {
             finish()
         }
@@ -225,6 +246,7 @@ class LockScreenActivity : AppCompatActivity() {
     override fun finish() {
         stopCallObserve()
         stopMediaObserve()
+        stopNotifObserve()
         super.finish()
         overridePendingTransition(0, 0)
     }
@@ -232,10 +254,100 @@ class LockScreenActivity : AppCompatActivity() {
     override fun onDestroy() {
         stopCallObserve()
         stopMediaObserve()
+        stopNotifObserve()
         if (showing?.get() === this) {
             showing = null
         }
         super.onDestroy()
+    }
+
+    /** Bottom row: Grok shortcut + notification status / mute toggle. */
+    private fun buildActionsRow(host: View): LinearLayout {
+        val grokCol = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            isClickable = true
+            isFocusable = true
+            minimumHeight = LauncherPalette.dp(host, 48)
+            contentDescription = "Open Grok"
+            setOnClickListener { openGrokFromLock() }
+        }
+        grokMark = LauncherPalette.mark(host, DockMark.GROK, 28, LauncherPalette.accent)
+        grokLabel = LauncherPalette.text(host, 11f, LauncherPalette.muted).apply {
+            text = "Grok"
+            gravity = Gravity.CENTER
+            maxLines = 1
+        }
+        grokCol.addView(grokMark)
+        grokCol.addView(
+            grokLabel,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply { topMargin = LauncherPalette.dp(host, 4) },
+        )
+
+        // CHAT mark doubles as a calm “alerts” glyph (no emoji).
+        val notifCol = FrameLayout(this).apply {
+            isClickable = true
+            isFocusable = true
+            minimumWidth = LauncherPalette.dp(host, 56)
+            minimumHeight = LauncherPalette.dp(host, 48)
+            contentDescription = "Toggle notifications mute"
+            setOnClickListener { toggleNotificationsFromLock() }
+        }
+        notifMark = LauncherPalette.mark(host, DockMark.CHAT, 26, LauncherPalette.faint)
+        notifBadge = LauncherPalette.text(host, 11f, LauncherPalette.accent, true).apply {
+            text = ""
+            gravity = Gravity.CENTER
+            visibility = View.GONE
+            setPadding(
+                LauncherPalette.dp(host, 5),
+                LauncherPalette.dp(host, 1),
+                LauncherPalette.dp(host, 5),
+                LauncherPalette.dp(host, 1),
+            )
+        }
+        notifCol.addView(
+            notifMark,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER,
+            ),
+        )
+        notifCol.addView(
+            notifBadge,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.TOP or Gravity.END,
+            ),
+        )
+
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { /* absorb — don't unlock */ }
+            setPadding(0, LauncherPalette.dp(host, 4), 0, 0)
+            addView(
+                View(context).apply { setBackgroundColor(LauncherPalette.hairline) },
+                LinearLayout.LayoutParams(LauncherPalette.dp(host, 40), 1).apply {
+                    gravity = Gravity.CENTER_VERTICAL
+                    marginEnd = LauncherPalette.dp(host, 16)
+                },
+            )
+            addView(
+                grokCol,
+                LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
+            )
+            addView(
+                notifCol,
+                LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
+            )
+        }
     }
 
     private fun buildCallPanel(host: View): LinearLayout {
@@ -380,6 +492,72 @@ class LockScreenActivity : AppCompatActivity() {
         stopMediaObserve = null
     }
 
+    private fun startNotifObserve() {
+        if (stopNotifObserve != null) return
+        stopNotifObserve = LockScreenNotifications.observe(this) { snap ->
+            if (!::actionsRow.isInitialized) return@observe
+            bindNotif(snap)
+        }
+    }
+
+    private fun stopNotifObserve() {
+        stopNotifObserve?.invoke()
+        stopNotifObserve = null
+        notifSnap = null
+    }
+
+    private fun bindGrokCell() {
+        if (!::grokMark.isInitialized) return
+        val installed = InstalledApps.resolveDock(this, InstalledApps.GROK_APP) != null
+        val stroke = LauncherPalette.dp(root, 1).toFloat().coerceAtLeast(2f)
+        grokMark.setImageDrawable(
+            com.pos.mobile.launcher.DockMarks.drawable(
+                DockMark.GROK,
+                if (installed) LauncherPalette.accent else LauncherPalette.faint,
+                stroke,
+            ),
+        )
+        grokLabel.setTextColor(if (installed) LauncherPalette.muted else LauncherPalette.faint)
+        grokLabel.text = if (installed) "Grok" else "Grok · off"
+        val grokCol = grokMark.parent as? View
+        grokCol?.isClickable = installed
+        grokCol?.isFocusable = installed
+        grokCol?.contentDescription = if (installed) "Open Grok" else "Grok isn’t installed"
+        grokCol?.setOnClickListener(
+            if (installed) View.OnClickListener { openGrokFromLock() } else null,
+        )
+    }
+
+    private fun bindNotif(snap: LockNotifSnapshot) {
+        notifSnap = snap
+        if (!::notifMark.isInitialized) return
+        val markColor = when {
+            snap.muted -> LauncherPalette.accent
+            snap.count > 0 -> LauncherPalette.text
+            else -> LauncherPalette.faint
+        }
+        notifMark.setImageDrawable(
+            com.pos.mobile.launcher.DockMarks.drawable(
+                DockMark.CHAT,
+                markColor,
+                LauncherPalette.dp(root, 1).toFloat().coerceAtLeast(2f),
+            ),
+        )
+        val badge = snap.badge
+        if (badge.isNullOrBlank() || snap.muted) {
+            notifBadge.visibility = View.GONE
+        } else {
+            notifBadge.visibility = View.VISIBLE
+            notifBadge.text = badge
+        }
+        val notifCol = notifMark.parent as? View
+        notifCol?.contentDescription = when {
+            snap.muted -> "Notifications muted. Tap to unmute."
+            badge != null -> "Notifications on, $badge pending. Tap to mute."
+            else -> "Notifications on. Tap to mute."
+        }
+    }
+
     private fun bindCall(snap: CallLockSnapshot?) {
         activeCall = snap
         if (snap == null) {
@@ -461,6 +639,53 @@ class LockScreenActivity : AppCompatActivity() {
             })
         } else {
             LockScreenSpotify.openSpotify(this)
+        }
+    }
+
+    /**
+     * Launch Grok (`ai.x.grok`) after dismissing keyguard — same path as Spotify from lock.
+     * Android will not show a third-party app *over* a secure keyguard; PIN/biometrics may still appear.
+     */
+    private fun openGrokFromLock() {
+        val keyguard = getSystemService(KeyguardManager::class.java)
+        if (keyguard?.isKeyguardLocked == true && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            keyguard.requestDismissKeyguard(this, object : KeyguardManager.KeyguardDismissCallback() {
+                override fun onDismissSucceeded() {
+                    launchGrokAndDismiss()
+                }
+            })
+        } else {
+            launchGrokAndDismiss()
+        }
+    }
+
+    private fun launchGrokAndDismiss() {
+        if (!InstalledApps.openDock(this, InstalledApps.GROK_APP)) {
+            Toast.makeText(this, "Couldn’t open Grok", Toast.LENGTH_SHORT).show()
+        }
+        LockScreenHost.dismiss()
+    }
+
+    /**
+     * Tap: toggle hard mute (DND NONE ↔ ALL). If policy access is missing, dismiss keyguard
+     * and open the system “Do Not Disturb access” screen so Chris can grant it once.
+     */
+    private fun toggleNotificationsFromLock() {
+        if (LockScreenNotifications.toggleMute(this)) {
+            bindNotif(LockScreenNotifications.snapshot(this))
+            return
+        }
+        val keyguard = getSystemService(KeyguardManager::class.java)
+        if (keyguard?.isKeyguardLocked == true && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            keyguard.requestDismissKeyguard(this, object : KeyguardManager.KeyguardDismissCallback() {
+                override fun onDismissSucceeded() {
+                    LockScreenNotifications.openPolicyAccessSettings(this@LockScreenActivity)
+                    LockScreenHost.dismiss()
+                }
+            })
+        } else {
+            LockScreenNotifications.openPolicyAccessSettings(this)
+            LockScreenHost.dismiss()
         }
     }
 

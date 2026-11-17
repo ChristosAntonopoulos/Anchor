@@ -89,6 +89,56 @@ object WalletLaunchDetector {
         }
     }
 
+    /**
+     * First non-system / non-launcher app resumed after [sinceMs], for silent unlock insights.
+     * Returns null when usage access is missing or nothing meaningful appeared yet.
+     */
+    fun firstForegroundApp(context: Context, sinceMs: Long): String? {
+        if (!isUsageAccessGranted(context)) {
+            return null
+        }
+        return try {
+            val own = context.packageName
+            val manager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+            val now = System.currentTimeMillis()
+            val events = manager.queryEvents(sinceMs.coerceAtLeast(0L), now + 50L)
+            val event = UsageEvents.Event()
+            while (events.hasNextEvent()) {
+                events.getNextEvent(event)
+                if (!isResumeEvent(event.eventType)) {
+                    continue
+                }
+                val pkg = event.packageName?.trim().orEmpty()
+                if (pkg.isEmpty() || pkg == own) {
+                    continue
+                }
+                if (isIgnoredForegroundPackage(pkg)) {
+                    continue
+                }
+                android.util.Log.d(TAG, "First foreground app after unlock: $pkg")
+                return pkg
+            }
+            null
+        } catch (error: Exception) {
+            android.util.Log.e(TAG, "Could not read first foreground app", error)
+            null
+        }
+    }
+
+    fun isIgnoredForegroundPackage(packageName: String): Boolean {
+        val pkg = packageName.lowercase()
+        return pkg.startsWith("com.android.systemui") ||
+            pkg.startsWith("com.android.launcher") ||
+            pkg.contains("launcher") ||
+            pkg == "android" ||
+            pkg.startsWith("com.google.android.permissioncontroller") ||
+            pkg.startsWith("com.android.settings") ||
+            pkg.startsWith("com.google.android.apps.nexuslauncher") ||
+            pkg.startsWith("com.sec.android.app.launcher") ||
+            pkg.startsWith("com.miui.home") ||
+            pkg.startsWith("com.nothing.launcher")
+    }
+
     fun isWallet(packageName: String?, className: String?): Boolean {
         val pkg = packageName.orEmpty().lowercase()
         val cls = className.orEmpty().lowercase()

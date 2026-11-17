@@ -25,6 +25,7 @@
     <package android:name="com.spotify.music"/>
     <package android:name="com.spotify.lite"/>
     <package android:name="com.anysphere.cursor"/>
+    <package android:name="ai.x.grok"/>
     <package android:name="com.google.android.dialer"/>
     <package android:name="com.samsung.android.dialer"/>
     <package android:name="com.android.dialer"/>

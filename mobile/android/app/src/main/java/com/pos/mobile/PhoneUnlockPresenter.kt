@@ -12,6 +12,7 @@ object PhoneUnlockPresenter {
     private const val DEBOUNCE_MS = 1500L
     private const val WALLET_CHECK_MS = 220L
     private const val WALLET_RETRY_MS = 380L
+    private const val FIRST_APP_CHECK_MS = 1_200L
     private val mainHandler = Handler(Looper.getMainLooper())
     /** UsageEvents queries stay off the main looper so unlock / gesture frames stay responsive. */
     private val walletExecutor = Executors.newSingleThreadExecutor { runnable ->
@@ -72,7 +73,7 @@ object PhoneUnlockPresenter {
 
         if (!WalletLaunchDetector.isUsageAccessGranted(appContext)) {
             revealHome(appContext, fromUserPresent, walletLaunch = false)
-            showPrompt(appContext, unlockTime)
+            recordUnlockSilently(appContext, unlockTime)
             return
         }
 
@@ -102,7 +103,7 @@ object PhoneUnlockPresenter {
                         scheduleWalletCheck(context, unlockTime, fromUserPresent, attempt = 1)
                     } else {
                         revealHome(context, fromUserPresent, walletLaunch = false)
-                        showPrompt(context, unlockTime)
+                        recordUnlockSilently(context, unlockTime)
                     }
                 }
             }
@@ -130,16 +131,37 @@ object PhoneUnlockPresenter {
         return true
     }
 
-    private fun showPrompt(context: Context, unlockTime: Long) {
+    /** Persist unlock for history / insights — no intention popup. */
+    private fun recordUnlockSilently(context: Context, unlockTime: Long) {
         if (UnlockReasonOverlay.isShowing) {
             return
         }
-        val shown = UnlockReasonOverlay.show(context, unlockTime)
-        if (shown) {
-            PhoneUnlockModule.resetPendingUnlockTime()
+        val saved = PhoneUnlockStore.recordSilentUnlock(context, unlockTime)
+        PhoneUnlockModule.resetPendingUnlockTime()
+        android.util.Log.d(TAG, "Logged unlock silently saved=$saved")
+        scheduleFirstAppEnrichment(context, unlockTime)
+    }
+
+    private fun scheduleFirstAppEnrichment(context: Context, unlockTime: Long) {
+        if (!WalletLaunchDetector.isUsageAccessGranted(context)) {
             return
         }
-        PhoneUnlockModule.emitUnlock(unlockTime)
-        android.util.Log.w(TAG, "Overlay was not shown; React Native fallback was used")
+        mainHandler.postDelayed({
+            walletExecutor.execute {
+                val pkg = try {
+                    WalletLaunchDetector.firstForegroundApp(context, unlockTime)
+                } catch (error: Exception) {
+                    android.util.Log.w(TAG, "First-app usage check failed", error)
+                    null
+                }
+                if (pkg.isNullOrBlank()) {
+                    return@execute
+                }
+                mainHandler.post {
+                    val attached = PhoneUnlockStore.attachFirstApp(context, unlockTime, pkg)
+                    android.util.Log.d(TAG, "First app after unlock pkg=$pkg attached=$attached")
+                }
+            }
+        }, FIRST_APP_CHECK_MS)
     }
 }
