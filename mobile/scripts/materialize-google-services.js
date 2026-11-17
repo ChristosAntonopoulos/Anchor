@@ -54,11 +54,21 @@ function writeBoth(contents) {
   );
 }
 
+function isUnresolvedMacro(value) {
+  // Azure DevOps leaves "$(VAR)" literally when the library variable is missing.
+  return /^\$\([A-Za-z0-9_]+\)$/.test(value);
+}
+
 function main() {
   const fromEnv = (process.env.GOOGLE_SERVICES_JSON || '').trim();
-  if (fromEnv) {
+  if (fromEnv && !isUnresolvedMacro(fromEnv)) {
     writeBoth(decodePayload(fromEnv));
     return;
+  }
+  if (fromEnv && isUnresolvedMacro(fromEnv)) {
+    console.error(
+      `##[warning]GOOGLE_SERVICES_JSON looks like an unresolved ADO macro (${fromEnv}) — treat as unset.`
+    );
   }
 
   const fromPath = (process.env.GOOGLE_SERVICES_JSON_PATH || '').trim();
