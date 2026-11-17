@@ -7,7 +7,7 @@ using POS.Shared.Results;
 namespace POS.Api.Controllers;
 
 /// <summary>
-/// Assistant push delivery. Requires header X-Anchor-Key when AnchorApi:Key is configured.
+/// Assistant push delivery. Requires header X-Anchor-Key when AnchorApi:RequireKey is true and Key is configured.
 /// </summary>
 [ApiController]
 [Route("api/notifications")]

@@ -13,6 +13,8 @@ data:
   # Azure DevOps org for home launcher latest-pipeline widget (PAT lives in secrets)
   AzureDevOps__Organization: "CaptainBot"
   AzureDevOps__CacheSeconds: "60"
+  # X-Anchor-Key enforcement off for now (Chris accepts risk). Flip to "true" to re-enable.
+  AnchorApi__RequireKey: "false"
   # MongoDB connection string without credentials (credentials in secrets)
   # Format: mongodb://mongodb-service:27017/pos
   # Or for external MongoDB: mongodb://host:port/database

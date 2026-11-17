@@ -13,7 +13,7 @@ using POS.Shared.Results;
 namespace POS.Api.Controllers;
 
 /// <summary>
-/// External assistant write API. Requires header X-Anchor-Key when AnchorApi:Key is configured.
+/// External assistant write API. Requires header X-Anchor-Key when AnchorApi:RequireKey is true and Key is configured.
 /// </summary>
 [ApiController]
 [Route("api/assistant")]

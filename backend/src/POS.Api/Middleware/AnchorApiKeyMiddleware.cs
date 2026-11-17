@@ -8,7 +8,8 @@ using POS.Shared.Results;
 namespace POS.Api.Middleware;
 
 /// <summary>
-/// Requires header X-Anchor-Key for protected write routes when AnchorApi:Key is configured.
+/// Requires header X-Anchor-Key for protected write routes when AnchorApi:RequireKey is true
+/// and AnchorApi:Key is configured. When RequireKey is false, all endpoints skip the check.
 /// </summary>
 public class AnchorApiKeyMiddleware
 {
@@ -22,6 +23,14 @@ public class AnchorApiKeyMiddleware
     public async Task InvokeAsync(HttpContext context, IOptions<AnchorApiOptions> optionsAccessor)
     {
         var options = optionsAccessor.Value;
+
+        // Master switch: keep auth code in place; flip AnchorApi:RequireKey to re-enable.
+        if (!options.RequireKey)
+        {
+            await _next(context);
+            return;
+        }
+
         var expected = options.Key?.Trim();
         if (string.IsNullOrEmpty(expected))
         {
