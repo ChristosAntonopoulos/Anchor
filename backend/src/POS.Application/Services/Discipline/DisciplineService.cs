@@ -14,12 +14,18 @@ public class DisciplineService
 {
     private readonly MongoDbContext _context;
     private readonly IMapper _mapper;
+    private readonly HabitDefinitionService _habits;
     private readonly ILogger<DisciplineService> _logger;
 
-    public DisciplineService(MongoDbContext context, IMapper mapper, ILogger<DisciplineService> logger)
+    public DisciplineService(
+        MongoDbContext context,
+        IMapper mapper,
+        HabitDefinitionService habits,
+        ILogger<DisciplineService> logger)
     {
         _context = context;
         _mapper = mapper;
+        _habits = habits;
         _logger = logger;
     }
 
@@ -41,13 +47,13 @@ public class DisciplineService
         if (discipline == null)
         {
             // Create default discipline entry with default blocks
-            discipline = CreateDefaultDisciplineEntry(userId, today);
+            discipline = await CreateDefaultDisciplineEntryAsync(userId, today);
             await _context.DisciplineEntries.InsertOneAsync(discipline);
         }
         else if (discipline.Blocks == null || discipline.Blocks.Count == 0)
         {
             // Initialize blocks if entry exists but has no blocks (migration case)
-            discipline.Blocks = CreateDefaultBlocks();
+            discipline.Blocks = await _habits.BuildBlocksForDateAsync(userId, today);
             discipline.UpdatedAt = DateTime.UtcNow;
             await _context.DisciplineEntries.ReplaceOneAsync(filter, discipline);
         }
@@ -63,53 +69,14 @@ public class DisciplineService
     /// <summary>
     /// Create default discipline entry with default blocks
     /// </summary>
-    private DisciplineEntry CreateDefaultDisciplineEntry(string userId, DateTime date)
+    private async Task<DisciplineEntry> CreateDefaultDisciplineEntryAsync(string userId, DateTime date)
     {
         return new DisciplineEntry
         {
             UserId = userId,
             Date = date,
-            Blocks = CreateDefaultBlocks(),
+            Blocks = await _habits.BuildBlocksForDateAsync(userId, date),
             CreatedAt = DateTime.UtcNow
-        };
-    }
-
-    /// <summary>
-    /// Create default blocks (75 Hard and Habit Tracking)
-    /// </summary>
-    private List<DisciplineBlock> CreateDefaultBlocks()
-    {
-        return new List<DisciplineBlock>
-        {
-            // 75 Hard Block
-            new DisciplineBlock
-            {
-                BlockId = "75Hard",
-                BlockName = "75 Hard",
-                Order = 0,
-                Items = new List<DisciplineItem>
-                {
-                    new DisciplineItem { ItemId = "DietFollowed", ItemName = "Diet followed (no cheat meals, no alcohol)", Type = DisciplineItemType.Toggle, ToggleValue = false },
-                    new DisciplineItem { ItemId = "Workout1", ItemName = "Workout #1 (45 min)", Type = DisciplineItemType.Toggle, ToggleValue = false },
-                    new DisciplineItem { ItemId = "Workout2", ItemName = "Workout #2 (45 min – outdoor)", Type = DisciplineItemType.Toggle, ToggleValue = false },
-                    HydrationDefaults.CreateItem(),
-                    new DisciplineItem { ItemId = "Read10Pages", ItemName = "Read 10 pages nonfiction", Type = DisciplineItemType.Toggle, ToggleValue = false },
-                    new DisciplineItem { ItemId = "ProgressPhoto", ItemName = "Progress photo", Type = DisciplineItemType.Toggle, ToggleValue = false }
-                }
-            },
-            // Habit Tracking Block
-            new DisciplineBlock
-            {
-                BlockId = "HabitTracking",
-                BlockName = "Habit Tracking",
-                Order = 1,
-                Items = new List<DisciplineItem>
-                {
-                    new DisciplineItem { ItemId = "PrivateActivity", ItemName = "Private Activity", Type = DisciplineItemType.Counter, CounterValue = 0 },
-                    new DisciplineItem { ItemId = "Cigarettes", ItemName = "Cigarettes", Type = DisciplineItemType.Counter, CounterValue = 0 },
-                    new DisciplineItem { ItemId = "Coffee", ItemName = "Coffee", Type = DisciplineItemType.Counter, CounterValue = 0 }
-                }
-            }
         };
     }
 
@@ -130,11 +97,11 @@ public class DisciplineService
         
         if (discipline == null)
         {
-            discipline = CreateDefaultDisciplineEntry(userId, today);
+            discipline = await CreateDefaultDisciplineEntryAsync(userId, today);
         }
         else if (discipline.Blocks == null || discipline.Blocks.Count == 0)
         {
-            discipline.Blocks = CreateDefaultBlocks();
+            discipline.Blocks = await _habits.BuildBlocksForDateAsync(userId, today);
         }
 
         // Update note if provided
@@ -322,12 +289,12 @@ public class DisciplineService
         
         if (discipline == null)
         {
-            discipline = CreateDefaultDisciplineEntry(userId, date.Date);
+            discipline = await CreateDefaultDisciplineEntryAsync(userId, date.Date);
             await _context.DisciplineEntries.InsertOneAsync(discipline);
         }
         else if (discipline.Blocks == null || discipline.Blocks.Count == 0)
         {
-            discipline.Blocks = CreateDefaultBlocks();
+            discipline.Blocks = await _habits.BuildBlocksForDateAsync(userId, date.Date);
             discipline.UpdatedAt = DateTime.UtcNow;
             await _context.DisciplineEntries.ReplaceOneAsync(filter, discipline);
         }
@@ -366,7 +333,7 @@ public class DisciplineService
             Date = date,
             Blocks = request.Blocks != null && request.Blocks.Count > 0
                 ? _mapper.Map<List<DisciplineBlock>>(request.Blocks)
-                : CreateDefaultBlocks(),
+                : await _habits.BuildBlocksForDateAsync(userId, date),
             Note = request.Note,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow

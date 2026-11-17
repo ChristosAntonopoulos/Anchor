@@ -16,17 +16,20 @@ public class MorningModeService
 {
     private readonly MongoDbContext _context;
     private readonly ExecutionService _execution;
+    private readonly RoutineDefinitionService _routines;
     private readonly ILanguageModelClient _llm;
     private readonly ILogger<MorningModeService> _logger;
 
     public MorningModeService(
         MongoDbContext context,
         ExecutionService execution,
+        RoutineDefinitionService routines,
         ILanguageModelClient llm,
         ILogger<MorningModeService> logger)
     {
         _context = context;
         _execution = execution;
+        _routines = routines;
         _llm = llm;
         _logger = logger;
     }
@@ -37,7 +40,7 @@ public class MorningModeService
         string? timezone,
         CancellationToken ct = default)
     {
-        var routine = RoutineDtoMapper.FromCatalog(RoutineCatalog.Morning);
+        var routine = await _routines.GetAsync(userId, "morning", ct);
         var date = string.IsNullOrWhiteSpace(localDate)
             ? DateTime.UtcNow.ToString("yyyy-MM-dd")
             : localDate.Trim();
@@ -64,8 +67,8 @@ public class MorningModeService
                 "morning",
                 date,
                 timezone,
-                RoutineCatalog.Morning.TriggerHour,
-                RoutineCatalog.Morning.TriggerMinute),
+                routine.TriggerHour,
+                routine.TriggerMinute),
             Routine = routine,
             HasStoredSession = false,
         };

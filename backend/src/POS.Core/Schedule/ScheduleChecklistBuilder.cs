@@ -106,6 +106,14 @@ public static class ScheduleChecklistBuilder
 
     private static List<StepTemplate> ResolveTemplates(ScheduleBlockInstance block)
     {
+        // Prefer persisted activities (assistant/API editable) over hardcoded catalog.
+        if (block.RoutineActivities is { Count: > 0 })
+        {
+            return block.RoutineActivities
+                .Select(title => new StepTemplate(title, DurationForActivity(title)))
+                .ToList();
+        }
+
         if (RoutineCatalog.IsMorningTitle(block.Title))
             return FromRoutine(RoutineCatalog.Morning);
 
@@ -114,13 +122,6 @@ public static class ScheduleChecklistBuilder
 
         if (TryGetTitleTemplate(block.Title, out var byTitle))
             return byTitle;
-
-        if (block.RoutineActivities is { Count: > 0 })
-        {
-            return block.RoutineActivities
-                .Select(title => new StepTemplate(title, DurationForActivity(title)))
-                .ToList();
-        }
 
         return
         [
@@ -200,6 +201,10 @@ public static class ScheduleChecklistBuilder
         if (!TimeSpan.TryParse(startTime, out var start) ||
             !TimeSpan.TryParse(endTime, out var end))
             return 30;
+
+        // Blocks that cross midnight (e.g. 23:45–00:30) are valid.
+        if (end <= start)
+            end = end.Add(TimeSpan.FromDays(1));
 
         var minutes = (int)(end - start).TotalMinutes;
         return minutes > 0 ? minutes : 30;

@@ -18,6 +18,7 @@ import {
   saveNativeSessionJson,
   stopMorningSpeech,
 } from '../services/morningModeNative';
+import { applyRemoteRoutine } from '../utils/routineRuntime';
 import { useTaskStore } from './useTaskStore';
 
 interface MorningModeState {
@@ -63,6 +64,9 @@ export const useMorningModeStore = create<MorningModeState>((set, get) => ({
           stored?.localDate ?? undefined,
           stored?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
         );
+        if (remote?.routine) {
+          applyRemoteRoutine({ ...remote.routine, key: remote.routine.key ?? 'morning' });
+        }
         if (remote?.session?.localDate && remote.session.status) {
           stored = reduceMorning(remote.session as MorningSession, { type: 'tick' }, now);
         }

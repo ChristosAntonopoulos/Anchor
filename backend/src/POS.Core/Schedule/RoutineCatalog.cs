@@ -97,9 +97,11 @@ public sealed record UnifiedRoutine(
         get
         {
             if (!TimeSpan.TryParse(StartTime, out var start) || !TimeSpan.TryParse(EndTime, out var end))
-                return TotalSeconds / 60;
+                return Math.Max(1, TotalSeconds / 60);
+            if (end <= start)
+                end = end.Add(TimeSpan.FromDays(1));
             var minutes = (int)(end - start).TotalMinutes;
-            return minutes > 0 ? minutes : TotalSeconds / 60;
+            return minutes > 0 ? minutes : Math.Max(1, TotalSeconds / 60);
         }
     }
 }

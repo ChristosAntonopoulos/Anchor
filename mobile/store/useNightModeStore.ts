@@ -18,6 +18,7 @@ import {
   saveNativeSessionJson,
   stopNightSpeech,
 } from '../services/nightModeNative';
+import { applyRemoteRoutine } from '../utils/routineRuntime';
 import { useTaskStore } from './useTaskStore';
 
 interface NightModeState {
@@ -63,6 +64,9 @@ export const useNightModeStore = create<NightModeState>((set, get) => ({
           stored?.localDate ?? undefined,
           stored?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
         );
+        if (remote?.routine) {
+          applyRemoteRoutine({ ...remote.routine, key: remote.routine.key ?? 'night' });
+        }
         if (remote?.session?.localDate && remote.session.status) {
           stored = reduceNight(remote.session as NightSession, { type: 'tick' }, now);
         }

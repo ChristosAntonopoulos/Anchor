@@ -17,8 +17,8 @@ public class CreateScheduleBlockDefinitionValidator : BaseValidator<CreateSchedu
 
         RuleFor(x => x.Kind)
             .NotEmpty().WithMessage("Kind is required")
-            .Must(k => k == "fixed" || k == "flexible" || k == "recurring")
-            .WithMessage("Kind must be 'fixed', 'flexible', or 'recurring'");
+            .Must(k => k == "fixed" || k == "flexible" || k == "recurring" || k == "routine")
+            .WithMessage("Kind must be 'fixed', 'flexible', 'recurring', or 'routine'");
 
         RuleFor(x => x.Recurrence)
             .NotEmpty().WithMessage("Recurrence is required")
@@ -50,14 +50,14 @@ public class CreateScheduleBlockDefinitionValidator : BaseValidator<CreateSchedu
             .WithMessage("MaxPerWeek must be greater than or equal to MinPerWeek");
 
         RuleFor(x => x.FixedStartTime)
-            .NotEmpty().When(x => x.Kind == "fixed")
-            .WithMessage("FixedStartTime is required when Kind is 'fixed'")
+            .NotEmpty().When(x => x.Kind == "fixed" || x.Kind == "routine")
+            .WithMessage("FixedStartTime is required when Kind is 'fixed' or 'routine'")
             .Matches(@"^([0-1][0-9]|2[0-3]):[0-5][0-9]$").When(x => !string.IsNullOrEmpty(x.FixedStartTime))
             .WithMessage("FixedStartTime must be in HH:mm format");
 
         RuleFor(x => x.FixedEndTime)
-            .NotEmpty().When(x => x.Kind == "fixed")
-            .WithMessage("FixedEndTime is required when Kind is 'fixed'")
+            .NotEmpty().When(x => x.Kind == "fixed" || x.Kind == "routine")
+            .WithMessage("FixedEndTime is required when Kind is 'fixed' or 'routine'")
             .Matches(@"^([0-1][0-9]|2[0-3]):[0-5][0-9]$").When(x => !string.IsNullOrEmpty(x.FixedEndTime))
             .WithMessage("FixedEndTime must be in HH:mm format");
 
@@ -71,7 +71,7 @@ public class CreateScheduleBlockDefinitionValidator : BaseValidator<CreateSchedu
             .WithMessage("Energy must be 'low', 'medium', or 'high'");
 
         RuleFor(x => x.Priority)
-            .InclusiveBetween(1, 5)
-            .WithMessage("Priority must be between 1 and 5");
+            .InclusiveBetween(0, 20)
+            .WithMessage("Priority must be between 0 and 20");
     }
 }
