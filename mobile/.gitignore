@@ -33,6 +33,11 @@ yarn-error.*
 # local env files
 .env*.local
 
+# Firebase / FCM client config (injected in CI from POS-Secrets:GOOGLE_SERVICES_JSON)
+google-services.json
+android/app/google-services.json
+GoogleService-Info.plist
+
 # typescript
 *.tsbuildinfo
 

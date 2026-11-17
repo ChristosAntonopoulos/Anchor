@@ -51,10 +51,22 @@ public class PushNotificationService
 
         var devices = await _tokens.ListForUserAsync(userId);
         var tokenValues = devices.Select(d => d.Token).ToList();
-        _logger.LogInformation(
-            "Sending assistant push to {Count} device(s) for user {UserId}",
-            tokenValues.Count,
-            userId);
+        if (tokenValues.Count == 0)
+        {
+            _logger.LogWarning(
+                "Assistant push for user {UserId} has tokensTargeted=0 — no device has POSTed /api/devices/push-token. In-app notification {NotificationId} was still stored.",
+                userId,
+                stored.Id);
+        }
+        else
+        {
+            _logger.LogInformation(
+                "Sending assistant push to {Count} device(s) for user {UserId} notification {NotificationId} deepLink {DeepLink}",
+                tokenValues.Count,
+                userId,
+                stored.Id,
+                deepLink);
+        }
 
         var data = new Dictionary<string, object?>
         {
@@ -72,12 +84,23 @@ public class PushNotificationService
             data,
             cancellationToken);
 
+        _logger.LogInformation(
+            "Assistant push result for user {UserId}: tokensTargeted={TokensTargeted} ticketsAccepted={TicketsAccepted} errors={ErrorCount}",
+            userId,
+            pushResult.TokensTargeted,
+            pushResult.TicketsAccepted,
+            pushResult.Errors.Count);
+
         // Drop DeviceNotRegistered tokens so the next send stays clean
         foreach (var error in pushResult.Errors)
         {
             if (error.Contains("DeviceNotRegistered", StringComparison.OrdinalIgnoreCase))
             {
                 _logger.LogInformation("Expo reported DeviceNotRegistered; consider pruning tokens");
+            }
+            else
+            {
+                _logger.LogWarning("Expo push error for user {UserId}: {Error}", userId, error);
             }
         }
 

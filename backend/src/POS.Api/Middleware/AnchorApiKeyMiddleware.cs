@@ -90,7 +90,9 @@ public class AnchorApiKeyMiddleware
     {
         return path.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/api/health", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("/api/app/release", StringComparison.OrdinalIgnoreCase);
+            || path.StartsWith("/api/app/release", StringComparison.OrdinalIgnoreCase)
+            // Phone must be able to register even if RequireKey is later flipped on and the APK key is missing.
+            || path.Equals("/api/devices/push-token", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsAssistantSurface(string path)

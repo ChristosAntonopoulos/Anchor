@@ -205,6 +205,12 @@ export interface APIClient {
     platform?: string;
     expoProjectId?: string;
   }): Promise<{ id: string; token: string; platform: string; lastSeenAt: string }>;
+  getPushTokenStatus(): Promise<{
+    userId: string;
+    tokenCount: number;
+    lastRegisteredAt: string | null;
+    platforms: string[];
+  }>;
   
   // Phone Unlock endpoints
   createPhoneUnlockEntry(request: CreatePhoneUnlockEntryRequest): Promise<void>;
@@ -968,6 +974,27 @@ class HTTPAPIClient implements APIClient {
       return unwrapResponse(response.data);
     } catch (error) {
       throw this.handleError(error, 'Failed to register push token');
+    }
+  }
+
+  async getPushTokenStatus(): Promise<{
+    userId: string;
+    tokenCount: number;
+    lastRegisteredAt: string | null;
+    platforms: string[];
+  }> {
+    try {
+      const response = await this.axiosInstance.get<
+        ApiResponse<{
+          userId: string;
+          tokenCount: number;
+          lastRegisteredAt: string | null;
+          platforms: string[];
+        }>
+      >('/devices/push-token');
+      return unwrapResponse(response.data);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to get push token status');
     }
   }
 
