@@ -44,6 +44,7 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var homeColumn: LinearLayout
     private lateinit var developerColumn: LinearLayout
     private lateinit var favoritesColumn: LinearLayout
+    private lateinit var dockAppsRow: LinearLayout
     private lateinit var pagesPager: HomePagesPager
     private lateinit var pageLabel: TextView
     private lateinit var dateView: TextView
@@ -297,19 +298,11 @@ class HomeActivity : AppCompatActivity() {
 
     private fun dock(): LinearLayout {
         val wrap = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        val apps = LinearLayout(this).apply {
+        dockAppsRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
         }
-        listOf(
-            InstalledApps.PHONE_APP,
-            InstalledApps.WALLET_APP,
-            InstalledApps.CHATGPT_APP,
-            InstalledApps.CURSOR_APP,
-            InstalledApps.SPOTIFY_APP,
-        ).forEach { target ->
-            apps.addView(dockCell(target), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        }
+        bindDockApps()
         val tools = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
@@ -317,13 +310,63 @@ class HomeActivity : AppCompatActivity() {
         tools.addView(quietLink("Capture") { LauncherIntents.openCapture(this) }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         tools.addView(quietLink("All apps") { openAllApps(false) }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         tools.addView(quietLink("Personal AI") { LauncherIntents.openPersonalAi(this, "pos://os/now") }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        wrap.addView(apps, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+        wrap.addView(dockAppsRow, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
             topMargin = LauncherPalette.dp(root, 8)
         })
         wrap.addView(tools, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
             topMargin = LauncherPalette.dp(root, 2)
         })
         return wrap
+    }
+
+    /** Grok sits in the calm center slot. Missing → calm “Grok · off” hint, no toast noise. */
+    private fun bindDockApps() {
+        if (!::dockAppsRow.isInitialized) return
+        dockAppsRow.removeAllViews()
+        listOf(
+            InstalledApps.PHONE_APP,
+            InstalledApps.WALLET_APP,
+            InstalledApps.GROK_APP,
+            InstalledApps.CURSOR_APP,
+            InstalledApps.SPOTIFY_APP,
+        ).forEach { target ->
+            val cell = if (target === InstalledApps.GROK_APP) grokDockCell() else dockCell(target)
+            dockAppsRow.addView(cell, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        }
+    }
+
+    /** Center dock tile for Grok Bot (`ai.x.grok`). Soft accent when installed; calm hint when missing. */
+    private fun grokDockCell(): View {
+        val installed = InstalledApps.resolveDock(this, InstalledApps.GROK_APP) != null
+        val col = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            isClickable = installed
+            isFocusable = installed
+            contentDescription = if (installed) "Open Grok" else "Grok isn’t installed"
+            minimumHeight = LauncherPalette.dp(root, 72)
+            setPadding(0, LauncherPalette.dp(root, 8), 0, LauncherPalette.dp(root, 4))
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
+            if (installed) {
+                setOnClickListener {
+                    if (!InstalledApps.openDock(this@HomeActivity, InstalledApps.GROK_APP)) {
+                        Toast.makeText(this@HomeActivity, "Couldn’t open Grok", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+        val markColor = if (installed) LauncherPalette.accent else LauncherPalette.faint
+        val labelColor = if (installed) LauncherPalette.muted else LauncherPalette.faint
+        col.addView(LauncherPalette.mark(root, InstalledApps.GROK_APP.mark, 28, markColor))
+        col.addView(LauncherPalette.text(root, 11f, labelColor).apply {
+            text = if (installed) "Grok" else "Grok · off"
+            gravity = Gravity.CENTER
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = LauncherPalette.dp(root, 6)
+        })
+        return col
     }
 
     private fun dockCell(target: DockApp): View {
@@ -533,6 +576,7 @@ class HomeActivity : AppCompatActivity() {
 
     private fun refreshVisible() {
         bindDate()
+        bindDockApps()
         layout.homeWidgets().forEach { homeWidgets.provider(it.instanceId)?.refresh() }
         layout.developerWidgets().forEach { developerWidgets.provider(it.instanceId)?.refresh() }
         bindFavorites()
