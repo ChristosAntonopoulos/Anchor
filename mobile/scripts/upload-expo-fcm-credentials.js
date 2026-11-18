@@ -66,14 +66,19 @@ async function gql(token, query, variables) {
   return res.json.data;
 }
 
+function isUnresolvedMacro(value) {
+  // Azure DevOps leaves "$(VAR)" literally when the library variable is missing.
+  return /^\$\([A-Za-z0-9_]+\)$/.test(value);
+}
+
 async function main() {
   const token = (process.env.EXPO_TOKEN || '').trim();
   const rawSa = (process.env.FCM_SERVICE_ACCOUNT_JSON || '').trim();
-  if (!rawSa) {
+  if (!rawSa || isUnresolvedMacro(rawSa)) {
     console.log('FCM_SERVICE_ACCOUNT_JSON unset — skipping Expo FCM V1 credential upload.');
     return;
   }
-  if (!token) {
+  if (!token || isUnresolvedMacro(token)) {
     throw new Error('EXPO_TOKEN is required to upload FCM credentials.');
   }
 

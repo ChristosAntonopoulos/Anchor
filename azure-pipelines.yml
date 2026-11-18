@@ -266,13 +266,12 @@ stages:
         fi
 
         # FCM client config for Expo push tokens (never echo secret value).
-        # Set POS-Secrets:GOOGLE_SERVICES_JSON to raw google-services.json or its base64.
-        # Unset ADO macros like "$(GOOGLE_SERVICES_JSON)" when the library var is missing.
-        if [[ -n "${GOOGLE_SERVICES_JSON:-}" && ! "${GOOGLE_SERVICES_JSON}" =~ ^\$\([A-Za-z0-9_]+\)$ ]]; then
-          export GOOGLE_SERVICES_JSON
+        # Prefer POS-Secrets GOOGLE_SERVICES_JSON as base64 (raw multiline JSON is unsafe in ADO
+        # script macro expansion — never put the dollar-paren variable name in comments either).
+        # materialize-google-services.js treats unresolved ADO macros as unset.
+        if [ -n "${GOOGLE_SERVICES_JSON:-}" ]; then
           echo "GOOGLE_SERVICES_JSON is set (length ${#GOOGLE_SERVICES_JSON}; value not shown)."
         else
-          unset GOOGLE_SERVICES_JSON || true
           echo "##[warning]GOOGLE_SERVICES_JSON is not set — APK will build without FCM; push token registration will fail on device."
         fi
         node scripts/materialize-google-services.js
@@ -280,15 +279,14 @@ stages:
           echo "google-services.json present for FCM (package check only):"
           node -e "const g=require('./google-services.json'); const p=g.client?.[0]?.client_info?.android_client_info?.package_name; if(p!=='com.pos.mobile'){console.error('ERROR: package_name is', p); process.exit(1)}; console.log('package_name=com.pos.mobile project_id='+(g.project_info&&g.project_info.project_id));"
         else
-          echo "##[warning]Building APK without google-services.json (Expo push token fetch will fail until POS-Secrets:GOOGLE_SERVICES_JSON is set)."
+          echo "##[warning]Building APK without google-services.json (Expo push token fetch will fail until POS-Secrets GOOGLE_SERVICES_JSON is set)."
         fi
 
-        if [[ -n "${FCM_SERVICE_ACCOUNT_JSON:-}" && ! "${FCM_SERVICE_ACCOUNT_JSON}" =~ ^\$\([A-Za-z0-9_]+\)$ ]]; then
-          export FCM_SERVICE_ACCOUNT_JSON
+        # Prefer base64 for FCM_SERVICE_ACCOUNT_JSON too. Upload script skips unresolved macros.
+        if [ -n "${FCM_SERVICE_ACCOUNT_JSON:-}" ]; then
           echo "FCM_SERVICE_ACCOUNT_JSON is set (length ${#FCM_SERVICE_ACCOUNT_JSON}; value not shown)."
           node scripts/upload-expo-fcm-credentials.js || echo "##[warning]Expo FCM V1 upload failed — run eas credentials manually for @botsyst3m/pos-mobile."
         else
-          unset FCM_SERVICE_ACCOUNT_JSON || true
           echo "FCM_SERVICE_ACCOUNT_JSON unset — Expo FCM V1 must be uploaded once (eas credentials or this secret) for push delivery."
         fi
 
