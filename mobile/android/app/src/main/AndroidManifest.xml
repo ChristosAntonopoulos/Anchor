@@ -140,6 +140,17 @@
         android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode"
         android:stateNotNeeded="true"
         android:noHistory="false"/>
+    <!-- show-when-locked trampoline: dismiss keyguard then open ai.x.grok (PIN may still be required). -->
+    <activity
+        android:name=".GrokUnlockTrampolineActivity"
+        android:exported="false"
+        android:excludeFromRecents="true"
+        android:theme="@style/GrokTrampolineTheme"
+        android:showWhenLocked="true"
+        android:turnScreenOn="false"
+        android:noHistory="true"
+        android:taskAffinity=""
+        android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode"/>
     <!-- showWhenLocked/turnScreenOn only for Morning/Night FSI — gated in MainActivity at runtime.
          Leaving them always-on made assistant notification taps take over the lock face and feel broken. -->
     <activity android:name=".MainActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode" android:launchMode="singleTask" android:windowSoftInputMode="adjustResize" android:theme="@style/Theme.App.SplashScreen" android:exported="true" android:screenOrientation="portrait" android:showWhenLocked="false" android:turnScreenOn="false">

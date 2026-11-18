@@ -17,6 +17,8 @@ data class LockNotifSnapshot(
     val badge: String?,
     val muted: Boolean,
     val policyAccessGranted: Boolean,
+    /** Latest own assistant push title for a calm lock-face cue (may be null). */
+    val assistantCue: String? = null,
 )
 
 /**
@@ -26,6 +28,13 @@ data class LockNotifSnapshot(
 object LockScreenNotifications {
     private const val TAG = "LockScreenNotifications"
     private val mainHandler = Handler(Looper.getMainLooper())
+
+    /** Channel ids that carry assistant pushes (current + stale upgrades). */
+    private val ASSISTANT_CHANNELS = setOf(
+        "os-assistant-alert",
+        "os-assistant",
+        "os-assistant-priority",
+    )
 
     fun snapshot(context: Context): LockNotifSnapshot {
         val nm = context.getSystemService(NotificationManager::class.java)
@@ -38,7 +47,39 @@ object LockScreenNotifications {
             badge = LockScreenNotificationsLogic.badgeLabel(count),
             muted = muted,
             policyAccessGranted = policyGranted,
+            assistantCue = latestAssistantTitle(context),
         )
+    }
+
+    /**
+     * Latest active Anchor assistant notification title (own package via [NotificationManager]).
+     * Used for a calm lock-face status line while [LockScreenActivity] covers the system shade.
+     */
+    fun latestAssistantTitle(context: Context): String? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return null
+        val nm = context.getSystemService(NotificationManager::class.java) ?: return null
+        return try {
+            nm.activeNotifications
+                .asSequence()
+                .filter { sbn ->
+                    val channelId = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        sbn.notification.channelId
+                    } else {
+                        null
+                    }
+                    channelId != null && channelId in ASSISTANT_CHANNELS
+                }
+                .maxByOrNull { it.postTime }
+                ?.notification
+                ?.extras
+                ?.getCharSequence(Notification.EXTRA_TITLE)
+                ?.toString()
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() }
+        } catch (error: Exception) {
+            android.util.Log.w(TAG, "Could not read assistant notification title", error)
+            null
+        }
     }
 
     fun countActive(context: Context): Int {

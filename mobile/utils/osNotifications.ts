@@ -44,7 +44,7 @@ export async function ensureOsNotifications(): Promise<NotifMod | null> {
       }) => {
         const kind = notification?.request?.content?.data?.kind;
         const silent = kind === 'focus-pulse';
-        // Assistant pushes: calm in-app banner/list, soft sound — no aggressive takeover.
+        // Assistant pushes: in-app banner/list + sound (Android channel drives heads-up).
         const show = !silent;
         return {
           shouldShowAlert: show,
@@ -60,7 +60,7 @@ export async function ensureOsNotifications(): Promise<NotifMod | null> {
       const low = mod.AndroidImportance?.LOW ?? 2;
       const def = mod.AndroidImportance?.DEFAULT ?? 3;
       // Priority Anchor cues: heads-up + bypass DND when policy access allows.
-      // Assistant + focus-pulse / water stay quieter and respect lock-face mute.
+      // Assistant uses HIGH heads-up without bypassDnd so the lock mute glyph still wins.
       // New channel ids so importance/bypassDnd land on upgrades (Android freezes props).
       const stale = [
         'cooking',
@@ -68,8 +68,9 @@ export async function ensureOsNotifications(): Promise<NotifMod | null> {
         'os-meals',
         'os-review',
         'os-focus-start',
-        // Former HIGH+bypassDnd assistant channel fought mute and felt like a hostile popup.
+        // Pre-ANC-40: HIGH+bypassDnd (hostile) and DEFAULT calm tray (no heads-up).
         'os-assistant-priority',
+        'os-assistant',
       ];
       if (mod.deleteNotificationChannelAsync) {
         await Promise.all(stale.map((id) => mod.deleteNotificationChannelAsync?.(id).catch(() => undefined)));
@@ -118,10 +119,10 @@ export async function ensureOsNotifications(): Promise<NotifMod | null> {
           importance: def,
           sound: 'default',
         }),
-        // Calm tray presentation; respects DND / lock mute glyph. No heads-up spam.
-        mod.setNotificationChannelAsync('os-assistant', {
+        // Heads-up + lock visibility; respects hard mute (no bypassDnd).
+        mod.setNotificationChannelAsync('os-assistant-alert', {
           name: 'Assistant',
-          importance: def,
+          importance,
           bypassDnd: false,
           lockscreenVisibility: 1,
           sound: 'default',
