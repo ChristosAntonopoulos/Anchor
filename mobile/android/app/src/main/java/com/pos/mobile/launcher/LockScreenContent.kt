@@ -14,7 +14,11 @@ data class LockScreenLines(
 )
 
 object LockScreenContent {
-    fun resolve(next: NextActionContent, widgets: OsWidgetSnapshot): LockScreenLines {
+    fun resolve(
+        next: NextActionContent,
+        widgets: OsWidgetSnapshot,
+        assistantCue: String? = null,
+    ): LockScreenLines {
         val eyebrow = when (next.route) {
             NextActionResolver.ROUTE_MORNING -> "MORNING"
             NextActionResolver.ROUTE_BLOCK -> "BLOCK"
@@ -25,8 +29,17 @@ object LockScreenContent {
             cueEyebrow = eyebrow,
             cueTitle = next.title.trim().ifBlank { "Anchor" },
             cueDetail = detail,
-            statusLine = pipelineLine(widgets),
+            // Prefer a calm assistant one-liner when a push is active; else pipeline.
+            statusLine = assistantStatusLine(assistantCue) ?: pipelineLine(widgets),
         )
+    }
+
+    /** Sparse lock-face line for an active assistant push title. */
+    fun assistantStatusLine(title: String?): String? {
+        val trimmed = title?.trim().orEmpty()
+        if (trimmed.isEmpty()) return null
+        val short = if (trimmed.length > 48) trimmed.take(47).trimEnd() + "…" else trimmed
+        return "ASSISTANT · $short"
     }
 
     fun pipelineLine(widgets: OsWidgetSnapshot): String? {

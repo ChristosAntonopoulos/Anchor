@@ -27,4 +27,16 @@
     <item name="android:windowContentOverlay">@null</item>
     <item name="android:windowShowWallpaper">false</item>
   </style>
+  <!-- Invisible host for requestDismissKeyguard → Grok launch from the lock face. -->
+  <style name="GrokTrampolineTheme" parent="Theme.AppCompat.NoActionBar">
+    <item name="android:windowIsTranslucent">true</item>
+    <item name="android:windowBackground">@android:color/transparent</item>
+    <item name="android:windowNoTitle">true</item>
+    <item name="android:windowContentOverlay">@null</item>
+    <item name="android:windowAnimationStyle">@null</item>
+    <item name="android:backgroundDimEnabled">false</item>
+    <item name="android:windowDisablePreview">true</item>
+    <item name="android:statusBarColor">@android:color/transparent</item>
+    <item name="android:navigationBarColor">@android:color/transparent</item>
+  </style>
 </resources>

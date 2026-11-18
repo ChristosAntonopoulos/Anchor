@@ -56,6 +56,32 @@ class LockScreenContentTest {
     }
 
     @Test
+    fun assistantStatusLineFormatsCalmCue() {
+        assertEquals("ASSISTANT · Ship it", LockScreenContent.assistantStatusLine("Ship it"))
+        assertNull(LockScreenContent.assistantStatusLine("  "))
+        assertNull(LockScreenContent.assistantStatusLine(null))
+    }
+
+    @Test
+    fun assistantCuePrefersOverPipeline() {
+        val lines = LockScreenContent.resolve(
+            next = NextActionContent(
+                title = "Choose one thing",
+                detail = "",
+                button = "Choose",
+                route = NextActionResolver.ROUTE_NOW,
+            ),
+            widgets = OsWidgetSnapshot.empty().copy(
+                pipelineTitle = "Anchor",
+                pipelineMeta = "main",
+                pipelineStatus = "succeeded",
+            ),
+            assistantCue = "Heads-up test",
+        )
+        assertEquals("ASSISTANT · Heads-up test", lines.statusLine)
+    }
+
+    @Test
     fun duplicateDetailIsDropped() {
         val lines = LockScreenContent.resolve(
             next = NextActionContent(

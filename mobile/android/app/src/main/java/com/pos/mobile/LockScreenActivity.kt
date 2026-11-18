@@ -20,7 +20,6 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextClock
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -497,6 +496,8 @@ class LockScreenActivity : AppCompatActivity() {
         stopNotifObserve = LockScreenNotifications.observe(this) { snap ->
             if (!::actionsRow.isInitialized) return@observe
             bindNotif(snap)
+            // Refresh calm assistant status line when pushes arrive/clear while locked.
+            if (::cueTitle.isInitialized) bindCopy()
         }
     }
 
@@ -643,26 +644,11 @@ class LockScreenActivity : AppCompatActivity() {
     }
 
     /**
-     * Launch Grok (`ai.x.grok`) after dismissing keyguard — same path as Spotify from lock.
-     * Android will not show a third-party app *over* a secure keyguard; PIN/biometrics may still appear.
+     * Launch Grok (`ai.x.grok`) via a show-when-locked trampoline that dismisses keyguard.
+     * PIN/pattern/biometric may still appear — Android will not show Grok *over* a secure lock.
      */
     private fun openGrokFromLock() {
-        val keyguard = getSystemService(KeyguardManager::class.java)
-        if (keyguard?.isKeyguardLocked == true && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            keyguard.requestDismissKeyguard(this, object : KeyguardManager.KeyguardDismissCallback() {
-                override fun onDismissSucceeded() {
-                    launchGrokAndDismiss()
-                }
-            })
-        } else {
-            launchGrokAndDismiss()
-        }
-    }
-
-    private fun launchGrokAndDismiss() {
-        if (!InstalledApps.openDock(this, InstalledApps.GROK_APP)) {
-            Toast.makeText(this, "Couldn’t open Grok", Toast.LENGTH_SHORT).show()
-        }
+        startActivity(GrokUnlockTrampolineActivity.intent(this))
         LockScreenHost.dismiss()
     }
 
@@ -767,6 +753,8 @@ class LockScreenActivity : AppCompatActivity() {
         val lines = LockScreenContent.resolve(
             next = NextActionResolver.resolve(this),
             widgets = OsWidgetStore.read(this),
+            assistantCue = notifSnap?.assistantCue
+                ?: LockScreenNotifications.latestAssistantTitle(this),
         )
         cueEyebrow.text = lines.cueEyebrow
         cueTitle.text = lines.cueTitle

@@ -45,11 +45,11 @@ async function ensurePermission(mod: ExpoNotifications): Promise<boolean> {
 async function ensureAssistantChannel(mod: ExpoNotifications): Promise<void> {
   if (Platform.OS !== 'android' || !mod.setNotificationChannelAsync) return;
   try {
-    // Calm DEFAULT channel — respects lock mute; no HIGH heads-up / bypassDnd.
-    // ensureOsNotifications also creates this and deletes the old priority id.
-    await mod.setNotificationChannelAsync('os-assistant', {
+    // HIGH heads-up + public lock visibility; no bypassDnd so hard mute still wins.
+    // ensureOsNotifications also creates this and deletes stale channel ids.
+    await mod.setNotificationChannelAsync('os-assistant-alert', {
       name: 'Assistant',
-      importance: mod.AndroidImportance?.DEFAULT ?? mod.AndroidImportance?.HIGH ?? 3,
+      importance: mod.AndroidImportance?.HIGH ?? 4,
       bypassDnd: false,
       lockscreenVisibility: 1,
       sound: 'default',

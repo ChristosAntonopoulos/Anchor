@@ -47,9 +47,9 @@ public class ExpoPushSender
                 Title = title,
                 Body = body,
                 Sound = "default",
-                // default = tray-friendly on Android; high forced heads-up + felt like a hostile popup
-                Priority = "default",
-                ChannelId = "os-assistant",
+                // high + os-assistant-alert (HIGH, no bypassDnd) → heads-up + lock, mute glyph still wins
+                Priority = "high",
+                ChannelId = "os-assistant-alert",
                 Data = data
             })
             .ToList();
