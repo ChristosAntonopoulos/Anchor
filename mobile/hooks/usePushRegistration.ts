@@ -11,8 +11,8 @@ type ExpoNotifications = {
   getExpoPushTokenAsync: (opts?: { projectId?: string }) => Promise<{ data?: string }>;
   getPermissionsAsync?: () => Promise<{ granted?: boolean; status?: string; canAskAgain?: boolean }>;
   requestPermissionsAsync: () => Promise<{ granted?: boolean; status?: string }>;
-  setNotificationChannelAsync?: (id: string, channel: unknown) => Promise<unknown>;
-  AndroidImportance?: { HIGH: number; MAX?: number };
+  setNotificationChannelAsync?: (id: string, channel: Record<string, unknown>) => Promise<unknown>;
+  AndroidImportance?: { HIGH: number; DEFAULT?: number; MAX?: number };
 };
 
 function resolveProjectId(): string {
@@ -45,12 +45,16 @@ async function ensurePermission(mod: ExpoNotifications): Promise<boolean> {
 async function ensureAssistantChannel(mod: ExpoNotifications): Promise<void> {
   if (Platform.OS !== 'android' || !mod.setNotificationChannelAsync) return;
   try {
-    await mod.setNotificationChannelAsync('os-assistant-priority', {
+    // Calm DEFAULT channel — respects lock mute; no HIGH heads-up / bypassDnd.
+    // ensureOsNotifications also creates this and deletes the old priority id.
+    await mod.setNotificationChannelAsync('os-assistant', {
       name: 'Assistant',
-      importance: mod.AndroidImportance?.HIGH ?? 4,
-      bypassDnd: true,
+      importance: mod.AndroidImportance?.DEFAULT ?? mod.AndroidImportance?.HIGH ?? 3,
+      bypassDnd: false,
       lockscreenVisibility: 1,
       sound: 'default',
+      enableVibrate: false,
+      showBadge: true,
     });
   } catch (error) {
     log('assistant channel setup failed', error);

@@ -47,8 +47,9 @@ public class ExpoPushSender
                 Title = title,
                 Body = body,
                 Sound = "default",
-                Priority = "high",
-                ChannelId = "os-assistant-priority",
+                // default = tray-friendly on Android; high forced heads-up + felt like a hostile popup
+                Priority = "default",
+                ChannelId = "os-assistant",
                 Data = data
             })
             .ToList();

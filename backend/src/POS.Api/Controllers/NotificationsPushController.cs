@@ -28,7 +28,7 @@ public class NotificationsPushController : BaseController
     [SwaggerOperation(
         OperationId = "Notifications_SendPush",
         Summary = "Send push + store in-app notification",
-        Description = "Requires X-Anchor-Key when AnchorApi:RequireKey is true. Sends via Expo to all registered device tokens for the user, and creates an in-app notification. Tap opens deepLink (default pos://os/now). If tokensTargeted is 0, the phone has not POSTed /api/devices/push-token yet — check GET /api/devices/push-token.")]
+        Description = "Requires X-Anchor-Key when AnchorApi:RequireKey is true. Sends via Expo to all registered device tokens for the user, and creates an in-app notification. Uses calm channel os-assistant (default priority, respects DND). Tap opens deepLink (default pos://os/now). If tokensTargeted is 0, the phone has not POSTed /api/devices/push-token yet — check GET /api/devices/push-token.")]
     [ProducesResponseType(typeof(ApiResponse<SendPushResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status401Unauthorized)]

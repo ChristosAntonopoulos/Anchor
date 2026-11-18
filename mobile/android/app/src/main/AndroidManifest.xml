@@ -140,7 +140,9 @@
         android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode"
         android:stateNotNeeded="true"
         android:noHistory="false"/>
-    <activity android:name=".MainActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode" android:launchMode="singleTask" android:windowSoftInputMode="adjustResize" android:theme="@style/Theme.App.SplashScreen" android:exported="true" android:screenOrientation="portrait" android:showWhenLocked="true" android:turnScreenOn="true">
+    <!-- showWhenLocked/turnScreenOn only for Morning/Night FSI — gated in MainActivity at runtime.
+         Leaving them always-on made assistant notification taps take over the lock face and feel broken. -->
+    <activity android:name=".MainActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode" android:launchMode="singleTask" android:windowSoftInputMode="adjustResize" android:theme="@style/Theme.App.SplashScreen" android:exported="true" android:screenOrientation="portrait" android:showWhenLocked="false" android:turnScreenOn="false">
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
         <category android:name="android.intent.category.LAUNCHER"/>
