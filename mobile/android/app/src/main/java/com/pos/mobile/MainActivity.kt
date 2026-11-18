@@ -17,18 +17,17 @@ class MainActivity : ReactActivity() {
     // coloring the background, status bar, and navigation bar.
     // This is required for expo-splash-screen.
     setTheme(R.style.AppTheme);
-    
+
+    // Only Morning/Night full-screen intents may cover the keyguard.
+    // Assistant / OS pushes must not wake or overlay LockScreenActivity.
+    applyLockPresentation(intent)
     handleUnlockIntent(intent)
     super.onCreate(null)
-    if (intent?.getBooleanExtra(MorningModeLauncher.EXTRA, false) == true ||
-        intent?.dataString?.contains("morning") == true
-    ) {
+    if (isMorningIntent(intent)) {
       MorningModeStore.markPending(this, true)
       MorningModeLauncher.cancelNotification(this)
     }
-    if (intent?.getBooleanExtra(NightModeLauncher.EXTRA, false) == true ||
-        intent?.dataString?.contains("os/night") == true
-    ) {
+    if (isNightIntent(intent)) {
       NightModeStore.markPending(this, true)
       NightModeLauncher.cancelNotification(this)
     }
@@ -37,21 +36,43 @@ class MainActivity : ReactActivity() {
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
     setIntent(intent)
+    applyLockPresentation(intent)
     handleUnlockIntent(intent)
-    if (intent.getBooleanExtra(MorningModeLauncher.EXTRA, false) ||
-        intent.dataString?.contains("morning") == true
-    ) {
+    if (isMorningIntent(intent)) {
       MorningModeStore.markPending(this, true)
       MorningModeLauncher.cancelNotification(this)
       MorningModeModule.emitOpened()
     }
-    if (intent.getBooleanExtra(NightModeLauncher.EXTRA, false) ||
-        intent.dataString?.contains("os/night") == true
-    ) {
+    if (isNightIntent(intent)) {
       NightModeStore.markPending(this, true)
       NightModeLauncher.cancelNotification(this)
       NightModeModule.emitOpened()
     }
+  }
+
+  /**
+   * Enable show-when-locked / turn-screen-on only for Morning/Night takeover.
+   * Default (assistant push taps, deep links, cold start) stays behind keyguard
+   * so LockScreenActivity remains the lock face.
+   */
+  private fun applyLockPresentation(intent: Intent?) {
+    val takeover = isMorningIntent(intent) || isNightIntent(intent)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+      setShowWhenLocked(takeover)
+      setTurnScreenOn(takeover)
+    }
+  }
+
+  private fun isMorningIntent(intent: Intent?): Boolean {
+    if (intent == null) return false
+    return intent.getBooleanExtra(MorningModeLauncher.EXTRA, false) ||
+      intent.dataString?.contains("morning") == true
+  }
+
+  private fun isNightIntent(intent: Intent?): Boolean {
+    if (intent == null) return false
+    return intent.getBooleanExtra(NightModeLauncher.EXTRA, false) ||
+      intent.dataString?.contains("os/night") == true
   }
 
   private fun handleUnlockIntent(intent: Intent?) {

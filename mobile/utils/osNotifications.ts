@@ -39,24 +39,38 @@ export async function ensureOsNotifications(): Promise<NotifMod | null> {
   if (!mod || ready) return mod;
   try {
     mod.setNotificationHandler({
-      handleNotification: async (notification: { request?: { content?: { data?: { kind?: string } } } }) => {
-        const silent = notification?.request?.content?.data?.kind === 'focus-pulse';
+      handleNotification: async (notification: {
+        request?: { content?: { data?: { kind?: string } } };
+      }) => {
+        const kind = notification?.request?.content?.data?.kind;
+        const silent = kind === 'focus-pulse';
+        // Assistant pushes: calm in-app banner/list, soft sound — no aggressive takeover.
+        const show = !silent;
         return {
-          shouldShowAlert: !silent,
-          shouldPlaySound: true,
+          shouldShowAlert: show,
+          shouldPlaySound: show,
           shouldSetBadge: false,
-          shouldShowBanner: !silent,
-          shouldShowList: !silent,
+          shouldShowBanner: show,
+          shouldShowList: show,
         };
       },
     });
     if (Platform.OS === 'android' && mod.setNotificationChannelAsync) {
       const importance = mod.AndroidImportance?.HIGH ?? 4;
       const low = mod.AndroidImportance?.LOW ?? 2;
-      // Priority Anchor cues: heads-up when muted; bypass DND when policy access allows.
-      // Leave focus-pulse / water quieter so DND is not abused for ambient noise.
-      // New channel ids so bypassDnd lands on upgrades (Android freezes channel props).
-      const stale = ['cooking', 'os-tasks', 'os-meals', 'os-review', 'os-focus-start'];
+      const def = mod.AndroidImportance?.DEFAULT ?? 3;
+      // Priority Anchor cues: heads-up + bypass DND when policy access allows.
+      // Assistant + focus-pulse / water stay quieter and respect lock-face mute.
+      // New channel ids so importance/bypassDnd land on upgrades (Android freezes props).
+      const stale = [
+        'cooking',
+        'os-tasks',
+        'os-meals',
+        'os-review',
+        'os-focus-start',
+        // Former HIGH+bypassDnd assistant channel fought mute and felt like a hostile popup.
+        'os-assistant-priority',
+      ];
       if (mod.deleteNotificationChannelAsync) {
         await Promise.all(stale.map((id) => mod.deleteNotificationChannelAsync?.(id).catch(() => undefined)));
       }
@@ -101,12 +115,18 @@ export async function ensureOsNotifications(): Promise<NotifMod | null> {
         }),
         mod.setNotificationChannelAsync('os-water', {
           name: 'Water',
-          importance: mod.AndroidImportance?.DEFAULT ?? 3,
+          importance: def,
           sound: 'default',
         }),
-        mod.setNotificationChannelAsync('os-assistant-priority', {
+        // Calm tray presentation; respects DND / lock mute glyph. No heads-up spam.
+        mod.setNotificationChannelAsync('os-assistant', {
           name: 'Assistant',
-          ...priority,
+          importance: def,
+          bypassDnd: false,
+          lockscreenVisibility: 1,
+          sound: 'default',
+          enableVibrate: false,
+          showBadge: true,
         }),
       ]);
     }
