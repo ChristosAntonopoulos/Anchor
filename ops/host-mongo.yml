@@ -1,0 +1,17 @@
+# Temporary host job for ANC-41 mongo restore. Not part of the product deploy.
+trigger: none
+pr: none
+
+pool:
+  name: Default
+  demands:
+    - Agent.Name -equals contabo-agent-2
+
+steps:
+  - checkout: self
+    clean: true
+  - bash: bash ops/host-mongo.sh apply
+    displayName: Apply Anchor/pos mongo user
+    env:
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+      ADO_PAT: $(ADO_PAT)
