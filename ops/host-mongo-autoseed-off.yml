@@ -1,4 +1,4 @@
-# Apply durable AutoSeed=false config to live cluster (pos only).
+# Apply durable AutoSeed=false via ConfigMap + deployment env (keep current image).
 trigger: none
 pr: none
 
@@ -15,18 +15,20 @@ steps:
       set +x
       export KUBECONFIG=/etc/kubernetes/admin.conf
       echo "athens=$(TZ=Europe/Athens date '+%Y-%m-%d %H:%M:%S %Z')"
+      img=$(kubectl get deploy pos-api -n pos -o jsonpath='{.spec.template.spec.containers[0].image}')
+      echo "current_image=$img"
       kubectl apply -f backend/k8s/configmap.yaml
-      # Ensure deployment references the config key (apply yaml may restart — AutoSeed is false)
-      kubectl apply -f backend/k8s/api-deployment.yaml
-      # Keep explicit env false as belt-and-suspenders (in case apply race)
       kubectl set env deployment/pos-api -n pos Database__AutoSeedOnStartup=false
       kubectl rollout status deployment/pos-api -n pos --timeout=180s
-      kubectl get deploy pos-api -n pos -o jsonpath='{range .spec.template.spec.containers[0].env[*]}{.name}{"\n"}{end}' | grep AutoSeed || true
+      img2=$(kubectl get deploy pos-api -n pos -o jsonpath='{.spec.template.spec.containers[0].image}')
+      echo "image_after=$img2"
+      test "$img" = "$img2"
       echo "configmap_value=$(kubectl get cm pos-api-config -n pos -o jsonpath='{.data.Database__AutoSeedOnStartup}')"
-      pod=$(kubectl get pods -n pos -l app=pos-api -o jsonpath='{.items[0].metadata.name}')
-      echo "pod=$pod"
-      kubectl logs -n pos "$pod" --tail=40 | grep -E 'Auto-seed|auto-seed|Seeding|Deleting|Cleaning' || echo "no_seed_lines"
+      kubectl get deploy pos-api -n pos -o jsonpath='{range .spec.template.spec.containers[0].env[*]}{.name}={.value}{"\n"}{end}' | grep AutoSeed || true
+      pod=$(kubectl get pods -n pos -l app=pos-api --field-selector=status.phase=Running -o jsonpath='{.items[0].metadata.name}')
+      echo "pod=$pod ready=$(kubectl get pod "$pod" -n pos -o jsonpath='{.status.containerStatuses[0].ready}')"
+      kubectl logs -n pos "$pod" --tail=60 | grep -E 'Auto-seed|auto-seed|Seeding|Deleting|Cleaning|old/invalid' || echo "no_seed_lines"
       curl -sS -m 15 -w '\nHTTP:%{http_code}\n' http://127.0.0.1:31247/api/health
       curl -sS -m 15 -w '\nHTTP:%{http_code}\n' http://185.193.66.50:31247/api/health
       echo "AUTOSEED_OFF_APPLIED"
-    displayName: Apply AutoSeed=false to pos-api
+    displayName: ConfigMap + env AutoSeed=false only
