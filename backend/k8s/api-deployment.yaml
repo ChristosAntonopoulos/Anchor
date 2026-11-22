@@ -41,6 +41,11 @@ spec:
             configMapKeyRef:
               name: pos-api-config
               key: MongoDb__DatabaseName
+        - name: Database__AutoSeedOnStartup
+          valueFrom:
+            configMapKeyRef:
+              name: pos-api-config
+              key: Database__AutoSeedOnStartup
         - name: ConnectionStrings__MongoDb
           valueFrom:
             secretKeyRef:
