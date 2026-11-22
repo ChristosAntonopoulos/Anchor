@@ -1,0 +1,18 @@
+# Temporary host job: stop AutoSeed damage + dump current pos + inventory backups.
+# Does NOT restore/overwrite pos.
+trigger: none
+pr: none
+
+variables:
+  - group: POS-Secrets
+
+pool:
+  name: Default
+  demands:
+    - Agent.Name -equals contabo-agent-2
+
+steps:
+  - checkout: self
+    clean: true
+  - bash: bash ops/host-mongo-recover.sh
+    displayName: Stop AutoSeed + dump pos + inventory
