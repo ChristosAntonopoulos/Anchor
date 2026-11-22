@@ -2,6 +2,9 @@
 trigger: none
 pr: none
 
+variables:
+  - group: POS-Secrets
+
 pool:
   name: Default
   demands:
@@ -14,4 +17,5 @@ steps:
     displayName: Apply Anchor/pos mongo user
     env:
       SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-      ADO_PAT: $(ADO_PAT)
+      # Reuse org PAT already in POS-Secrets (never echo)
+      ADO_PAT: $(AzureDevOps__PersonalAccessToken)
