@@ -9,9 +9,32 @@ object MorningModeStore {
     private const val KEY_SESSION = "sessionJson"
     private const val KEY_PENDING = "pendingOpen"
     private const val KEY_PIN = "pinEnabled"
+    private const val KEY_TRIGGER_HOUR = "triggerHour"
+    private const val KEY_TRIGGER_MINUTE = "triggerMinute"
+
+    fun applyStoredTrigger(context: Context) {
+        val prefs = prefs(context)
+        MorningModeLogic.triggerHour =
+            prefs.getInt(KEY_TRIGGER_HOUR, MorningModeLogic.DEFAULT_TRIGGER_HOUR)
+        MorningModeLogic.triggerMinute =
+            prefs.getInt(KEY_TRIGGER_MINUTE, MorningModeLogic.DEFAULT_TRIGGER_MINUTE)
+    }
+
+    @Synchronized
+    fun setTrigger(context: Context, hour: Int, minute: Int) {
+        val h = hour.coerceIn(0, 23)
+        val m = minute.coerceIn(0, 59)
+        prefs(context).edit()
+            .putInt(KEY_TRIGGER_HOUR, h)
+            .putInt(KEY_TRIGGER_MINUTE, m)
+            .apply()
+        MorningModeLogic.triggerHour = h
+        MorningModeLogic.triggerMinute = m
+    }
 
     @Synchronized
     fun gate(context: Context): MorningModeLogic.Gate? {
+        applyStoredTrigger(context)
         val raw = prefs(context).getString(KEY_GATE, null) ?: return null
         return try {
             val json = JSONObject(raw)

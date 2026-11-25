@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { AppState } from 'react-native';
 import { router } from 'expo-router';
 import { subscribeNightNative } from '../services/nightModeNative';
+import { isKeyguardLocked } from '../services/deviceLock';
 import { isNightTakeover, useNightModeStore } from '../store/useNightModeStore';
 
 function openNight() {
@@ -18,18 +19,26 @@ export function useNightGate(): boolean {
   const takeover = isNightTakeover(session);
 
   useEffect(() => {
-    void hydrate().then(() => {
-      if (isNightTakeover(useNightModeStore.getState().session)) {
-        openNight();
-      }
+    void hydrate().then((result) => {
+      void (async () => {
+        if (await isKeyguardLocked()) return;
+        if (result.activatedFromUnlock || result.takeover) {
+          openNight();
+        }
+      })();
     });
     const unsub = subscribeNightNative(() => {
-      void hydrate().then(openNight);
+      void hydrate().then((result) => {
+        if (result.activatedFromUnlock || result.takeover) {
+          openNight();
+        }
+      });
     });
     const app = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
-        void hydrate().then(() => {
-          if (isNightTakeover(useNightModeStore.getState().session)) {
+        void hydrate().then(async (result) => {
+          if (await isKeyguardLocked()) return;
+          if (result.activatedFromUnlock) {
             openNight();
           }
         });
@@ -40,10 +49,6 @@ export function useNightGate(): boolean {
       app.remove();
     };
   }, [hydrate]);
-
-  useEffect(() => {
-    if (takeover) openNight();
-  }, [takeover]);
 
   return takeover;
 }

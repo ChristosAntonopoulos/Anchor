@@ -15,6 +15,9 @@ data:
   AzureDevOps__CacheSeconds: "60"
   # X-Anchor-Key enforcement off for now (Chris accepts risk). Flip to "true" to re-enable.
   AnchorApi__RequireKey: "false"
+  # ANC-41/ANC-42: never auto-seed/delete in Production. IsSeededAsync only checks "today"
+  # and HasOldDataAsync + SeedAsync(deleteExisting:true) wiped user collections.
+  Database__AutoSeedOnStartup: "false"
   # MongoDB connection string without credentials (credentials in secrets)
   # Format: mongodb://mongodb-service:27017/pos
   # Or for external MongoDB: mongodb://host:port/database

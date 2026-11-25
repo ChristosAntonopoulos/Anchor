@@ -18,8 +18,17 @@ import java.util.TimeZone
  * the app again. Accessibility is not used.
  */
 object NightModeLogic {
-    const val TRIGGER_HOUR = 21
-    const val TRIGGER_MINUTE = 30
+    const val DEFAULT_TRIGGER_HOUR = 21
+    const val DEFAULT_TRIGGER_MINUTE = 30
+    /** Offline catalog fallback; prefer [triggerHour]/[triggerMinute] from prefs/API. */
+    const val TRIGGER_HOUR = DEFAULT_TRIGGER_HOUR
+    const val TRIGGER_MINUTE = DEFAULT_TRIGGER_MINUTE
+
+    @Volatile
+    var triggerHour: Int = DEFAULT_TRIGGER_HOUR
+
+    @Volatile
+    var triggerMinute: Int = DEFAULT_TRIGGER_MINUTE
 
     const val NOT_DUE = "NOT_DUE"
     const val WAITING = "WAITING_FOR_FIRST_UNLOCK"
@@ -55,7 +64,13 @@ object NightModeLogic {
         val calendar = Calendar.getInstance(timeZone)
         calendar.timeInMillis = nowMs
         val minutes = calendar.get(Calendar.HOUR_OF_DAY) * 60 + calendar.get(Calendar.MINUTE)
-        return minutes >= TRIGGER_HOUR * 60 + TRIGGER_MINUTE
+        val hour = triggerHour.coerceIn(0, 23)
+        val minute = triggerMinute.coerceIn(0, 59)
+        return minutes >= hour * 60 + minute
+    }
+
+    fun formatTriggerLabel(): String {
+        return String.format(Locale.US, "%02d:%02d", triggerHour.coerceIn(0, 23), triggerMinute.coerceIn(0, 59))
     }
 
     fun waiting(nowMs: Long, timeZone: TimeZone = TimeZone.getDefault()): Gate {

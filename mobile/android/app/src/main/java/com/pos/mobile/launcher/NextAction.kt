@@ -53,7 +53,7 @@ object NextActionResolver {
         ) {
             return NextActionContent(
                 title = "Morning Mode",
-                detail = "Due after 07:00. First unlock starts it.",
+                detail = "Due after ${MorningModeLogic.formatTriggerLabel()}. First unlock starts it.",
                 button = "Morning",
                 route = ROUTE_MORNING,
             )

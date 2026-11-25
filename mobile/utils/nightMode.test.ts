@@ -40,7 +40,10 @@ test('first unlock at 21:30 activates once', () => {
   const session = reduceNight(emptyWaiting(now), { type: 'unlock', fromUserPresent: true }, now);
   assert.equal(session.status, 'ACTIVE');
   assert.equal(session.currentStep, 'screens');
-  assert.equal(currentCommand(session), COPY.screens);
+  assert.equal(
+    currentCommand(session),
+    'Dim lights. Close feeds and chats. Lower brightness. Phone face-down.'
+  );
   const again = reduceNight(session, { type: 'unlock', fromUserPresent: true }, night(21, 50));
   assert.equal(again.status, 'ACTIVE');
   assert.equal(again.id, session.id);

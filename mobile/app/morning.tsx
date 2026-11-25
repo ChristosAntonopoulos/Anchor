@@ -9,11 +9,12 @@ import { useMorningModeStore } from '../store/useMorningModeStore';
 import { useTaskStore } from '../store/useTaskStore';
 import {
   COPY,
-  MORNING_TOTAL_SECONDS,
   STEP_SECONDS,
   currentCommand,
   currentSubtext,
   formatClock,
+  formatMorningTriggerLabel,
+  getMorningTotalSeconds,
   primaryLabel,
   stepRemainingSeconds,
 } from '../utils/morningMode';
@@ -25,6 +26,7 @@ import {
   startMorningPin,
   stopMorningSpeech,
 } from '../services/morningModeNative';
+import { getRuntimeStepSeconds } from '../utils/routineRuntime';
 
 export default function MorningScreen() {
   const router = useRouter();
@@ -60,7 +62,7 @@ export default function MorningScreen() {
     if (session.status !== 'ACTIVE') return;
     const id = setInterval(() => {
       dispatch({ type: 'tick' });
-    }, 250);
+    }, 1000);
     return () => clearInterval(id);
   }, [dispatch, session.status]);
 
@@ -113,7 +115,7 @@ export default function MorningScreen() {
         <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
           <Text style={styles.kicker}>{COPY.title}</Text>
           <View style={styles.center}>
-            <Text style={styles.command}>After 07:00, on the first unlock.</Text>
+            <Text style={styles.command}>After {formatMorningTriggerLabel()}, on the first unlock.</Text>
             <Text style={styles.sub}>Same morning routine as your schedule block. One unlock. Once a day.</Text>
           </View>
           <Pressable onPress={() => router.replace('/(tabs)')} style={styles.primary}>
@@ -131,7 +133,7 @@ export default function MorningScreen() {
         <View style={styles.top}>
           <Text style={styles.kicker}>{COPY.title}</Text>
           <Text style={styles.total}>
-            {formatClock(session.sessionElapsedSeconds)} / {formatClock(MORNING_TOTAL_SECONDS)}
+            {formatClock(session.sessionElapsedSeconds)} / {formatClock(getMorningTotalSeconds())}
           </Text>
         </View>
 
@@ -216,13 +218,15 @@ export default function MorningScreen() {
         <Pressable
           onLongPress={async () => {
             const next = !session.pinEnabled;
-            dispatch({ type: 'help' });
+            dispatch({ type: 'setPin', enabled: next });
             await setMorningPinEnabled(next);
             if (next) await startMorningPin();
           }}
         >
           <Text style={styles.pinHint}>
-            {session.currentStep === 'task' ? `${formatClock(STEP_SECONDS.task)}` : ' '}
+            {session.currentStep === 'task'
+              ? `${formatClock(getRuntimeStepSeconds('morning').task ?? STEP_SECONDS.task)}`
+              : ' '}
           </Text>
         </Pressable>
       </SafeAreaView>

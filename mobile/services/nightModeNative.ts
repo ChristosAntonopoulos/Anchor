@@ -16,6 +16,7 @@ type NightNative = {
   stopSpeaking: () => void;
   playChime: () => void;
   setPinEnabled: (enabled: boolean) => Promise<boolean>;
+  setTrigger: (hour: number, minute: number) => Promise<boolean>;
   enterImmersive: () => Promise<boolean>;
   exitImmersive: () => Promise<boolean>;
   startPin: () => Promise<boolean>;
@@ -109,6 +110,14 @@ export async function setNightPinEnabled(enabled: boolean): Promise<void> {
     await native?.setPinEnabled(enabled);
   } catch {
     // optional
+  }
+}
+
+export async function setNightTrigger(hour: number, minute: number): Promise<void> {
+  try {
+    await native?.setTrigger?.(hour, minute);
+  } catch {
+    // optional — offline catalog defaults remain
   }
 }
 

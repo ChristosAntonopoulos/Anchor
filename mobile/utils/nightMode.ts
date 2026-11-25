@@ -3,7 +3,13 @@ import {
   stepOrder,
   stepSecondsMap,
 } from './routineCatalog';
-import { getRuntimeTrigger } from './routineRuntime';
+import {
+  getRuntimeRoutine,
+  getRuntimeShorterStepOrder,
+  getRuntimeStepOrder,
+  getRuntimeStepSeconds,
+  getRuntimeTrigger,
+} from './routineRuntime';
 
 export const NIGHT_TOTAL_SECONDS = NIGHT_ROUTINE.totalSeconds;
 /** Catalog fallback; prefer getNightTrigger() after hydrate. */
@@ -12,6 +18,20 @@ export const NIGHT_TRIGGER_MINUTE = NIGHT_ROUTINE.triggerMinute;
 
 export function getNightTrigger(): { hour: number; minute: number } {
   return getRuntimeTrigger('night');
+}
+
+export function getNightTotalSeconds(): number {
+  return getRuntimeRoutine('night').totalSeconds || NIGHT_TOTAL_SECONDS;
+}
+
+export function formatNightTriggerLabel(): string {
+  const t = getNightTrigger();
+  return `${String(t.hour).padStart(2, '0')}:${String(t.minute).padStart(2, '0')}`;
+}
+
+function runtimeStepSeconds(): Record<string, number> {
+  const live = getRuntimeStepSeconds('night');
+  return Object.keys(live).length > 0 ? live : STEP_SECONDS;
 }
 
 export type NightStatus =
@@ -43,7 +63,8 @@ export type NightEvent =
   | { type: 'civilRollover' }
   | { type: 'setTomorrowPlan'; plan: NightTomorrowPlan }
   | { type: 'quietAlternative' }
-  | { type: 'useShorter' };
+  | { type: 'useShorter' }
+  | { type: 'setPin'; enabled: boolean };
 
 export interface NightSubstep {
   id: string;
@@ -185,6 +206,11 @@ export function emptyWaiting(now: Date): NightSession {
   return baseSession(now, localDate, isAtOrAfterTrigger(now) ? 'WAITING_FOR_FIRST_UNLOCK' : 'NOT_DUE');
 }
 
+function firstStepId(): NightStepId {
+  const order = getRuntimeStepOrder('night');
+  return (order[0] as NightStepId) || 'screens';
+}
+
 function baseSession(now: Date, localDate: string, status: NightStatus): NightSession {
   return {
     id: sessionIdFor(localDate),
@@ -193,7 +219,7 @@ function baseSession(now: Date, localDate: string, status: NightStatus): NightSe
     status,
     firstEligibleUnlockAt: null,
     activationAt: null,
-    currentStep: 'screens',
+    currentStep: firstStepId(),
     currentSubstep: 0,
     stepElapsedSeconds: 0,
     sessionElapsedSeconds: 0,
@@ -248,7 +274,17 @@ function stamp(session: NightSession, now: Date, patch: Partial<NightSession>): 
 }
 
 function orderOf(session: NightSession): NightStepId[] {
+  const live = session.shorter
+    ? (getRuntimeShorterStepOrder('night') as NightStepId[])
+    : (getRuntimeStepOrder('night') as NightStepId[]);
+  if (live.length > 0) return live;
   return session.shorter ? SHORTER_STEP_ORDER : STEP_ORDER;
+}
+
+function secondsFor(step: string): number {
+  const live = runtimeStepSeconds();
+  if (typeof live[step] === 'number') return live[step];
+  return STEP_SECONDS[step as NightStepId] ?? 60;
 }
 
 function elapsedNow(session: NightSession, now: Date): { step: number; sessionElapsed: number } {
@@ -272,8 +308,8 @@ function substepsOf(session: NightSession, step: NightStepId): NightSubstep[] {
 
 function plannedSeconds(session: NightSession, step: NightStepId, substep: number): number {
   const subs = substepsOf(session, step);
-  if (subs.length > 0) return subs[Math.min(substep, subs.length - 1)]?.seconds ?? STEP_SECONDS[step];
-  return STEP_SECONDS[step];
+  if (subs.length > 0) return subs[Math.min(substep, subs.length - 1)]?.seconds ?? secondsFor(step);
+  return secondsFor(step);
 }
 
 function anchor(session: NightSession, now: Date, stepElapsed: number, sessionElapsed: number): Partial<NightSession> {
@@ -292,7 +328,7 @@ function activate(session: NightSession, now: Date): NightSession {
     status: 'ACTIVE',
     firstEligibleUnlockAt: session.firstEligibleUnlockAt ?? now.toISOString(),
     activationAt: session.activationAt ?? now.toISOString(),
-    currentStep: session.activationAt ? session.currentStep : 'screens',
+    currentStep: session.activationAt ? session.currentStep : firstStepId(),
     ...anchor(session, now, session.activationAt ? session.stepElapsedSeconds : 0, session.activationAt ? session.sessionElapsedSeconds : 0),
     helpText: null,
     confirmEnd: false,
@@ -413,9 +449,9 @@ export function reduceNight(
       stepElapsedSeconds: times.step,
       sessionElapsedSeconds: times.sessionElapsed,
     };
-    if (session.currentStep === 'breathe' && times.step >= STEP_SECONDS.breathe && !session.chimePlayed) {
+    if (session.currentStep === 'breathe' && times.step >= secondsFor('breathe') && !session.chimePlayed) {
       patch.chimePlayed = true;
-      patch.breatheActualSeconds = STEP_SECONDS.breathe;
+      patch.breatheActualSeconds = secondsFor('breathe');
     }
     if (times.step >= planned && session.currentStep !== 'breathe' && session.currentStep !== 'close') {
       return completeCurrent(stamp(session, now, patch), now);
@@ -459,14 +495,19 @@ export function reduceNight(
     return stamp(session, now, { selectedTomorrowPlan: event.plan, planMicroIndex: 0 });
   }
 
+  if (event.type === 'setPin') {
+    return stamp(session, now, { pinEnabled: event.enabled });
+  }
+
   if (event.type === 'useShorter') {
     if (session.shorter) return session;
     const times = elapsedNow(session, now);
+    const shortOrder = orderOf({ ...session, shorter: true });
     return stamp(session, now, {
       shorter: true,
-      currentStep: 'screens',
+      currentStep: shortOrder[0] || 'screens',
       currentSubstep: 0,
-      helpText: 'Bad-day path: screens, breath, tomorrow step.',
+      helpText: 'Bad-day path: shorter evening routine.',
       ...anchor(session, now, 0, times.sessionElapsed),
     });
   }
@@ -551,7 +592,7 @@ export function reduceNight(
     }
     if (session.currentStep === 'breathe') {
       const times = elapsedNow(session, now);
-      if (times.step < STEP_SECONDS.breathe && !session.chimePlayed) {
+      if (times.step < secondsFor('breathe') && !session.chimePlayed) {
         return session;
       }
       return nextAfter(session, now);
@@ -563,9 +604,6 @@ export function reduceNight(
 }
 
 export function currentCommand(session: NightSession): string {
-  if (session.currentStep === 'screens' && session.currentSubstep === 0) return COPY.screens;
-  if (session.currentStep === 'read') return 'Read a few calm pages. No feeds.';
-  if (session.currentStep === 'brush') return 'Wash up / brush teeth gently.';
   if (session.currentStep === 'breathe') {
     return session.helpText === COPY.breatheStopped ? COPY.breatheStopped : COPY.breatheGuide;
   }
@@ -574,11 +612,23 @@ export function currentCommand(session: NightSession): string {
     const actions = [plan.firstPhysicalAction, ...plan.nextMicroActions];
     return actions[Math.min(session.planMicroIndex, actions.length - 1)] ?? COPY.fallbackChoose;
   }
+  // Opening screens cue uses the routine definition (or COPY fallback) before substeps.
+  if (session.currentStep === 'screens' && session.currentSubstep === 0) {
+    const def = getRuntimeRoutine('night');
+    const steps = session.shorter ? def.shorterSteps : def.steps;
+    return steps.find((s) => s.id === 'screens')?.command || COPY.screens;
+  }
   const subs = substepsOf(session, session.currentStep);
   const item = subs[session.currentSubstep];
-  if (!item) return '';
-  if (session.currentStep === 'screens' && session.seatedScreens) return item.seated ?? item.command;
-  return item.command;
+  if (item) {
+    if (session.currentStep === 'screens' && session.seatedScreens) return item.seated ?? item.command;
+    return item.command;
+  }
+  const def = getRuntimeRoutine('night');
+  const steps = session.shorter ? def.shorterSteps : def.steps;
+  const remote = steps.find((s) => s.id === session.currentStep);
+  if (remote?.command) return remote.command;
+  return remote?.title ?? '';
 }
 
 export function currentSubtext(session: NightSession): string | null {
@@ -631,5 +681,9 @@ export function isNightTakeover(session: NightSession | null): boolean {
 }
 
 export function timeBudgetOk(): boolean {
-  return STEP_ORDER.reduce((sum, id) => sum + STEP_SECONDS[id], 0) === NIGHT_TOTAL_SECONDS;
+  const seconds = runtimeStepSeconds();
+  const order = getRuntimeStepOrder('night');
+  const ids = order.length > 0 ? order : STEP_ORDER;
+  const total = ids.reduce((sum, id) => sum + (seconds[id] ?? 0), 0);
+  return total === getNightTotalSeconds();
 }

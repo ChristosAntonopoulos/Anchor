@@ -100,6 +100,17 @@ class PhoneUnlockModule(reactContext: ReactApplicationContext) :
         android.util.Log.d(TAG, "Cleared pending unlock time")
     }
 
+    /** Screen lock (keyguard) — not focus lock-in / immersive pin. */
+    @ReactMethod
+    fun isKeyguardLocked(promise: Promise) {
+        try {
+            val keyguard = reactApplicationContext.getSystemService(android.app.KeyguardManager::class.java)
+            promise.resolve(keyguard?.isKeyguardLocked == true)
+        } catch (error: Exception) {
+            promise.resolve(false)
+        }
+    }
+
     @ReactMethod
     fun setApiUrl(url: String) {
         PhoneUnlockApi.setApiUrl(reactApplicationContext, url)

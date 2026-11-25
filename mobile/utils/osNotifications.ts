@@ -341,13 +341,27 @@ export async function announceFocusStart(title: string, body?: string): Promise<
   }
 }
 
+export async function clearFocusPresence(): Promise<void> {
+  const mod = await ensureOsNotifications();
+  if (!mod) return;
+  lastFocusFingerprint = '';
+  await cancelPrefix(mod, FOCUS_PREFIX);
+}
+
 export async function syncFocusPresence(input: {
   blocks: ScheduleBlock[];
   session: WorkSession | null;
   nowMs?: number;
+  /** When true (screen locked / background), cancel focus cues — not lock-in. */
+  paused?: boolean;
 }): Promise<void> {
   const mod = await ensureOsNotifications();
   if (!mod) return;
+  if (input.paused) {
+    lastFocusFingerprint = '';
+    await cancelPrefix(mod, FOCUS_PREFIX);
+    return;
+  }
   const nowMs = input.nowMs ?? Date.now();
   const cues = buildFocusCues(focusWindows(input.blocks, input.session, nowMs), nowMs);
   const fingerprint = focusPlanFingerprint(cues);

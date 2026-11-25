@@ -34,12 +34,12 @@ export function NotificationAccessPrompt({ onEnabled }: NotificationAccessPrompt
       appState.current = nextAppState;
     });
 
-    // Check status every 3 seconds when not enabled (reduced frequency)
+    // Rare safety check while prompt is up; AppState foreground is the main path.
     const interval = setInterval(() => {
-      if (!isEnabled && !checking) {
+      if (!isEnabled && !checking && AppState.currentState === 'active') {
         checkStatus();
       }
-    }, 3000);
+    }, 30_000);
 
     return () => {
       subscription.remove();

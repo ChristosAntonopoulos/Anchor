@@ -164,6 +164,8 @@ export interface APIClient {
   }>;
   getNightTomorrowPlan(): Promise<import('../utils/nightMode').NightTomorrowPlan>;
   helpNight(request: { step: string; text: string }): Promise<string | null>;
+  listRoutines(): Promise<Array<import('../utils/routineCatalog').UnifiedRoutineDef & { catalogVersion?: string }>>;
+  getRoutine(key: string): Promise<import('../utils/routineCatalog').UnifiedRoutineDef & { catalogVersion?: string }>;
   getTodayFocus(): Promise<Task[]>;
   getInbox(limit?: number): Promise<TaskInboxResponse>;
   promoteTask(id: string): Promise<Task>;
@@ -1329,6 +1331,20 @@ class HTTPAPIClient implements APIClient {
   async helpNight(request: { step: string; text: string }): Promise<string | null> {
     const response = await this.axiosInstance.post<ApiResponse<{ text?: string }>>('/night/help', request);
     return unwrapResponse(response.data)?.text ?? null;
+  }
+
+  async listRoutines() {
+    const response = await this.axiosInstance.get<
+      ApiResponse<Array<import('../utils/routineCatalog').UnifiedRoutineDef & { catalogVersion?: string }>>
+    >('/assistant/routines');
+    return unwrapResponse(response.data);
+  }
+
+  async getRoutine(key: string) {
+    const response = await this.axiosInstance.get<
+      ApiResponse<import('../utils/routineCatalog').UnifiedRoutineDef & { catalogVersion?: string }>
+    >(`/assistant/routines/${encodeURIComponent(key)}`);
+    return unwrapResponse(response.data);
   }
 
   private handleError(error: unknown, defaultMessage: string): Error {

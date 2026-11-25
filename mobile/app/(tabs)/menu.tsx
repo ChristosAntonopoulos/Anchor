@@ -17,6 +17,8 @@ import { formatMoney } from '../../utils/walletSpend';
 import { WATER_TARGET_GLASSES, findWaterGlasses } from '../../utils/waterReminders';
 import { isMorningTakeover, useMorningModeStore } from '../../store/useMorningModeStore';
 import { isNightTakeover, useNightModeStore } from '../../store/useNightModeStore';
+import { formatMorningTriggerLabel } from '../../utils/morningMode';
+import { formatNightTriggerLabel } from '../../utils/nightMode';
 
 function daysUntil(dueDate: string): number {
   const due = new Date(`${dueDate}T12:00:00`);
@@ -188,14 +190,22 @@ export default function SystemsScreen() {
           <SystemTile
             icon="sun"
             title="Morning"
-            status={isMorningTakeover(morning) ? 'In progress' : 'First unlock after 07:00'}
+            status={
+              isMorningTakeover(morning)
+                ? 'In progress'
+                : `First unlock after ${formatMorningTriggerLabel()}`
+            }
             attention={isMorningTakeover(morning)}
             onPress={() => router.replace('/morning' as never)}
           />
           <SystemTile
             icon="sleep"
             title="Night"
-            status={isNightTakeover(night) ? 'In progress' : 'First unlock after night gate'}
+            status={
+              isNightTakeover(night)
+                ? 'In progress'
+                : `First unlock after ${formatNightTriggerLabel()}`
+            }
             attention={isNightTakeover(night)}
             onPress={() => router.replace('/night' as never)}
           />

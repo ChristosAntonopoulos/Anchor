@@ -16,15 +16,19 @@ import {
   loadNativeSessionJson,
   playNightChime,
   saveNativeSessionJson,
+  setNightTrigger,
   stopNightSpeech,
 } from '../services/nightModeNative';
-import { applyRemoteRoutine } from '../utils/routineRuntime';
+import { applyRemoteRoutine, getRuntimeTrigger } from '../utils/routineRuntime';
+import { bootstrapRoutines } from '../utils/routineBootstrap';
 import { useTaskStore } from './useTaskStore';
 
 interface NightModeState {
   session: NightSession;
   hydrated: boolean;
-  hydrate: () => Promise<void>;
+  /** True when the last hydrate consumed a real USER_PRESENT pending unlock. */
+  lastActivatedFromUnlock: boolean;
+  hydrate: () => Promise<{ activatedFromUnlock: boolean; takeover: boolean }>;
   dispatch: (event: NightEvent, now?: Date) => NightSession;
   prepareTomorrowPlan: () => Promise<void>;
   askHelp: (text?: string) => Promise<void>;
@@ -51,41 +55,64 @@ async function persist(session: NightSession, syncBackend: boolean): Promise<voi
   void apiClient.syncNightSession(session).catch(() => undefined);
 }
 
+function applyRoutineAndTrigger(
+  remote: Partial<import('../utils/routineCatalog').UnifiedRoutineDef> & {
+    key?: string;
+    catalogVersion?: string;
+  } | null | undefined
+) {
+  if (!remote) return;
+  applyRemoteRoutine({ ...remote, key: remote.key ?? 'night' });
+  const trigger = getRuntimeTrigger('night');
+  void setNightTrigger(trigger.hour, trigger.minute);
+}
+
 export const useNightModeStore = create<NightModeState>((set, get) => ({
   session: emptyWaiting(new Date()),
   hydrated: false,
+  lastActivatedFromUnlock: false,
 
   hydrate: async () => {
     const now = new Date();
+    void bootstrapRoutines();
     let stored = parseSession(await loadNativeSessionJson(), now);
-    if (!stored || stored.status === 'NOT_DUE' || stored.status === 'WAITING_FOR_FIRST_UNLOCK') {
-      try {
-        const remote = await apiClient.getNightSession(
-          stored?.localDate ?? undefined,
-          stored?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
-        );
-        if (remote?.routine) {
-          applyRemoteRoutine({ ...remote.routine, key: remote.routine.key ?? 'night' });
-        }
-        if (remote?.session?.localDate && remote.session.status) {
-          stored = reduceNight(remote.session as NightSession, { type: 'tick' }, now);
-        }
-      } catch {
-        // offline: keep local / empty waiting
+
+    try {
+      const remote = await apiClient.getNightSession(
+        stored?.localDate ?? undefined,
+        stored?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
+      );
+      if (remote?.routine) {
+        applyRoutineAndTrigger(remote.routine);
       }
+      const waiting =
+        !stored ||
+        stored.status === 'NOT_DUE' ||
+        stored.status === 'WAITING_FOR_FIRST_UNLOCK';
+      if (waiting && remote?.session?.localDate && remote.session.status) {
+        stored = reduceNight(remote.session as NightSession, { type: 'tick' }, now);
+      }
+    } catch {
+      // offline: keep local / empty waiting
     }
+
     const gate = await getNightGate();
     const pending = await consumeNightPending();
     let session = reduceNight(stored, { type: 'civilRollover' }, now);
-    const nativeActive = gate.status === 'ACTIVE' || gate.status === 'PAUSED' || pending;
-    if (nativeActive && session.status !== 'COMPLETED' && session.status !== 'ENDED_EARLY') {
+    let activatedFromUnlock = false;
+
+    if (pending && session.status !== 'COMPLETED' && session.status !== 'ENDED_EARLY') {
       session = reduceNight(session, { type: 'unlock', fromUserPresent: true }, now);
+      activatedFromUnlock = session.status === 'ACTIVE' || session.status === 'PAUSED';
       if (gate.status === 'PAUSED' && session.status === 'ACTIVE') {
         session = reduceNight(session, { type: 'pause' }, now);
       }
     }
-    set({ session, hydrated: true });
+
+    const takeover = isNightTakeover(session);
+    set({ session, hydrated: true, lastActivatedFromUnlock: activatedFromUnlock });
     await persist(session, true);
+    return { activatedFromUnlock, takeover };
   },
 
   dispatch: (event, now = new Date()) => {
