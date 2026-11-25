@@ -41,11 +41,11 @@ spec:
             configMapKeyRef:
               name: pos-api-config
               key: MongoDb__DatabaseName
+        # Plain value (not valueFrom): live cluster already had kubectl-set
+        # Database__AutoSeedOnStartup=false; merging value+valueFrom fails apply.
+        # ConfigMap keeps the same key for ops visibility (ANC-41/ANC-42).
         - name: Database__AutoSeedOnStartup
-          valueFrom:
-            configMapKeyRef:
-              name: pos-api-config
-              key: Database__AutoSeedOnStartup
+          value: "false"
         - name: ConnectionStrings__MongoDb
           valueFrom:
             secretKeyRef:
