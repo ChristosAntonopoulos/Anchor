@@ -284,8 +284,49 @@ function orderOf(session: MorningSession): MorningStepId[] {
 
 function secondsFor(step: string): number {
   const live = runtimeStepSeconds();
-  if (typeof live[step] === 'number') return live[step];
+  if (typeof live[step] === 'number' && Number.isFinite(live[step])) return live[step];
   return STEP_SECONDS[step as MorningStepId] ?? 60;
+}
+
+function sanitizeSubsteps(items: MorningSubstep[] | null | undefined, fallback: MorningSubstep[]): MorningSubstep[] {
+  if (!Array.isArray(items) || items.length === 0) {
+    return fallback.map((item) => ({ ...item }));
+  }
+  return items.map((item, index) => ({
+    id: typeof item?.id === 'string' && item.id.trim() ? item.id : `sub-${index + 1}`,
+    seconds: typeof item?.seconds === 'number' && item.seconds > 0 ? item.seconds : fallback[index]?.seconds ?? 60,
+    command: typeof item?.command === 'string' ? item.command : fallback[index]?.command ?? '',
+    seated: typeof item?.seated === 'string' ? item.seated : fallback[index]?.seated,
+  }));
+}
+
+/** Fill missing optional fields from API/native payloads so timers never see undefined. */
+export function normalizeMorningSession(
+  input: Partial<MorningSession> & Pick<MorningSession, 'localDate' | 'status'>,
+  now = new Date()
+): MorningSession {
+  const base = baseSession(now, input.localDate, input.status);
+  const merged: MorningSession = {
+    ...base,
+    ...input,
+    brush: sanitizeSubsteps(input.brush, DEFAULT_BRUSH),
+    completedSteps: Array.isArray(input.completedSteps) ? input.completedSteps : [],
+    skippedSteps: Array.isArray(input.skippedSteps) ? input.skippedSteps : [],
+    stepElapsedSeconds: typeof input.stepElapsedSeconds === 'number' ? input.stepElapsedSeconds : 0,
+    sessionElapsedSeconds: typeof input.sessionElapsedSeconds === 'number' ? input.sessionElapsedSeconds : 0,
+    currentSubstep: typeof input.currentSubstep === 'number' && input.currentSubstep >= 0 ? input.currentSubstep : 0,
+    taskMicroIndex: typeof input.taskMicroIndex === 'number' && input.taskMicroIndex >= 0 ? input.taskMicroIndex : 0,
+  };
+  const order = orderOf(merged);
+  if (!order.includes(merged.currentStep)) {
+    merged.currentStep = (order[0] as MorningStepId) || 'water';
+    merged.currentSubstep = 0;
+  }
+  const subs = substepsOf(merged, merged.currentStep);
+  if (subs.length > 0 && merged.currentSubstep >= subs.length) {
+    merged.currentSubstep = Math.max(0, subs.length - 1);
+  }
+  return merged;
 }
 
 function elapsedNow(session: MorningSession, now: Date): { step: number; sessionElapsed: number } {
@@ -301,15 +342,18 @@ function elapsedNow(session: MorningSession, now: Date): { step: number; session
 }
 
 function substepsOf(session: MorningSession, step: MorningStepId): MorningSubstep[] {
-  if (step === 'move') return MOVE_SUBSTEPS;
-  if (step === 'brush') return session.brush;
+  // Move is a single timed block from routine data (e.g. "go outside");
+  // MOVE_SUBSTEPS remain available for easier/seated help copy only.
+  if (step === 'brush') return sanitizeSubsteps(session.brush, DEFAULT_BRUSH);
   return [];
 }
 
 function plannedSeconds(session: MorningSession, step: MorningStepId, substep: number): number {
   const subs = substepsOf(session, step);
-  if (subs.length > 0) return subs[Math.min(substep, subs.length - 1)]?.seconds ?? secondsFor(step);
-  return secondsFor(step);
+  if (!subs || subs.length === 0) return secondsFor(step);
+  const safeIndex = Math.min(Math.max(0, substep), subs.length - 1);
+  const seconds = subs[safeIndex]?.seconds;
+  return typeof seconds === 'number' && seconds > 0 ? seconds : secondsFor(step);
 }
 
 function anchor(session: MorningSession, now: Date, stepElapsed: number, sessionElapsed: number): Partial<MorningSession> {
@@ -405,10 +449,11 @@ function ensureDay(session: MorningSession | null, now: Date): MorningSession {
   if (!session || session.localDate !== today) {
     return emptyWaiting(now);
   }
-  if (session.status === 'NOT_DUE' && isAtOrAfterTrigger(now)) {
-    return stamp(session, now, { status: 'WAITING_FOR_FIRST_UNLOCK' });
+  const normalized = normalizeMorningSession(session, now);
+  if (normalized.status === 'NOT_DUE' && isAtOrAfterTrigger(now)) {
+    return stamp(normalized, now, { status: 'WAITING_FOR_FIRST_UNLOCK' });
   }
-  return session;
+  return normalized;
 }
 
 export function reduceMorning(
@@ -496,8 +541,9 @@ export function reduceMorning(
   }
 
   if (event.type === 'setBrush') {
-    const total = event.brush.reduce((sum, item) => sum + item.seconds, 0);
-    const brush = total <= secondsFor('brush') ? event.brush : DEFAULT_BRUSH;
+    const candidate = sanitizeSubsteps(event.brush, DEFAULT_BRUSH);
+    const total = candidate.reduce((sum, item) => sum + item.seconds, 0);
+    const brush = total <= secondsFor('brush') ? candidate : DEFAULT_BRUSH.map((item) => ({ ...item }));
     return stamp(session, now, { brush });
   }
 
@@ -638,8 +684,10 @@ export function currentSubtext(session: MorningSession): string | null {
 }
 
 export function stepRemainingSeconds(session: MorningSession): number {
-  const planned = plannedSeconds(session, session.currentStep, session.currentSubstep);
-  return Math.max(0, planned - session.stepElapsedSeconds);
+  const safe = normalizeMorningSession(session);
+  const planned = plannedSeconds(safe, safe.currentStep, safe.currentSubstep);
+  const elapsed = typeof safe.stepElapsedSeconds === 'number' ? safe.stepElapsedSeconds : 0;
+  return Math.max(0, planned - elapsed);
 }
 
 export function formatClock(totalSeconds: number): string {

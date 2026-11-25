@@ -60,9 +60,65 @@ public static class RoutineDtoMapper
             ["lastSpokenKey"] = null,
             ["catalogVersion"] = RoutineCatalog.CatalogVersion,
             ["updatedAt"] = now.ToString("o"),
+            ["taskMicroIndex"] = 0,
+            ["seatedMovement"] = false,
+            ["breathingEnabled"] = true,
+            ["shorter"] = false,
+            ["settleActualSeconds"] = null,
+            // Morning immersive timers require brush substeps; omit → client crash on brush.
+            ["brush"] = mode == "morning"
+                ? new object[]
+                {
+                    new { id = "teeth", seconds = 120, command = "Brush your teeth." },
+                    new { id = "wash", seconds = 120, command = "Quick wash of face and hands." },
+                }
+                : Array.Empty<object>(),
         };
 
         return JsonSerializer.SerializeToElement(payload);
+    }
+
+    /// <summary>
+    /// Ensure stored morning session JSON has required optional arrays (e.g. brush)
+    /// so clients never see undefined.length on step timers.
+    /// </summary>
+    public static JsonElement NormalizeMorningSessionPayload(JsonElement session)
+    {
+        Dictionary<string, JsonElement> map;
+        try
+        {
+            map = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(session.GetRawText())
+                  ?? new Dictionary<string, JsonElement>();
+        }
+        catch
+        {
+            return session;
+        }
+
+        if (!map.TryGetValue("brush", out var brushEl) ||
+            brushEl.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined ||
+            (brushEl.ValueKind == JsonValueKind.Array && brushEl.GetArrayLength() == 0))
+        {
+            map["brush"] = JsonSerializer.SerializeToElement(new object[]
+            {
+                new { id = "teeth", seconds = 120, command = "Brush your teeth." },
+                new { id = "wash", seconds = 120, command = "Quick wash of face and hands." },
+            });
+        }
+
+        if (!map.ContainsKey("completedSteps") || map["completedSteps"].ValueKind != JsonValueKind.Array)
+            map["completedSteps"] = JsonSerializer.SerializeToElement(Array.Empty<string>());
+        if (!map.ContainsKey("skippedSteps") || map["skippedSteps"].ValueKind != JsonValueKind.Array)
+            map["skippedSteps"] = JsonSerializer.SerializeToElement(Array.Empty<string>());
+        if (!map.ContainsKey("currentSubstep") || map["currentSubstep"].ValueKind != JsonValueKind.Number)
+            map["currentSubstep"] = JsonSerializer.SerializeToElement(0);
+        else
+        {
+            var sub = map["currentSubstep"].GetInt32();
+            if (sub < 0) map["currentSubstep"] = JsonSerializer.SerializeToElement(0);
+        }
+
+        return JsonSerializer.SerializeToElement(map);
     }
 
     private static RoutineStepDto ToStep(RoutineStep step) =>
