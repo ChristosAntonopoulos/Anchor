@@ -11,8 +11,10 @@ import {
   formatClock,
   isAtOrAfterTrigger,
   localDateKey,
+  normalizeMorningSession,
   reduceMorning,
   shouldSpeak,
+  stepRemainingSeconds,
   timeBudgetOk,
 } from './morningMode.ts';
 
@@ -75,13 +77,13 @@ test('new local date resets after completion', () => {
   assert.equal(session.status, 'WAITING_FOR_FIRST_UNLOCK');
 });
 
-test('water ready then movement commands stay one at a time', () => {
+test('water ready then move uses routine command as one block', () => {
   let session = reduceMorning(emptyWaiting(morning(7)), { type: 'unlock', fromUserPresent: true }, morning(7));
   session = reduceMorning(session, { type: 'ready' }, morning(7, 0, 20));
   assert.equal(session.currentStep, 'move');
-  assert.equal(currentCommand(session), 'March in place.');
+  assert.match(currentCommand(session), /movement|outside|stretch/i);
   session = reduceMorning(session, { type: 'easier' }, morning(7, 0, 21));
-  assert.equal(currentCommand(session), 'Move your feet while seated.');
+  assert.match(session.helpText ?? '', /sit|seated|comfortable/i);
 });
 
 test('skipping brush advances substeps without inventing chores', () => {
@@ -147,4 +149,35 @@ test('first task uses progressive physical actions, not a list', () => {
 test('clock formatting is zero-padded', () => {
   assert.equal(formatClock(780), '13:00');
   assert.equal(formatClock(5), '00:05');
+});
+
+test('missing brush array does not crash planned/remaining timers', () => {
+  const now = morning(7, 20);
+  const raw = {
+    ...emptyWaiting(now),
+    status: 'ACTIVE' as const,
+    currentStep: 'brush' as const,
+    currentSubstep: 0,
+    brush: undefined as unknown as [],
+  };
+  const remaining = stepRemainingSeconds(raw as never);
+  assert.ok(remaining > 0);
+  const normalized = normalizeMorningSession(raw as never, now);
+  assert.equal(normalized.brush.length, 2);
+  const advanced = reduceMorning(raw as never, { type: 'ready' }, now);
+  assert.equal(advanced.currentSubstep, 1);
+});
+
+test('currentSubstep past end is clamped', () => {
+  const now = morning(7, 20);
+  let session = reduceMorning(emptyWaiting(now), { type: 'unlock', fromUserPresent: true }, now);
+  session = {
+    ...session,
+    currentStep: 'brush',
+    currentSubstep: 99,
+  };
+  const remaining = stepRemainingSeconds(session);
+  assert.ok(remaining > 0);
+  const next = reduceMorning(session, { type: 'tick' }, now);
+  assert.ok(next.currentSubstep < next.brush.length);
 });

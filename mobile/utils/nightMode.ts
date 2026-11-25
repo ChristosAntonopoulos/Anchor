@@ -307,9 +307,11 @@ function substepsOf(session: NightSession, step: NightStepId): NightSubstep[] {
 }
 
 function plannedSeconds(session: NightSession, step: NightStepId, substep: number): number {
-  const subs = substepsOf(session, step);
-  if (subs.length > 0) return subs[Math.min(substep, subs.length - 1)]?.seconds ?? secondsFor(step);
-  return secondsFor(step);
+  const subs = substepsOf(session, step) ?? [];
+  if (subs.length === 0) return secondsFor(step);
+  const safeIndex = Math.min(Math.max(0, substep), subs.length - 1);
+  const seconds = subs[safeIndex]?.seconds;
+  return typeof seconds === 'number' && seconds > 0 ? seconds : secondsFor(step);
 }
 
 function anchor(session: NightSession, now: Date, stepElapsed: number, sessionElapsed: number): Partial<NightSession> {

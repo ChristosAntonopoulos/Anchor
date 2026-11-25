@@ -265,45 +265,84 @@ public class RoutineDefinitionService
             CreatedAt = DateTime.UtcNow,
         };
 
-    public static UnifiedRoutineDto ToDto(RoutineDefinition def) =>
-        new()
+    public static UnifiedRoutineDto ToDto(RoutineDefinition def)
+    {
+        var catalog = CatalogForLoose(def.Key);
+        var steps = NormalizeStepList(def.Steps, catalog.Steps);
+        var shorter = NormalizeStepList(def.ShorterSteps, catalog.ShorterSteps);
+        return new UnifiedRoutineDto
         {
-            Key = def.Key,
-            Title = def.Title,
-            StartTime = def.StartTime,
-            EndTime = def.EndTime,
-            TriggerHour = def.TriggerHour,
-            TriggerMinute = def.TriggerMinute,
+            Key = catalog.Key,
+            Title = string.IsNullOrWhiteSpace(def.Title) ? catalog.Title : def.Title,
+            StartTime = string.IsNullOrWhiteSpace(def.StartTime) ? catalog.StartTime : def.StartTime,
+            EndTime = string.IsNullOrWhiteSpace(def.EndTime) ? catalog.EndTime : def.EndTime,
+            TriggerHour = def.TriggerHour is >= 0 and <= 23 ? def.TriggerHour : catalog.TriggerHour,
+            TriggerMinute = def.TriggerMinute is >= 0 and <= 59 ? def.TriggerMinute : catalog.TriggerMinute,
             TotalSeconds = def.TotalSeconds > 0
                 ? def.TotalSeconds
-                : def.Steps.Sum(s => Math.Max(0, s.Seconds)),
+                : steps.Sum(s => Math.Max(0, s.Seconds)),
             CatalogVersion = string.IsNullOrWhiteSpace(def.CatalogVersion)
                 ? RoutineCatalog.CatalogVersion
                 : def.CatalogVersion,
-            Steps = def.Steps.OrderBy(s => s.Order).Select(ToStepDto).ToList(),
-            ShorterSteps = def.ShorterSteps.OrderBy(s => s.Order).Select(ToStepDto).ToList(),
-            ActivityTitles = def.Steps.OrderBy(s => s.Order).Select(s => s.Title).ToList(),
-            ShorterActivityTitles = def.ShorterSteps.OrderBy(s => s.Order).Select(s => s.Title).ToList(),
+            Steps = steps,
+            ShorterSteps = shorter,
+            ActivityTitles = steps.Select(s => s.Title).ToList(),
+            ShorterActivityTitles = shorter.Select(s => s.Title).ToList(),
         };
+    }
+
+    private static List<RoutineStepDto> NormalizeStepList(
+        List<RoutineStepData>? stored,
+        IReadOnlyList<RoutineStep> catalogFallback)
+    {
+        var source = (stored ?? [])
+            .Where(s => s != null)
+            .OrderBy(s => s.Order)
+            .Select(ToStepDto)
+            .Where(s => !string.IsNullOrWhiteSpace(s.Id))
+            .ToList();
+        if (source.Count == 0)
+        {
+            return catalogFallback.Select((s, i) => new RoutineStepDto
+            {
+                Id = s.Id,
+                Title = s.Title,
+                Seconds = Math.Max(1, s.Seconds),
+                Command = s.Command ?? string.Empty,
+            }).ToList();
+        }
+
+        for (var i = 0; i < source.Count; i++)
+        {
+            var s = source[i];
+            if (string.IsNullOrWhiteSpace(s.Title)) s.Title = s.Id;
+            if (s.Seconds < 1) s.Seconds = catalogFallback.ElementAtOrDefault(i)?.Seconds ?? 60;
+            s.Command ??= string.Empty;
+        }
+
+        return source;
+    }
 
     private static RoutineStepDto ToStepDto(RoutineStepData s) =>
         new()
         {
-            Id = s.Id,
-            Title = s.Title,
+            Id = string.IsNullOrWhiteSpace(s.Id) ? string.Empty : s.Id.Trim(),
+            Title = s.Title?.Trim() ?? string.Empty,
             Seconds = s.Seconds,
-            Command = s.Command,
+            Command = s.Command ?? string.Empty,
         };
 
     private static List<RoutineStepData> MapSteps(IEnumerable<RoutineStepDto> steps) =>
-        steps.Select((s, i) => new RoutineStepData
-        {
-            Id = string.IsNullOrWhiteSpace(s.Id) ? $"step-{i + 1}" : s.Id.Trim(),
-            Title = string.IsNullOrWhiteSpace(s.Title) ? $"Step {i + 1}" : s.Title.Trim(),
-            Seconds = Math.Max(1, s.Seconds),
-            Command = s.Command ?? string.Empty,
-            Order = i,
-        }).ToList();
+        (steps ?? Enumerable.Empty<RoutineStepDto>())
+            .Where(s => s != null)
+            .Select((s, i) => new RoutineStepData
+            {
+                Id = string.IsNullOrWhiteSpace(s.Id) ? $"step-{i + 1}" : s.Id.Trim(),
+                Title = string.IsNullOrWhiteSpace(s.Title) ? $"Step {i + 1}" : s.Title.Trim(),
+                Seconds = Math.Max(1, s.Seconds),
+                Command = s.Command ?? string.Empty,
+                Order = i,
+            }).ToList();
 
     private static void NormalizeOrder(List<RoutineStepData> steps)
     {
@@ -321,4 +360,10 @@ public class RoutineDefinitionService
 
     private static UnifiedRoutine CatalogFor(string key) =>
         key == "night" ? RoutineCatalog.Night : RoutineCatalog.Morning;
+
+    private static UnifiedRoutine CatalogForLoose(string? key)
+    {
+        var k = (key ?? string.Empty).Trim().ToLowerInvariant();
+        return k is "night" or "evening" ? RoutineCatalog.Night : RoutineCatalog.Morning;
+    }
 }

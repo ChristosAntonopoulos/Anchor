@@ -55,7 +55,7 @@ public class MorningModeService
             using var doc = JsonDocument.Parse(existing.PayloadJson);
             return new ModeSessionResponseDto
             {
-                Session = doc.RootElement.Clone(),
+                Session = RoutineDtoMapper.NormalizeMorningSessionPayload(doc.RootElement.Clone()),
                 Routine = routine,
                 HasStoredSession = true,
             };
