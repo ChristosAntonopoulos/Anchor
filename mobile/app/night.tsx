@@ -9,11 +9,12 @@ import { useNightModeStore } from '../store/useNightModeStore';
 import { useTaskStore } from '../store/useTaskStore';
 import {
   COPY,
-  NIGHT_TOTAL_SECONDS,
   STEP_SECONDS,
   currentCommand,
   currentSubtext,
   formatClock,
+  formatNightTriggerLabel,
+  getNightTotalSeconds,
   primaryLabel,
   stepRemainingSeconds,
 } from '../utils/nightMode';
@@ -25,6 +26,7 @@ import {
   startNightPin,
   stopNightSpeech,
 } from '../services/nightModeNative';
+import { getRuntimeStepSeconds } from '../utils/routineRuntime';
 
 export default function NightScreen() {
   const router = useRouter();
@@ -60,7 +62,7 @@ export default function NightScreen() {
     if (session.status !== 'ACTIVE') return;
     const id = setInterval(() => {
       dispatch({ type: 'tick' });
-    }, 250);
+    }, 1000);
     return () => clearInterval(id);
   }, [dispatch, session.status]);
 
@@ -113,7 +115,7 @@ export default function NightScreen() {
         <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
           <Text style={styles.kicker}>{COPY.title}</Text>
           <View style={styles.center}>
-            <Text style={styles.command}>After the night gate, on the first unlock.</Text>
+            <Text style={styles.command}>After {formatNightTriggerLabel()}, on the first unlock.</Text>
             <Text style={styles.sub}>Same evening routine as your schedule block. One unlock. Once a day.</Text>
           </View>
           <Pressable onPress={() => router.replace('/(tabs)')} style={styles.primary}>
@@ -131,7 +133,7 @@ export default function NightScreen() {
         <View style={styles.top}>
           <Text style={styles.kicker}>{COPY.title}</Text>
           <Text style={styles.total}>
-            {formatClock(session.sessionElapsedSeconds)} / {formatClock(NIGHT_TOTAL_SECONDS)}
+            {formatClock(session.sessionElapsedSeconds)} / {formatClock(getNightTotalSeconds())}
           </Text>
         </View>
 
@@ -216,13 +218,15 @@ export default function NightScreen() {
         <Pressable
           onLongPress={async () => {
             const next = !session.pinEnabled;
-            dispatch({ type: 'help' });
+            dispatch({ type: 'setPin', enabled: next });
             await setNightPinEnabled(next);
             if (next) await startNightPin();
           }}
         >
           <Text style={styles.pinHint}>
-            {session.currentStep === 'close' ? `${formatClock(STEP_SECONDS.close)}` : ' '}
+            {session.currentStep === 'close'
+              ? `${formatClock(getRuntimeStepSeconds('night').close ?? STEP_SECONDS.close)}`
+              : ' '}
           </Text>
         </Pressable>
       </SafeAreaView>

@@ -40,7 +40,7 @@ test('first unlock at 07:00 activates once', () => {
   const session = reduceMorning(emptyWaiting(now), { type: 'unlock', fromUserPresent: true }, now);
   assert.equal(session.status, 'ACTIVE');
   assert.equal(session.currentStep, 'water');
-  assert.equal(currentCommand(session), COPY.water);
+  assert.equal(currentCommand(session), 'Open curtains if you want. Drink a glass of water.');
   const again = reduceMorning(session, { type: 'unlock', fromUserPresent: true }, morning(7, 35));
   assert.equal(again.status, 'ACTIVE');
   assert.equal(again.id, session.id);

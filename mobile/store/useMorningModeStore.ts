@@ -16,15 +16,19 @@ import {
   loadNativeSessionJson,
   playMorningChime,
   saveNativeSessionJson,
+  setMorningTrigger,
   stopMorningSpeech,
 } from '../services/morningModeNative';
-import { applyRemoteRoutine } from '../utils/routineRuntime';
+import { applyRemoteRoutine, getRuntimeTrigger } from '../utils/routineRuntime';
+import { bootstrapRoutines } from '../utils/routineBootstrap';
 import { useTaskStore } from './useTaskStore';
 
 interface MorningModeState {
   session: MorningSession;
   hydrated: boolean;
-  hydrate: () => Promise<void>;
+  /** True when the last hydrate consumed a real USER_PRESENT pending unlock. */
+  lastActivatedFromUnlock: boolean;
+  hydrate: () => Promise<{ activatedFromUnlock: boolean; takeover: boolean }>;
   dispatch: (event: MorningEvent, now?: Date) => MorningSession;
   prepareFirstTask: () => Promise<void>;
   askHelp: (text?: string) => Promise<void>;
@@ -51,41 +55,67 @@ async function persist(session: MorningSession, syncBackend: boolean): Promise<v
   void apiClient.syncMorningSession(session).catch(() => undefined);
 }
 
+function applyRoutineAndTrigger(
+  remote: Partial<import('../utils/routineCatalog').UnifiedRoutineDef> & {
+    key?: string;
+    catalogVersion?: string;
+  } | null | undefined
+) {
+  if (!remote) return;
+  applyRemoteRoutine({ ...remote, key: remote.key ?? 'morning' });
+  const trigger = getRuntimeTrigger('morning');
+  void setMorningTrigger(trigger.hour, trigger.minute);
+}
+
 export const useMorningModeStore = create<MorningModeState>((set, get) => ({
   session: emptyWaiting(new Date()),
   hydrated: false,
+  lastActivatedFromUnlock: false,
 
   hydrate: async () => {
     const now = new Date();
+    void bootstrapRoutines();
     let stored = parseSession(await loadNativeSessionJson(), now);
-    if (!stored || stored.status === 'NOT_DUE' || stored.status === 'WAITING_FOR_FIRST_UNLOCK') {
-      try {
-        const remote = await apiClient.getMorningSession(
-          stored?.localDate ?? undefined,
-          stored?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
-        );
-        if (remote?.routine) {
-          applyRemoteRoutine({ ...remote.routine, key: remote.routine.key ?? 'morning' });
-        }
-        if (remote?.session?.localDate && remote.session.status) {
-          stored = reduceMorning(remote.session as MorningSession, { type: 'tick' }, now);
-        }
-      } catch {
-        // offline: keep local / empty waiting
+
+    // Always refresh routine definition from API; only replace session when waiting/empty.
+    try {
+      const remote = await apiClient.getMorningSession(
+        stored?.localDate ?? undefined,
+        stored?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
+      );
+      if (remote?.routine) {
+        applyRoutineAndTrigger(remote.routine);
       }
+      const waiting =
+        !stored ||
+        stored.status === 'NOT_DUE' ||
+        stored.status === 'WAITING_FOR_FIRST_UNLOCK';
+      if (waiting && remote?.session?.localDate && remote.session.status) {
+        stored = reduceMorning(remote.session as MorningSession, { type: 'tick' }, now);
+      }
+    } catch {
+      // offline: keep local / empty waiting
     }
+
     const gate = await getMorningGate();
+    // Only a consumed pending flag means a real USER_PRESENT unlock (not screen lock).
     const pending = await consumeMorningPending();
     let session = reduceMorning(stored, { type: 'civilRollover' }, now);
-    const nativeActive = gate.status === 'ACTIVE' || gate.status === 'PAUSED' || pending;
-    if (nativeActive && session.status !== 'COMPLETED' && session.status !== 'ENDED_EARLY') {
+    let activatedFromUnlock = false;
+
+    if (pending && session.status !== 'COMPLETED' && session.status !== 'ENDED_EARLY') {
       session = reduceMorning(session, { type: 'unlock', fromUserPresent: true }, now);
+      activatedFromUnlock = session.status === 'ACTIVE' || session.status === 'PAUSED';
       if (gate.status === 'PAUSED' && session.status === 'ACTIVE') {
         session = reduceMorning(session, { type: 'pause' }, now);
       }
     }
-    set({ session, hydrated: true });
+    // Screen lock / AppState resume: never invent USER_PRESENT from gate ACTIVE alone.
+
+    const takeover = isMorningTakeover(session);
+    set({ session, hydrated: true, lastActivatedFromUnlock: activatedFromUnlock });
     await persist(session, true);
+    return { activatedFromUnlock, takeover };
   },
 
   dispatch: (event, now = new Date()) => {

@@ -90,6 +90,12 @@ class NightModeModule(reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
+    fun setTrigger(hour: Int, minute: Int, promise: Promise) {
+        NightModeStore.setTrigger(reactApplicationContext, hour, minute)
+        promise.resolve(true)
+    }
+
+    @ReactMethod
     fun enterImmersive(promise: Promise) {
         runOnActivity(promise) { activity ->
             applyImmersive(activity, true)

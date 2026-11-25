@@ -30,6 +30,9 @@ const emptyPipeline: LatestPipelineRun = {
   timezone: 'Europe/Athens',
 };
 
+/** Slow safety net; primary refresh is AppState active. */
+const PIPELINE_SAFETY_MS = 5 * 60_000;
+
 export function useOsWidgetSync() {
   const now = useExecutionStore((s) => s.now);
   const fetchNow = useExecutionStore((s) => s.fetchNow);
@@ -45,6 +48,7 @@ export function useOsWidgetSync() {
     let cancelled = false;
 
     const loadPipeline = async () => {
+      if (AppState.currentState !== 'active') return;
       try {
         const latest = await apiClient.getLatestPipeline();
         if (!cancelled) {
@@ -65,7 +69,7 @@ export function useOsWidgetSync() {
     });
     const timer = setInterval(() => {
       void loadPipeline();
-    }, 60_000);
+    }, PIPELINE_SAFETY_MS);
 
     return () => {
       cancelled = true;

@@ -10,5 +10,5 @@ public class DatabaseSettings
     /// Set to true to automatically seed the database if it's empty
     /// Set to false to disable auto-seeding (useful after initial setup)
     /// </summary>
-    public bool AutoSeedOnStartup { get; set; } = true;
+    public bool AutoSeedOnStartup { get; set; } = false;
 }

@@ -18,6 +18,7 @@ import { usePushRegistration } from '../hooks/usePushRegistration';
 import { usePushNotificationOpens } from '../hooks/usePushNotificationOpens';
 import { useMorningGate } from '../hooks/useMorningGate';
 import { useNightGate } from '../hooks/useNightGate';
+import { bootstrapRoutines } from '../utils/routineBootstrap';
 
 export default function RootLayout() {
   const { fetchCategories } = useCategoryStore();
@@ -29,6 +30,10 @@ export default function RootLayout() {
   usePushNotificationOpens();
   const morningTakeover = useMorningGate();
   const nightTakeover = useNightGate();
+
+  useEffect(() => {
+    void bootstrapRoutines(true);
+  }, []);
   const modeTakeover = morningTakeover || nightTakeover;
   const [showSetupPrompt, setShowSetupPrompt] = useState(false);
   const [setupPromptPaused, setSetupPromptPaused] = useState(false);

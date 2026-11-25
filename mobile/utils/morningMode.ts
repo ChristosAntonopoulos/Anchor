@@ -3,7 +3,13 @@ import {
   stepOrder,
   stepSecondsMap,
 } from './routineCatalog';
-import { getRuntimeTrigger } from './routineRuntime';
+import {
+  getRuntimeRoutine,
+  getRuntimeShorterStepOrder,
+  getRuntimeStepOrder,
+  getRuntimeStepSeconds,
+  getRuntimeTrigger,
+} from './routineRuntime';
 
 export const MORNING_TOTAL_SECONDS = MORNING_ROUTINE.totalSeconds;
 /** Catalog fallback; prefer getMorningTrigger() after hydrate. */
@@ -12,6 +18,20 @@ export const MORNING_TRIGGER_MINUTE = MORNING_ROUTINE.triggerMinute;
 
 export function getMorningTrigger(): { hour: number; minute: number } {
   return getRuntimeTrigger('morning');
+}
+
+export function getMorningTotalSeconds(): number {
+  return getRuntimeRoutine('morning').totalSeconds || MORNING_TOTAL_SECONDS;
+}
+
+export function formatMorningTriggerLabel(): string {
+  const t = getMorningTrigger();
+  return `${String(t.hour).padStart(2, '0')}:${String(t.minute).padStart(2, '0')}`;
+}
+
+function runtimeStepSeconds(): Record<string, number> {
+  const live = getRuntimeStepSeconds('morning');
+  return Object.keys(live).length > 0 ? live : STEP_SECONDS;
 }
 
 export type MorningStatus =
@@ -44,7 +64,8 @@ export type MorningEvent =
   | { type: 'setFirstTask'; task: MorningFirstTask }
   | { type: 'setBrush'; brush: MorningSubstep[] }
   | { type: 'quietAlternative' }
-  | { type: 'useShorter' };
+  | { type: 'useShorter' }
+  | { type: 'setPin'; enabled: boolean };
 
 export interface MorningSubstep {
   id: string;
@@ -185,6 +206,11 @@ export function emptyWaiting(now: Date): MorningSession {
   return baseSession(now, localDate, isAtOrAfterTrigger(now) ? 'WAITING_FOR_FIRST_UNLOCK' : 'NOT_DUE');
 }
 
+function firstStepId(): MorningStepId {
+  const order = getRuntimeStepOrder('morning');
+  return (order[0] as MorningStepId) || 'water';
+}
+
 function baseSession(now: Date, localDate: string, status: MorningStatus): MorningSession {
   return {
     id: sessionIdFor(localDate),
@@ -193,7 +219,7 @@ function baseSession(now: Date, localDate: string, status: MorningStatus): Morni
     status,
     firstEligibleUnlockAt: null,
     activationAt: null,
-    currentStep: 'water',
+    currentStep: firstStepId(),
     currentSubstep: 0,
     stepElapsedSeconds: 0,
     sessionElapsedSeconds: 0,
@@ -217,7 +243,7 @@ function baseSession(now: Date, localDate: string, status: MorningStatus): Morni
     chimePlayed: false,
     lastSpokenKey: null,
     shorter: false,
-    catalogVersion: MORNING_ROUTINE.key + '-unify-v1',
+    catalogVersion: getRuntimeRoutine('morning').key + '-unify-v1',
     updatedAt: now.toISOString(),
   };
 }
@@ -249,7 +275,17 @@ function stamp(session: MorningSession, now: Date, patch: Partial<MorningSession
 }
 
 function orderOf(session: MorningSession): MorningStepId[] {
+  const live = session.shorter
+    ? (getRuntimeShorterStepOrder('morning') as MorningStepId[])
+    : (getRuntimeStepOrder('morning') as MorningStepId[]);
+  if (live.length > 0) return live;
   return session.shorter ? SHORTER_STEP_ORDER : STEP_ORDER;
+}
+
+function secondsFor(step: string): number {
+  const live = runtimeStepSeconds();
+  if (typeof live[step] === 'number') return live[step];
+  return STEP_SECONDS[step as MorningStepId] ?? 60;
 }
 
 function elapsedNow(session: MorningSession, now: Date): { step: number; sessionElapsed: number } {
@@ -272,8 +308,8 @@ function substepsOf(session: MorningSession, step: MorningStepId): MorningSubste
 
 function plannedSeconds(session: MorningSession, step: MorningStepId, substep: number): number {
   const subs = substepsOf(session, step);
-  if (subs.length > 0) return subs[Math.min(substep, subs.length - 1)]?.seconds ?? STEP_SECONDS[step];
-  return STEP_SECONDS[step];
+  if (subs.length > 0) return subs[Math.min(substep, subs.length - 1)]?.seconds ?? secondsFor(step);
+  return secondsFor(step);
 }
 
 function anchor(session: MorningSession, now: Date, stepElapsed: number, sessionElapsed: number): Partial<MorningSession> {
@@ -292,7 +328,7 @@ function activate(session: MorningSession, now: Date): MorningSession {
     status: 'ACTIVE',
     firstEligibleUnlockAt: session.firstEligibleUnlockAt ?? now.toISOString(),
     activationAt: session.activationAt ?? now.toISOString(),
-    currentStep: session.activationAt ? session.currentStep : 'water',
+    currentStep: session.activationAt ? session.currentStep : firstStepId(),
     ...anchor(session, now, session.activationAt ? session.stepElapsedSeconds : 0, session.activationAt ? session.sessionElapsedSeconds : 0),
     helpText: null,
     confirmEnd: false,
@@ -413,9 +449,9 @@ export function reduceMorning(
       stepElapsedSeconds: times.step,
       sessionElapsedSeconds: times.sessionElapsed,
     };
-    if (session.currentStep === 'settle' && times.step >= STEP_SECONDS.settle && !session.chimePlayed) {
+    if (session.currentStep === 'settle' && times.step >= secondsFor('settle') && !session.chimePlayed) {
       patch.chimePlayed = true;
-      patch.settleActualSeconds = STEP_SECONDS.settle;
+      patch.settleActualSeconds = secondsFor('settle');
     }
     if (times.step >= planned && session.currentStep !== 'settle' && session.currentStep !== 'task') {
       return completeCurrent(stamp(session, now, patch), now);
@@ -461,18 +497,23 @@ export function reduceMorning(
 
   if (event.type === 'setBrush') {
     const total = event.brush.reduce((sum, item) => sum + item.seconds, 0);
-    const brush = total <= STEP_SECONDS.brush ? event.brush : DEFAULT_BRUSH;
+    const brush = total <= secondsFor('brush') ? event.brush : DEFAULT_BRUSH;
     return stamp(session, now, { brush });
+  }
+
+  if (event.type === 'setPin') {
+    return stamp(session, now, { pinEnabled: event.enabled });
   }
 
   if (event.type === 'useShorter') {
     if (session.shorter) return session;
     const times = elapsedNow(session, now);
+    const shortOrder = orderOf({ ...session, shorter: true });
     return stamp(session, now, {
       shorter: true,
-      currentStep: 'water',
+      currentStep: shortOrder[0] || 'water',
       currentSubstep: 0,
-      helpText: 'Bad-day path: water, then first task.',
+      helpText: 'Bad-day path: shorter routine.',
       ...anchor(session, now, 0, times.sessionElapsed),
     });
   }
@@ -555,7 +596,7 @@ export function reduceMorning(
     }
     if (session.currentStep === 'settle') {
       const times = elapsedNow(session, now);
-      if (times.step < STEP_SECONDS.settle && !session.chimePlayed) {
+      if (times.step < secondsFor('settle') && !session.chimePlayed) {
         return session;
       }
       return nextAfter(session, now);
@@ -567,8 +608,9 @@ export function reduceMorning(
 }
 
 export function currentCommand(session: MorningSession): string {
-  if (session.currentStep === 'water') return COPY.water;
-  if (session.currentStep === 'settle') return session.helpText === COPY.settleStopped ? COPY.settleStopped : COPY.settleGuide;
+  if (session.currentStep === 'settle') {
+    return session.helpText === COPY.settleStopped ? COPY.settleStopped : COPY.settleGuide;
+  }
   if (session.currentStep === 'task') {
     const task = session.selectedFirstTask ?? fallbackFirstTask();
     const actions = [task.firstPhysicalAction, ...task.nextMicroActions];
@@ -576,9 +618,16 @@ export function currentCommand(session: MorningSession): string {
   }
   const subs = substepsOf(session, session.currentStep);
   const item = subs[session.currentSubstep];
-  if (!item) return '';
-  if (session.currentStep === 'move' && session.seatedMovement) return item.seated ?? item.command;
-  return item.command;
+  if (item) {
+    if (session.currentStep === 'move' && session.seatedMovement) return item.seated ?? item.command;
+    return item.command;
+  }
+  const def = getRuntimeRoutine('morning');
+  const steps = session.shorter ? def.shorterSteps : def.steps;
+  const remote = steps.find((s) => s.id === session.currentStep);
+  if (remote?.command) return remote.command;
+  if (session.currentStep === 'water') return COPY.water;
+  return remote?.title ?? '';
 }
 
 export function currentSubtext(session: MorningSession): string | null {
@@ -631,5 +680,9 @@ export function isMorningTakeover(session: MorningSession | null): boolean {
 }
 
 export function timeBudgetOk(): boolean {
-  return STEP_ORDER.reduce((sum, id) => sum + STEP_SECONDS[id], 0) === MORNING_TOTAL_SECONDS;
+  const seconds = runtimeStepSeconds();
+  const order = getRuntimeStepOrder('morning');
+  const ids = order.length > 0 ? order : STEP_ORDER;
+  const total = ids.reduce((sum, id) => sum + (seconds[id] ?? 0), 0);
+  return total === getMorningTotalSeconds();
 }

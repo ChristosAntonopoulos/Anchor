@@ -6,7 +6,7 @@ import { useTaskStore } from '../store/useTaskStore';
 import { useDayBootstrapStore } from '../store/useDayBootstrapStore';
 import type { DayBootstrap } from '../types';
 
-const POLL_MS = 2000;
+const POLL_MS = 4000;
 
 export function useDayBootstrap(initial?: DayBootstrap | null) {
   const { bootstrap, showAssessment, setBootstrap, setShowAssessment } = useDayBootstrapStore();
