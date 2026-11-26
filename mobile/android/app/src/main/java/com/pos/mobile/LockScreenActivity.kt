@@ -169,9 +169,12 @@ class LockScreenActivity : AppCompatActivity() {
 
         bindCopy()
         bindGrokCell()
-        startCallObserve()
-        startMediaObserve()
-        startNotifObserve()
+        // While arming on SCREEN_OFF, skip observers — onResume starts them when interactive.
+        if (!isScreenOffLikely()) {
+            startCallObserve()
+            startMediaObserve()
+            startNotifObserve()
+        }
         // Only bail if we clearly woke into an unlocked phone (not while arming for lock).
         if (!isKeyguardLocked() && !isScreenOffLikely()) {
             finish()
@@ -189,14 +192,17 @@ class LockScreenActivity : AppCompatActivity() {
         super.onResume()
         showing = WeakReference(this)
         overridePendingTransition(0, 0)
-        if (!isScreenOffLikely()) {
-            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        }
+        // Never KEEP_SCREEN_ON — that made the lock face hold the panel awake ("always open").
+        @Suppress("DEPRECATION")
+        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         bindCopy()
         bindGrokCell()
-        startCallObserve()
-        startMediaObserve()
-        startNotifObserve()
+        // Observers only while the face is interactive; paused in onStop for Doze.
+        if (!isScreenOffLikely()) {
+            startCallObserve()
+            startMediaObserve()
+            startNotifObserve()
+        }
         if (!isKeyguardLocked() && !isScreenOffLikely()) {
             finish()
         }
@@ -238,8 +244,14 @@ class LockScreenActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
+        // Stay armed (do not finish) so the next wake already has Anchor over keyguard,
+        // but drop observers / media callbacks so we do not tick while the panel is off.
+        stopCallObserve()
+        stopMediaObserve()
+        stopNotifObserve()
+        @Suppress("DEPRECATION")
+        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         super.onStop()
-        // Stay armed while the display is off; do not finish here.
     }
 
     override fun finish() {
@@ -693,13 +705,9 @@ class LockScreenActivity : AppCompatActivity() {
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
         )
-        // Keep-awake only while the panel is already interactive — never while arming on SCREEN_OFF.
-        if (isScreenOffLikely()) {
-            @Suppress("DEPRECATION")
-            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        } else {
-            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        }
+        // Lock face must never hold the panel awake — system timeout owns sleep.
+        @Suppress("DEPRECATION")
+        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         // Explicitly clear turn-on so arming cannot wake the panel.
         @Suppress("DEPRECATION")
         window.clearFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
@@ -819,7 +827,12 @@ class LockScreenActivity : AppCompatActivity() {
         fun finishIfShowing() {
             showing?.get()?.let { activity ->
                 if (!activity.isFinishing) {
-                    activity.finish()
+                    // Remove the lock task so unlock does not leave a zombie lock face.
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        activity.finishAndRemoveTask()
+                    } else {
+                        activity.finish()
+                    }
                 }
             }
             showing = null

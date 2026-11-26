@@ -82,7 +82,7 @@ export default function DistractionGuardScreen() {
   }, [params.bypass, params.intentional]);
 
   useEffect(() => {
-    const id = setInterval(() => setNowTick(Date.now()), 1000);
+    const id = setInterval(() => setNowTick(Date.now()), 5_000);
     return () => clearInterval(id);
   }, []);
 

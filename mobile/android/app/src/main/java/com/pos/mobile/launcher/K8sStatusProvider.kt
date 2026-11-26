@@ -190,7 +190,8 @@ class K8sStatusProvider(
     }
 
     companion object {
-        const val POLL_MS = 30_000L
+        /** Manual refresh + slow safety net; avoid 30s network ticks on home. */
+        const val POLL_MS = 5 * 60_000L
 
         fun statusLabel(status: String): String = when (status.lowercase()) {
             "healthy" -> "Healthy"

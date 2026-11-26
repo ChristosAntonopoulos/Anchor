@@ -4,7 +4,7 @@ import { useTaskStore } from '../store/useTaskStore';
 import { useCBTStore } from '../store/useCBTStore';
 import type { AIInput } from '../types';
 
-const POLL_INTERVAL_MS = 1500;
+const POLL_INTERVAL_MS = 3000;
 const MAX_POLL_MS = 90000;
 /** When GET /ai-input/{id} is unavailable (older API deploy), wait for fire-and-forget intake. */
 const LEGACY_INTAKE_WAIT_MS = 12000;

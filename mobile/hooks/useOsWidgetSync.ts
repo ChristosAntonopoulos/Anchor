@@ -31,7 +31,7 @@ const emptyPipeline: LatestPipelineRun = {
 };
 
 /** Slow safety net; primary refresh is AppState active. */
-const PIPELINE_SAFETY_MS = 5 * 60_000;
+const PIPELINE_SAFETY_MS = 15 * 60_000;
 
 export function useOsWidgetSync() {
   const now = useExecutionStore((s) => s.now);
