@@ -27,6 +27,8 @@ data class CallLockSnapshot(
  */
 object LockScreenCall {
     private const val TAG = "LockScreenCall"
+    /** Event-driven via notification listener; rare catch-up only. */
+    private const val SAFETY_NET_MS = 60_000L
     private val mainHandler = Handler(Looper.getMainLooper())
 
     fun snapshot(context: Context): CallLockSnapshot? {
@@ -53,14 +55,14 @@ object LockScreenCall {
         }
         POSNotificationListenerService.addCallObserver(listener)
         publish(app, onChange)
-        // Light poll so we still refresh if the listener missed a style-only update.
+        // Rare safety net only — primary path is the notification listener (no 2.5s wakeups).
         val poll = object : Runnable {
             override fun run() {
                 publish(app, onChange)
-                mainHandler.postDelayed(this, 2_500L)
+                mainHandler.postDelayed(this, SAFETY_NET_MS)
             }
         }
-        mainHandler.postDelayed(poll, 2_500L)
+        mainHandler.postDelayed(poll, SAFETY_NET_MS)
         return {
             POSNotificationListenerService.removeCallObserver(listener)
             mainHandler.removeCallbacks(poll)

@@ -12,7 +12,8 @@ import android.os.Looper
  * flash the system lock screen or the app-icon task animation.
  *
  * Arm on [Intent.ACTION_SCREEN_OFF]; refresh on [Intent.ACTION_SCREEN_ON] while
- * locked; dismiss only on unlock ([Intent.ACTION_USER_PRESENT]).
+ * locked; dismiss only on unlock ([Intent.ACTION_USER_PRESENT]) or SCREEN_ON while
+ * unlocked. The lock face must never set FLAG_KEEP_SCREEN_ON — system timeout owns sleep.
  */
 object LockScreenHost {
     private const val TAG = "LockScreenHost"

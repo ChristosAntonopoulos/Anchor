@@ -6,7 +6,8 @@ import { useTaskStore } from '../store/useTaskStore';
 import { useDayBootstrapStore } from '../store/useDayBootstrapStore';
 import type { DayBootstrap } from '../types';
 
-const POLL_MS = 4000;
+/** Only while day bootstrap status is `processing`; prefer push/API over busy polls. */
+const POLL_MS = 8_000;
 
 export function useDayBootstrap(initial?: DayBootstrap | null) {
   const { bootstrap, showAssessment, setBootstrap, setShowAssessment } = useDayBootstrapStore();

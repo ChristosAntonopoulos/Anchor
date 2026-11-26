@@ -70,7 +70,7 @@ export function WorkSessionModal({ visible, onClose, pendingStart }: WorkSession
     if (!visible || session?.status !== 'running' || !session.timerEnabled) {
       return;
     }
-    const id = setInterval(() => setTick((value) => value + 1), 500);
+    const id = setInterval(() => setTick((value) => value + 1), 1000);
     return () => clearInterval(id);
   }, [visible, session?.status, session?.timerEnabled]);
 

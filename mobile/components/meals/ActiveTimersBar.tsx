@@ -18,17 +18,20 @@ export function ActiveTimersBar() {
   const tick = useCookingStore((s) => s.tick);
   const [, setNow] = useState(Date.now());
 
+  const running = timers.filter((t) => t.status === 'running');
+  const ringing = timers.filter((t) => t.status === 'done' && t.notified);
+  const hasLive = running.length > 0 || ringing.length > 0;
+
   useEffect(() => {
+    if (!hasLive) return;
     const id = setInterval(() => {
       tick();
       setNow(Date.now());
     }, 1000);
     return () => clearInterval(id);
-  }, [tick]);
+  }, [tick, hasLive]);
 
-  const running = timers.filter((t) => t.status === 'running');
-  const ringing = timers.filter((t) => t.status === 'done' && t.notified);
-  if (running.length === 0 && ringing.length === 0) return null;
+  if (!hasLive) return null;
 
   const primary = running[0] ?? ringing[0];
 

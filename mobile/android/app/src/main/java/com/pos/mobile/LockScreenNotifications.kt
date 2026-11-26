@@ -27,6 +27,8 @@ data class LockNotifSnapshot(
  */
 object LockScreenNotifications {
     private const val TAG = "LockScreenNotifications"
+    /** Event-driven via listener + interruption filter; rare catch-up only. */
+    private const val SAFETY_NET_MS = 60_000L
     private val mainHandler = Handler(Looper.getMainLooper())
 
     /** Channel ids that carry assistant pushes (current + stale upgrades). */
@@ -136,10 +138,10 @@ object LockScreenNotifications {
         val poll = object : Runnable {
             override fun run() {
                 publish(app, onChange)
-                mainHandler.postDelayed(this, 3_000L)
+                mainHandler.postDelayed(this, SAFETY_NET_MS)
             }
         }
-        mainHandler.postDelayed(poll, 3_000L)
+        mainHandler.postDelayed(poll, SAFETY_NET_MS)
 
         return {
             POSNotificationListenerService.removeCallObserver(listener)
